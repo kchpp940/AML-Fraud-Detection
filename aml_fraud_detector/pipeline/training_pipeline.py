@@ -86,10 +86,27 @@ class TrainingPipeline:
             raise CustomerException(e, sys)
 
 
+def run_script_mode():
+    logging.info("Running training pipeline in SCRIPT MODE (original interface)")
+    logging.info("DataIngestion() uses no-args constructor — config resolved automatically")
+    obj = DataIngestion()
+    train_data, test_data = obj.initiate_data_ingestion()
+
+    data_transformation = DataTransformation()
+    train_arr, test_arr = data_transformation.initiate_data_transformation(train_data, test_data)
+
+    model_trainer = ModelTrainer()
+    model_trainer.initiate_model_trainer(train_arr, test_arr)
+
+
 def main():
     try:
-        pipeline = TrainingPipeline()
-        pipeline.run_pipeline(run_evaluation=False)
+        use_class_mode = os.getenv("AML_PIPELINE_MODE", "script").lower() == "class"
+        if use_class_mode:
+            pipeline = TrainingPipeline()
+            pipeline.run_pipeline(run_evaluation=False)
+        else:
+            run_script_mode()
     except Exception as e:
         logging.error(f"Fatal error in training pipeline entry point: {str(e)}")
         raise
