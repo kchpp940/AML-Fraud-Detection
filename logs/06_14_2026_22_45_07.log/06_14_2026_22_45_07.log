@@ -1,0 +1,8 @@
+[ 2026-06-14 22:45:07,842] 48 root - INFO - No config file found, will use defaults
+[ 2026-06-14 22:45:07,842] 58 root - INFO - No schema file found, will use built-in schema defaults
+[ 2026-06-14 22:45:07,842] 86 root - WARNING - No valid data source found. Tried: AML_DATA_PATH env var, config file, and /Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/artifacts/data.csv
+[ 2026-06-14 22:45:07,842] 106 root - INFO - DataIngestionConfig resolved: source=/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/artifacts/data.csv
+[ 2026-06-14 22:45:07,842] 124 root - INFO - Using built-in schema defaults: 11 required columns
+[ 2026-06-14 22:45:08,479] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-14 22:45:08,769] 48 root - INFO - No config file found, will use defaults
+[ 2026-06-14 22:45:08,769] 58 root - INFO - No schema file found, will use built-in schema defaults

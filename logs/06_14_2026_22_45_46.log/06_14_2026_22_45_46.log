@@ -1,0 +1,13 @@
+[ 2026-06-14 22:45:46,429] 46 root - INFO - Using default config file: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:45:46,429] 56 root - INFO - Using default schema file: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:45:46,431] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:45:46,432] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:45:46,432] 84 root - INFO - Using default data file: /Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 22:45:46,432] 106 root - INFO - DataIngestionConfig resolved: source=/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 22:45:46,432] 118 root - INFO - Using schema from schema file: 11 required columns
+[ 2026-06-14 22:45:47,142] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-14 22:45:47,573] 46 root - INFO - Using default config file: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:45:47,573] 56 root - INFO - Using default schema file: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:45:47,574] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:45:47,575] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:45:47,575] 50 root - INFO - Data file size: 4541478 bytes (4.33 MB)

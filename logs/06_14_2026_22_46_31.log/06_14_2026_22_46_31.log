@@ -1,0 +1,48 @@
+[ 2026-06-14 22:46:31,556] 46 root - INFO - Using default config file: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:46:31,556] 56 root - INFO - Using default schema file: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,557] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:46:31,558] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,558] 76 root - INFO - Using data path from AML_DATA_PATH: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/custom_env_data.csv
+[ 2026-06-14 22:46:31,558] 106 root - INFO - DataIngestionConfig resolved: source=/var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/custom_env_data.csv
+[ 2026-06-14 22:46:31,561] 43 root - INFO - Using config file from AML_CONFIG_PATH: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/custom_config.yaml
+[ 2026-06-14 22:46:31,562] 56 root - INFO - Using default schema file: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,562] 67 root - INFO - Loaded YAML config from /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/custom_config.yaml
+[ 2026-06-14 22:46:31,563] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,563] 81 root - INFO - Using data path from config file: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/config_yaml_data.csv
+[ 2026-06-14 22:46:31,563] 106 root - INFO - DataIngestionConfig resolved: source=/var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/config_yaml_data.csv
+[ 2026-06-14 22:46:31,563] 46 root - INFO - Using default config file: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:46:31,563] 56 root - INFO - Using default schema file: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,564] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:46:31,565] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,565] 84 root - INFO - Using default data file: /Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 22:46:31,565] 106 root - INFO - DataIngestionConfig resolved: source=/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 22:46:31,565] 46 root - INFO - Using default config file: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:46:31,565] 56 root - INFO - Using default schema file: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,566] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 22:46:31,567] 67 root - INFO - Loaded YAML config from /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 22:46:31,568] 118 root - INFO - Using schema from schema file: 11 required columns
+[ 2026-06-14 22:46:31,568] 131 root - INFO - ============================================================
+[ 2026-06-14 22:46:31,568] 132 root - INFO - Starting data validation for: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/empty.csv
+[ 2026-06-14 22:46:31,568] 133 root - INFO - ============================================================
+[ 2026-06-14 22:46:31,568] 50 root - INFO - Data file size: 0 bytes (0.00 MB)
+[ 2026-06-14 22:46:31,568] 142 root - ERROR - [VALIDATION ERROR] Data file is empty (0 bytes): /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/empty.csv
+[ 2026-06-14 22:46:31,569] 131 root - INFO - ============================================================
+[ 2026-06-14 22:46:31,569] 132 root - INFO - Starting data validation for: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/bad_cols.csv
+[ 2026-06-14 22:46:31,569] 133 root - INFO - ============================================================
+[ 2026-06-14 22:46:31,569] 50 root - INFO - Data file size: 386 bytes (0.00 MB)
+[ 2026-06-14 22:46:31,569] 153 root - INFO - Reading CSV for validation: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/bad_cols.csv
+[ 2026-06-14 22:46:31,570] 155 root - INFO - CSV read successfully
+[ 2026-06-14 22:46:31,571] 62 root - INFO - DataFrame shape: 10 rows x 3 columns
+[ 2026-06-14 22:46:31,571] 74 root - INFO - Actual columns in DataFrame (3): ['Timestamp', 'Account', 'Amount Received']
+[ 2026-06-14 22:46:31,571] 75 root - INFO - Required columns (11): ['Timestamp', 'From Bank', 'Account', 'To Bank', 'Account.1', 'Amount Received', 'Receiving Currency', 'Amount Paid', 'Payment Currency', 'Payment Format', 'Is Laundering']
+[ 2026-06-14 22:46:31,571] 193 root - ERROR - [VALIDATION ERROR] Missing 8 required column(s): ['From Bank', 'To Bank', 'Account.1', 'Receiving Currency', 'Amount Paid', 'Payment Currency', 'Payment Format', 'Is Laundering']. DataFrame has columns: ['Timestamp', 'Account', 'Amount Received']
+[ 2026-06-14 22:46:31,574] 131 root - INFO - ============================================================
+[ 2026-06-14 22:46:31,574] 132 root - INFO - Starting data validation for: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/no_target.csv
+[ 2026-06-14 22:46:31,574] 133 root - INFO - ============================================================
+[ 2026-06-14 22:46:31,574] 50 root - INFO - Data file size: 888 bytes (0.00 MB)
+[ 2026-06-14 22:46:31,574] 153 root - INFO - Reading CSV for validation: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_test_zme4y4q2/no_target.csv
+[ 2026-06-14 22:46:31,575] 155 root - INFO - CSV read successfully
+[ 2026-06-14 22:46:31,575] 62 root - INFO - DataFrame shape: 10 rows x 10 columns
+[ 2026-06-14 22:46:31,576] 74 root - INFO - Actual columns in DataFrame (10): ['Timestamp', 'From Bank', 'Account', 'To Bank', 'Account.1', 'Amount Received', 'Receiving Currency', 'Amount Paid', 'Payment Currency', 'Payment Format']
+[ 2026-06-14 22:46:31,576] 75 root - INFO - Required columns (11): ['Timestamp', 'From Bank', 'Account', 'To Bank', 'Account.1', 'Amount Received', 'Receiving Currency', 'Amount Paid', 'Payment Currency', 'Payment Format', 'Is Laundering']
+[ 2026-06-14 22:46:31,576] 193 root - ERROR - [VALIDATION ERROR] Missing 1 required column(s): ['Is Laundering']. DataFrame has columns: ['Timestamp', 'From Bank', 'Account', 'To Bank', 'Account.1', 'Amount Received', 'Receiving Currency', 'Amount Paid', 'Payment Currency', 'Payment Format']
