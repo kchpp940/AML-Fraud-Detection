@@ -65,7 +65,7 @@ class TrainingPipeline:
             logging.warning(f"Model evaluation skipped due to: {str(e)}")
             return None
 
-    def run_pipeline(self, run_evaluation: bool = False):
+    def run(self, run_evaluation: bool = False):
         logging.info("\n" + "#" * 70)
         logging.info("STARTING AML FRAUD DETECTION TRAINING PIPELINE")
         logging.info("#" * 70 + "\n")
@@ -87,26 +87,14 @@ class TrainingPipeline:
 
 
 def run_script_mode():
-    logging.info("Running training pipeline in SCRIPT MODE (original interface)")
-    logging.info("DataIngestion() uses no-args constructor — config resolved automatically")
-    obj = DataIngestion()
-    train_data, test_data = obj.initiate_data_ingestion()
-
-    data_transformation = DataTransformation()
-    train_arr, test_arr = data_transformation.initiate_data_transformation(train_data, test_data)
-
-    model_trainer = ModelTrainer()
-    model_trainer.initiate_model_trainer(train_arr, test_arr)
+    logging.info("Running training pipeline in SCRIPT MODE")
+    pipeline = TrainingPipeline()
+    pipeline.run(run_evaluation=False)
 
 
 def main():
     try:
-        use_class_mode = os.getenv("AML_PIPELINE_MODE", "script").lower() == "class"
-        if use_class_mode:
-            pipeline = TrainingPipeline()
-            pipeline.run_pipeline(run_evaluation=False)
-        else:
-            run_script_mode()
+        run_script_mode()
     except Exception as e:
         logging.error(f"Fatal error in training pipeline entry point: {str(e)}")
         raise

@@ -1,0 +1,41 @@
+data_ingestion:
+  source_data_path: null
+
+model_training:
+  selected_models:
+    - "Random Forest"
+    - "AdaBoost"
+    - "XGBoost"
+
+  params:
+    "Random Forest":
+      n_estimators:
+        - 50
+        - 100
+        - 200
+
+    "AdaBoost":
+      n_estimators:
+        - 50
+        - 100
+        - 200
+      learning_rate:
+        - 0.01
+        - 0.1
+        - 0.5
+        - 1.0
+
+    "XGBoost":
+      n_estimators:
+        - 50
+        - 100
+        - 200
+      learning_rate:
+        - 0.01
+        - 0.1
+        - 0.05
+        - 0.001
+
+  scoring:
+    primary_metric: "recall"
+    cv_folds: 3

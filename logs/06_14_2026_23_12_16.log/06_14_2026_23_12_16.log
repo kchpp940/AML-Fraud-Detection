@@ -1,0 +1,18 @@
+[ 2026-06-14 23:12:17,672] 64 root - INFO - [Model Config] Using default model config: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:12:17,672] 78 root - INFO - [Data Config] Using dedicated data config: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:12:17,672] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:12:17,673] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:12:17,673] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:12:17,674] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:12:17,674] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (1 keys) — using as fallback layer
+[ 2026-06-14 23:12:17,674] 136 root - INFO - [Source Data] Priority 4 — default bundled data: /Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 23:12:17,674] 165 root - INFO - [DataIngestionConfig] source=/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv, sample_size=50000, split_ratio=0.2
+[ 2026-06-14 23:12:17,685] 57 root - INFO - [Model Config] Using provided model config: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final_3pqt_ejl/compat_model.yaml
+[ 2026-06-14 23:12:17,685] 78 root - INFO - [Data Config] Using dedicated data config: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:12:17,685] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:12:17,685] 99 root - INFO - Loaded YAML: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final_3pqt_ejl/compat_model.yaml
+[ 2026-06-14 23:12:17,686] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:12:17,686] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:12:17,686] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (2 keys) — using as fallback layer
+[ 2026-06-14 23:12:17,686] 132 root - INFO - [Source Data] Priority 3 — model.yaml (compat): /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final_3pqt_ejl/from_model_yaml.csv
+[ 2026-06-14 23:12:17,686] 165 root - INFO - [DataIngestionConfig] source=/var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final_3pqt_ejl/from_model_yaml.csv, sample_size=50000, split_ratio=0.2

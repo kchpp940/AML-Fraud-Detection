@@ -1,0 +1,43 @@
+[ 2026-06-14 23:13:31,392] 64 root - INFO - [Model Config] Using default model config: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:13:31,392] 78 root - INFO - [Data Config] Using dedicated data config: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:13:31,392] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,394] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:13:31,395] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:13:31,397] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,397] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (1 keys) — using as fallback layer
+[ 2026-06-14 23:13:31,397] 136 root - INFO - [Source Data] Priority 4 — default bundled data: /Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 23:13:31,397] 165 root - INFO - [DataIngestionConfig] source=/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv, sample_size=50000, split_ratio=0.2
+[ 2026-06-14 23:13:31,439] 57 root - INFO - [Model Config] Using provided model config: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/compat_model.yaml
+[ 2026-06-14 23:13:31,440] 80 root - INFO - [Data Config] No dedicated data config found, will fallback to model.yaml and defaults
+[ 2026-06-14 23:13:31,440] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,441] 99 root - INFO - Loaded YAML: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/compat_model.yaml
+[ 2026-06-14 23:13:31,442] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,443] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (2 keys) — using as fallback layer
+[ 2026-06-14 23:13:31,443] 132 root - INFO - [Source Data] Priority 3 — model.yaml (compat): /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/from_model_yaml.csv
+[ 2026-06-14 23:13:31,443] 165 root - INFO - [DataIngestionConfig] source=/var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/from_model_yaml.csv, sample_size=7777, split_ratio=0.2
+[ 2026-06-14 23:13:31,450] 57 root - INFO - [Model Config] Using provided model config: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/layered_model.yaml
+[ 2026-06-14 23:13:31,450] 71 root - INFO - [Data Config] Using provided data config: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/layered_dc.yaml
+[ 2026-06-14 23:13:31,450] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,451] 99 root - INFO - Loaded YAML: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/layered_model.yaml
+[ 2026-06-14 23:13:31,451] 99 root - INFO - Loaded YAML: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/layered_dc.yaml
+[ 2026-06-14 23:13:31,453] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,453] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (2 keys) — using as fallback layer
+[ 2026-06-14 23:13:31,453] 128 root - INFO - [Source Data] Priority 2 — data_config.yaml: /var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/from_dc.csv
+[ 2026-06-14 23:13:31,453] 165 root - INFO - [DataIngestionConfig] source=/var/folders/5n/5fk0gy756kj43rvymptfpp1r0000gn/T/aml_final__80v15vk/from_dc.csv, sample_size=3333, split_ratio=0.2
+[ 2026-06-14 23:13:31,453] 64 root - INFO - [Model Config] Using default model config: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:13:31,453] 78 root - INFO - [Data Config] Using dedicated data config: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:13:31,453] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,458] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:13:31,459] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:13:31,461] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,461] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (1 keys) — using as fallback layer
+[ 2026-06-14 23:13:31,461] 136 root - INFO - [Source Data] Priority 4 — default bundled data: /Users/pkcha/AML-Fraud-Detection/artifacts/data.csv
+[ 2026-06-14 23:13:31,461] 165 root - INFO - [DataIngestionConfig] source=/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv, sample_size=50000, split_ratio=0.2
+[ 2026-06-14 23:13:31,461] 181 root - INFO - [Schema] Using /Users/pkcha/AML-Fraud-Detection/config/schema.yaml — 11 required columns
+[ 2026-06-14 23:13:31,461] 64 root - INFO - [Model Config] Using default model config: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:13:31,461] 78 root - INFO - [Data Config] Using dedicated data config: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:13:31,461] 88 root - INFO - [Schema] Using default schema: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,463] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/model.yaml
+[ 2026-06-14 23:13:31,464] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/data_config.yaml
+[ 2026-06-14 23:13:31,466] 99 root - INFO - Loaded YAML: /Users/pkcha/AML-Fraud-Detection/config/schema.yaml
+[ 2026-06-14 23:13:31,466] 108 root - INFO - [Backward Compat] Found data_ingestion block in model.yaml (1 keys) — using as fallback layer
