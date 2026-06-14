@@ -20,8 +20,6 @@ from aml_fraud_detector.constants import (
 from aml_fraud_detector.entity.config_entity import (
     DataIngestionConfig,
     DataValidationConfig,
-    DataTransformationConfig,
-    ModelTrainerConfig,
 )
 
 
@@ -44,7 +42,7 @@ class Configuration:
             keys = list(self.model_config_info.keys())
             logging.info(
                 f"[Model Config] Loaded {len(keys)} top-level key(s) from model.yaml: {keys}. "
-                f"Note: Only 'data_ingestion' key (if present) is used for backward compatibility — "
+                f"Only 'data_ingestion' key (if present) is used for backward compatibility — "
                 f"all other keys are left untouched for user-defined training parameters."
             )
 
@@ -127,14 +125,18 @@ class Configuration:
             logging.info(f"[Source Data] Priority 1 — {ENV_DATA_PATH} env var: {env_data_path}")
             return env_data_path
 
-        di_block = self._get_data_ingestion_block()
-
-        from_data_config = self.data_config_info.get("data_ingestion", {}).get("source_data_path") if self.data_config_info else None
+        from_data_config = (
+            self.data_config_info.get("data_ingestion", {}).get("source_data_path")
+            if self.data_config_info else None
+        )
         if from_data_config and os.path.exists(str(from_data_config)):
             logging.info(f"[Source Data] Priority 2 — data_config.yaml: {from_data_config}")
             return str(from_data_config)
 
-        from_model_yaml = self.model_config_info.get("data_ingestion", {}).get("source_data_path") if self.model_config_info else None
+        from_model_yaml = (
+            self.model_config_info.get("data_ingestion", {}).get("source_data_path")
+            if self.model_config_info else None
+        )
         if from_model_yaml and os.path.exists(str(from_model_yaml)):
             logging.info(f"[Source Data] Priority 3 — model.yaml (compat): {from_model_yaml}")
             return str(from_model_yaml)
@@ -198,9 +200,3 @@ class Configuration:
             "numerical_columns": numerical_columns,
             "categorical_columns": categorical_columns,
         }
-
-    def get_data_transformation_config(self) -> DataTransformationConfig:
-        return DataTransformationConfig()
-
-    def get_model_trainer_config(self) -> ModelTrainerConfig:
-        return ModelTrainerConfig()

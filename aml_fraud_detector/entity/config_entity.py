@@ -23,13 +23,3 @@ class DataIngestionConfig:
 @dataclass
 class DataValidationConfig:
     schema_file_path: str = None
-
-
-@dataclass
-class DataTransformationConfig:
-    preprocessor_obj_file_path: str = os.path.join(ARTIFACTS_DIR, "preprocessor.pkl")
-
-
-@dataclass
-class ModelTrainerConfig:
-    trained_model_file_path: str = os.path.join(ARTIFACTS_DIR, "model.pkl")

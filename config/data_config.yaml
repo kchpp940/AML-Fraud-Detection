@@ -6,12 +6,3 @@ data_ingestion:
   train_test_split_ratio: 0.2
   random_state: 42
   sample_size: 50000
-
-data_validation:
-  schema_file_path: "config/schema.yaml"
-
-data_transformation:
-  preprocessor_obj_file_path: "artifacts/preprocessor.pkl"
-
-model_trainer:
-  trained_model_file_path: "artifacts/model.pkl"
