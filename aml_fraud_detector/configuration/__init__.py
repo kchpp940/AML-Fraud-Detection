@@ -25,16 +25,6 @@ from aml_fraud_detector.entity.config_entity import (
 )
 
 
-def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    result = dict(base)
-    for key, value in override.items():
-        if isinstance(value, dict) and isinstance(result.get(key), dict):
-            result[key] = _deep_merge(result[key], value)
-        else:
-            result[key] = value
-    return result
-
-
 class Configuration:
     def __init__(
         self,
@@ -50,7 +40,13 @@ class Configuration:
         self.data_config_info = self._load_yaml_file(self.data_config_file_path)
         self.schema_info = self._load_yaml_file(self.schema_file_path)
 
-        self.merged_config_info = self._merge_configs()
+        if self.model_config_info:
+            keys = list(self.model_config_info.keys())
+            logging.info(
+                f"[Model Config] Loaded {len(keys)} top-level key(s) from model.yaml: {keys}. "
+                f"Note: Only 'data_ingestion' key (if present) is used for backward compatibility — "
+                f"all other keys are left untouched for user-defined training parameters."
+            )
 
     def _resolve_model_config_file_path(self, config_file_path: Optional[str]) -> Optional[str]:
         if config_file_path and os.path.exists(config_file_path):
@@ -63,7 +59,7 @@ class Configuration:
         if os.path.exists(DEFAULT_CONFIG_FILE):
             logging.info(f"[Model Config] Using default model config: {DEFAULT_CONFIG_FILE}")
             return DEFAULT_CONFIG_FILE
-        logging.info("[Model Config] No model config file found (model.yaml is for user-defined training params)")
+        logging.info("[Model Config] No model config file found")
         return None
 
     def _resolve_data_config_file_path(self, data_config_file_path: Optional[str]) -> Optional[str]:
@@ -77,7 +73,7 @@ class Configuration:
         if os.path.exists(DEFAULT_DATA_CONFIG_FILE):
             logging.info(f"[Data Config] Using dedicated data config: {DEFAULT_DATA_CONFIG_FILE}")
             return DEFAULT_DATA_CONFIG_FILE
-        logging.info("[Data Config] No dedicated data config found, will fallback to model.yaml and defaults")
+        logging.info("[Data Config] No dedicated data config found — will use model.yaml data_ingestion + built-in defaults")
         return None
 
     def _resolve_schema_file_path(self, schema_file_path: Optional[str]) -> Optional[str]:
@@ -102,18 +98,28 @@ class Configuration:
             logging.warning(f"Failed to load YAML {file_path}: {e}")
             return {}
 
-    def _merge_configs(self) -> Dict[str, Any]:
-        model_ingestion = self.model_config_info.get("data_ingestion", {}) if self.model_config_info else {}
-        if model_ingestion:
+    def _get_data_ingestion_block(self) -> Dict[str, Any]:
+        primary = self.data_config_info.get("data_ingestion", {}) if self.data_config_info else {}
+        fallback = self.model_config_info.get("data_ingestion", {}) if self.model_config_info else {}
+        if primary and fallback:
+            merged = dict(fallback)
+            merged.update(primary)
             logging.info(
-                f"[Backward Compat] Found data_ingestion block in model.yaml "
-                f"({len(model_ingestion)} keys) — using as fallback layer"
+                f"[Data Ingestion] Merged data_config.yaml ({len(primary)} keys) "
+                f"over model.yaml data_ingestion fallback ({len(fallback)} keys)"
             )
-        merged = _deep_merge(
-            {"data_ingestion": model_ingestion},
-            self.data_config_info,
-        )
-        return merged
+            return merged
+        if primary:
+            logging.info(f"[Data Ingestion] Using data_config.yaml data_ingestion block ({len(primary)} keys)")
+            return primary
+        if fallback:
+            logging.info(
+                f"[Data Ingestion] BACKWARD COMPAT: Using model.yaml data_ingestion block "
+                f"({len(fallback)} keys) as fallback"
+            )
+            return fallback
+        logging.info("[Data Ingestion] No data_ingestion block in any config — using built-in defaults")
+        return {}
 
     def _resolve_source_data_path(self) -> str:
         env_data_path = os.getenv(ENV_DATA_PATH)
@@ -121,16 +127,17 @@ class Configuration:
             logging.info(f"[Source Data] Priority 1 — {ENV_DATA_PATH} env var: {env_data_path}")
             return env_data_path
 
-        di_block = self.merged_config_info.get("data_ingestion", {}) if self.merged_config_info else {}
-        if di_block:
-            from_data_config = self.data_config_info.get("data_ingestion", {}).get("source_data_path") if self.data_config_info else None
-            if from_data_config and os.path.exists(from_data_config):
-                logging.info(f"[Source Data] Priority 2 — data_config.yaml: {from_data_config}")
-                return from_data_config
-            from_model_yaml = self.model_config_info.get("data_ingestion", {}).get("source_data_path") if self.model_config_info else None
-            if from_model_yaml and os.path.exists(from_model_yaml):
-                logging.info(f"[Source Data] Priority 3 — model.yaml (compat): {from_model_yaml}")
-                return from_model_yaml
+        di_block = self._get_data_ingestion_block()
+
+        from_data_config = self.data_config_info.get("data_ingestion", {}).get("source_data_path") if self.data_config_info else None
+        if from_data_config and os.path.exists(str(from_data_config)):
+            logging.info(f"[Source Data] Priority 2 — data_config.yaml: {from_data_config}")
+            return str(from_data_config)
+
+        from_model_yaml = self.model_config_info.get("data_ingestion", {}).get("source_data_path") if self.model_config_info else None
+        if from_model_yaml and os.path.exists(str(from_model_yaml)):
+            logging.info(f"[Source Data] Priority 3 — model.yaml (compat): {from_model_yaml}")
+            return str(from_model_yaml)
 
         if os.path.exists(DEFAULT_DATA_FILE):
             logging.info(f"[Source Data] Priority 4 — default bundled data: {DEFAULT_DATA_FILE}")
@@ -147,14 +154,14 @@ class Configuration:
         source_data_path = self._resolve_source_data_path()
         config = DataIngestionConfig(source_data_path=source_data_path)
 
-        di_block = self.merged_config_info.get("data_ingestion", {}) if self.merged_config_info else {}
+        di_block = self._get_data_ingestion_block()
         if di_block:
             if "train_data_path" in di_block:
-                config.train_data_path = di_block["train_data_path"]
+                config.train_data_path = str(di_block["train_data_path"])
             if "test_data_path" in di_block:
-                config.test_data_path = di_block["test_data_path"]
+                config.test_data_path = str(di_block["test_data_path"])
             if "raw_data_path" in di_block:
-                config.raw_data_path = di_block["raw_data_path"]
+                config.raw_data_path = str(di_block["raw_data_path"])
             if "train_test_split_ratio" in di_block:
                 config.train_test_split_ratio = float(di_block["train_test_split_ratio"])
             if "random_state" in di_block:

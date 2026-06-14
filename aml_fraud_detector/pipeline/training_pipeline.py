@@ -86,19 +86,10 @@ class TrainingPipeline:
             raise CustomerException(e, sys)
 
 
-def run_script_mode():
-    logging.info("Running training pipeline in SCRIPT MODE")
-    pipeline = TrainingPipeline()
-    pipeline.run(run_evaluation=False)
-
-
-def main():
+if __name__ == "__main__":
     try:
-        run_script_mode()
+        pipeline = TrainingPipeline()
+        pipeline.run(run_evaluation=False)
     except Exception as e:
         logging.error(f"Fatal error in training pipeline entry point: {str(e)}")
         raise
-
-
-if __name__ == "__main__":
-    main()

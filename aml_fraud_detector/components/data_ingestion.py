@@ -29,15 +29,14 @@ class DataIngestion:
         source_path = self.ingestion_config.source_data_path
         logging.info(f"Attempting to read source data from: {source_path}")
         if not os.path.exists(source_path):
-            available_paths = [
-                f"ENV[{self.config_manager._resolve_source_data_path.__code__.co_varnames[0]}]",
-            ]
             raise CustomerException(
                 FileNotFoundError(
                     f"Source data file not found at: {source_path}. "
-                    f"Please set the AML_DATA_PATH environment variable, "
-                    f"configure source_data_path in config/model.yaml, "
-                    f"or place the data CSV at the default location (artifacts/data.csv)."
+                    f"Please resolve by (in priority order): "
+                    f"1) set AML_DATA_PATH env var; "
+                    f"2) set source_data_path in config/data_config.yaml; "
+                    f"3) set source_data_path in config/model.yaml (backward compat); "
+                    f"4) place data CSV at default location (artifacts/data.csv)."
                 ),
                 sys,
             )
