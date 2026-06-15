@@ -14,9 +14,7 @@ BATCH_COLUMNS = [
 
 
 def _get_single_result(full_result: dict) -> dict:
-    if full_result.get("is_batch") or len(full_result.get("results", [])) > 1:
-        return full_result.get("results", [{}])[0]
-    return full_result.get("results", [{}])[0]
+    return full_result.get("row", {})
 
 
 @app.route("/")
@@ -98,15 +96,17 @@ def batch_predict():
         full_result = predict_pipeline.predict_with_explanation(predict_df)
 
         rows = []
-        for i, res in enumerate(full_result.get("results", [])):
+        for i, res in enumerate(full_result.get("rows", [])):
             orig_row = df.iloc[i].to_dict()
             row = {
-                "row_index": i,
+                "row_index": res.get("row_index", i),
+                "process_status": res.get("process_status"),
                 "prediction": res.get("prediction"),
                 "prediction_label": res.get("prediction_label"),
                 "fraud_probability": res.get("fraud_probability"),
+                "error_reason": res.get("error_reason"),
             }
-            top_factors = res.get("top_factors", [])
+            top_factors = res.get("risk_explanation", {}).get("top_factors", [])
             for j, factor in enumerate(top_factors, 1):
                 row[f"factor_{j}_label"] = factor.get("label")
                 row[f"factor_{j}_value"] = factor.get("value")

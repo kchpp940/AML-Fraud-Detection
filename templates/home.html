@@ -99,10 +99,11 @@
             <strong>Fraud Probability:</strong> {{ "%.2f%%"|format(result.fraud_probability * 100) }}
         </div>
 
-        {% if result.top_factors %}
+        {% set top_factors = result.get('risk_explanation', {}).get('top_factors', []) %}
+        {% if top_factors %}
         <h3>Risk Factor Analysis</h3>
         <ul class="factor-list">
-            {% for factor in result.top_factors %}
+            {% for factor in top_factors %}
             <li class="factor-item">
                 <span class="factor-label">{{ loop.index }}. {{ factor.label }}</span>
                 — Current value: <span class="factor-value">{{ factor.value }}</span><br>

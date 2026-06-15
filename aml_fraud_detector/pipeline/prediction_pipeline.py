@@ -99,18 +99,33 @@ class PredictionPipeline:
                 probas = model.predict_proba(data_scaled)
 
                 n_rows = features.shape[0]
-                results = []
-                for i in range(n_rows):
-                    results.append({
-                        "row_index": i,
-                        "prediction": int(predictions[i]),
-                        "prediction_label": "欺诈交易" if predictions[i] == 1 else "正常交易",
-                        "fraud_probability": round(float(probas[i, 1]), 4),
-                        "top_factors": [],
-                    })
+                rows = []
+                fraud_count = 0
+                normal_count = 0
 
-                fraud_count = int(sum(1 for r in results if r["prediction"] == 1))
-                return {
+                for i in range(n_rows):
+                    prediction = int(predictions[i])
+                    if prediction == 1:
+                        fraud_count += 1
+                    else:
+                        normal_count += 1
+
+                    row_dict: Dict[str, Any] = {
+                        "row_index": i,
+                        "process_status": "success",
+                        "prediction": prediction,
+                        "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
+                        "fraud_probability": round(float(probas[i, 1]), 4),
+                        "error_reason": None,
+                        "risk_explanation": {
+                            "top_factors": [],
+                        },
+                    }
+                    for col in features.columns:
+                        row_dict[col] = features[col].iloc[i]
+                    rows.append(row_dict)
+
+                output = {
                     "contract_version": INFERENCE_CONTRACT_VERSION,
                     "training_signature": "",
                     "signature_valid": False,
@@ -118,10 +133,13 @@ class PredictionPipeline:
                     "is_batch": n_rows > 1,
                     "count": n_rows,
                     "fraud_count": fraud_count,
-                    "normal_count": n_rows - fraud_count,
+                    "normal_count": normal_count,
                     "fraud_rate": round(fraud_count / n_rows * 100, 2) if n_rows > 0 else 0.0,
-                    "results": results,
+                    "rows": rows,
                 }
+                if n_rows == 1:
+                    output["row"] = rows[0]
+                return output
 
             explanation = explain_risk(
                 features_df=features,

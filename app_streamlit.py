@@ -17,9 +17,14 @@ def _render_single_explanation(result: dict, sig_valid: bool, sig_msg: str, cont
     prediction = result["prediction"]
     prediction_label = result["prediction_label"]
     fraud_probability = result["fraud_probability"]
-    top_factors = result.get("top_factors", [])
+    top_factors = result.get("risk_explanation", {}).get("top_factors", [])
+    process_status = result.get("process_status", "success")
+    error_reason = result.get("error_reason")
 
     st.subheader("预测结果")
+    if process_status == "failed":
+        st.error(f"**预测失败**: {error_reason}")
+        return
     if prediction == 1:
         st.error(f"**{prediction_label}**")
     else:
@@ -85,7 +90,7 @@ def _render_batch_explanation(full_result: dict, input_df: pd.DataFrame, sig_val
     fraud_count = full_result.get("fraud_count", 0)
     normal_count = full_result.get("normal_count", 0)
     fraud_rate = full_result.get("fraud_rate", 0.0)
-    results = full_result.get("results", [])
+    rows = full_result.get("rows", [])
 
     st.subheader("批量预测汇总")
     col1, col2, col3, col4 = st.columns(4)
@@ -103,14 +108,16 @@ def _render_batch_explanation(full_result: dict, input_df: pd.DataFrame, sig_val
     st.dataframe(summary_df, hide_index=True)
 
     output_rows = []
-    for i, res in enumerate(results):
+    for i, res in enumerate(rows):
         orig_row = input_df.iloc[i].to_dict()
         row = {
             "行号": i + 1,
+            "处理状态": "成功" if res.get("process_status") == "success" else "失败",
             "预测结果": res.get("prediction_label"),
             "欺诈概率": f"{res.get('fraud_probability', 0) * 100:.2f}%",
+            "错误原因": res.get("error_reason"),
         }
-        top_factors = res.get("top_factors", [])
+        top_factors = res.get("risk_explanation", {}).get("top_factors", [])
         for j, factor in enumerate(top_factors, 1):
             row[f"风险因素{j}"] = f"{factor.get('label')}={factor.get('value')} ({factor.get('contribution_pct')}%)"
             row[f"因素{j}说明"] = factor.get("description")
@@ -131,11 +138,13 @@ def _render_batch_explanation(full_result: dict, input_df: pd.DataFrame, sig_val
     )
 
     st.subheader("按预测结果筛选")
-    filter_opt = st.selectbox("选择查看", ["全部", "仅欺诈交易", "仅正常交易"])
+    filter_opt = st.selectbox("选择查看", ["全部", "仅欺诈交易", "仅正常交易", "仅失败行"])
     if filter_opt == "仅欺诈交易":
-        filtered = output_df[output_df["预测结果"] == "欺诈交易"]
+        filtered = output_df[(output_df["预测结果"] == "欺诈交易") & (output_df["处理状态"] == "成功")]
     elif filter_opt == "仅正常交易":
-        filtered = output_df[output_df["预测结果"] == "正常交易"]
+        filtered = output_df[(output_df["预测结果"] == "正常交易") & (output_df["处理状态"] == "成功")]
+    elif filter_opt == "仅失败行":
+        filtered = output_df[output_df["处理状态"] == "失败"]
     else:
         filtered = output_df
     st.dataframe(filtered, use_container_width=True)
@@ -210,7 +219,7 @@ def main():
             if not sig_valid:
                 st.warning(f"⚠️ {sig_msg}")
 
-            single_result = full_result.get("results", [{}])[0]
+            single_result = full_result.get("row", {})
             _render_single_explanation(single_result, sig_valid, sig_msg, contract_version, training_sig)
 
             if training_sig:

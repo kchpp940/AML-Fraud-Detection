@@ -293,13 +293,13 @@ def _explain_single_row(
         else:
             c["contribution_pct"] = 0.0
 
-    top_factors = contributions[:top_n]
-
     return {
         "prediction": prediction,
         "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
         "fraud_probability": round(base_proba, 4),
-        "top_factors": top_factors,
+        "risk_explanation": {
+            "top_factors": contributions[:top_n],
+        },
     }
 
 
@@ -318,92 +318,110 @@ def explain_risk(
             X_full = np.asarray(X_full)
 
         n_rows = features_df.shape[0]
-        if n_rows == 1:
-            single_result = _explain_single_row(
-                row_df=features_df,
-                model=model,
-                preprocessor=preprocessor,
-                feature_metadata=feature_metadata,
-                top_n=top_n,
-                preprocessed_X=X_full,
-            )
-            return {
-                "contract_version": feature_metadata.get("contract_version", "1.0"),
-                "training_signature": feature_metadata.get("training_signature", ""),
-                "is_batch": False,
-                "count": 1,
-                "results": [single_result],
-            }
-
         base_probas = model.predict_proba(X_full)[:, 1]
         predictions = model.predict(X_full)
 
         original_features = feature_metadata.get("original_features", [])
         baseline_values = feature_metadata.get("baseline_values", {})
 
-        results: List[Dict[str, Any]] = []
+        rows: List[Dict[str, Any]] = []
+        fraud_count = 0
+        normal_count = 0
+
         for i in range(n_rows):
             row_df = features_df.iloc[[i]].copy()
             base_proba = float(base_probas[i])
             prediction = int(predictions[i])
 
-            contributions: List[Dict[str, Any]] = []
-            for feat in original_features:
-                if feat not in baseline_values:
-                    continue
-                modified_df = row_df.copy()
-                modified_df[feat] = baseline_values[feat]
-                try:
-                    X_mod = preprocessor.transform(modified_df)
-                    if hasattr(X_mod, "toarray"):
-                        X_mod = X_mod.toarray()
+            if prediction == 1:
+                fraud_count += 1
+            else:
+                normal_count += 1
+
+            try:
+                contributions: List[Dict[str, Any]] = []
+                for feat in original_features:
+                    if feat not in baseline_values:
+                        continue
+                    modified_df = row_df.copy()
+                    modified_df[feat] = baseline_values[feat]
+                    try:
+                        X_mod = preprocessor.transform(modified_df)
+                        if hasattr(X_mod, "toarray"):
+                            X_mod = X_mod.toarray()
+                        else:
+                            X_mod = np.asarray(X_mod)
+                        mod_proba = float(model.predict_proba(X_mod)[0, 1])
+                    except Exception:
+                        mod_proba = base_proba
+
+                    contribution = base_proba - mod_proba
+                    raw_value = row_df[feat].iloc[0]
+                    direction = "high_risk" if contribution > 0 else "low_risk"
+
+                    contributions.append({
+                        "feature": feat,
+                        "label": feature_metadata.get("feature_labels", {}).get(feat, feat),
+                        "value": _format_value(raw_value),
+                        "contribution": round(contribution, 6),
+                        "direction": direction,
+                        "description": _describe_factor(feat, raw_value, direction),
+                    })
+
+                contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
+                total_abs = sum(abs(c["contribution"]) for c in contributions)
+                for c in contributions:
+                    if total_abs > 0:
+                        c["contribution_pct"] = round(abs(c["contribution"]) / total_abs * 100, 1)
                     else:
-                        X_mod = np.asarray(X_mod)
-                    mod_proba = float(model.predict_proba(X_mod)[0, 1])
-                except Exception:
-                    mod_proba = base_proba
+                        c["contribution_pct"] = 0.0
 
-                contribution = base_proba - mod_proba
-                raw_value = row_df[feat].iloc[0]
-                direction = "high_risk" if contribution > 0 else "low_risk"
+                row_dict: Dict[str, Any] = {
+                    "row_index": i,
+                    "process_status": "success",
+                    "prediction": prediction,
+                    "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
+                    "fraud_probability": round(base_proba, 4),
+                    "error_reason": None,
+                    "risk_explanation": {
+                        "top_factors": contributions[:top_n],
+                    },
+                }
+                for col in features_df.columns:
+                    row_dict[col] = features_df[col].iloc[i]
 
-                contributions.append({
-                    "feature": feat,
-                    "label": feature_metadata.get("feature_labels", {}).get(feat, feat),
-                    "value": _format_value(raw_value),
-                    "contribution": round(contribution, 6),
-                    "direction": direction,
-                    "description": _describe_factor(feat, raw_value, direction),
-                })
+                rows.append(row_dict)
 
-            contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
-            total_abs = sum(abs(c["contribution"]) for c in contributions)
-            for c in contributions:
-                if total_abs > 0:
-                    c["contribution_pct"] = round(abs(c["contribution"]) / total_abs * 100, 1)
-                else:
-                    c["contribution_pct"] = 0.0
+            except Exception as row_err:
+                row_dict = {
+                    "row_index": i,
+                    "process_status": "failed",
+                    "prediction": None,
+                    "prediction_label": None,
+                    "fraud_probability": None,
+                    "error_reason": f"解释生成失败: {str(row_err)}",
+                    "risk_explanation": {
+                        "top_factors": [],
+                    },
+                }
+                for col in features_df.columns:
+                    row_dict[col] = features_df[col].iloc[i]
+                rows.append(row_dict)
 
-            results.append({
-                "row_index": i,
-                "prediction": prediction,
-                "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
-                "fraud_probability": round(base_proba, 4),
-                "top_factors": contributions[:top_n],
-            })
-
-        fraud_count = int(sum(1 for r in results if r["prediction"] == 1))
-        normal_count = n_rows - fraud_count
-
-        return {
+        output: Dict[str, Any] = {
             "contract_version": feature_metadata.get("contract_version", "1.0"),
             "training_signature": feature_metadata.get("training_signature", ""),
-            "is_batch": True,
+            "is_batch": n_rows > 1,
             "count": n_rows,
             "fraud_count": fraud_count,
             "normal_count": normal_count,
             "fraud_rate": round(fraud_count / n_rows * 100, 2) if n_rows > 0 else 0.0,
-            "results": results,
+            "rows": rows,
         }
+
+        if n_rows == 1:
+            output["row"] = rows[0]
+
+        return output
     except Exception as e:
         raise CustomerException(e, sys)
