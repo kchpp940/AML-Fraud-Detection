@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-15T16:05:36.550946",
+  "generated_at": "2026-06-15T16:40:19.230780",
   "dataset_shape": [
     4000,
     11
@@ -106,17 +106,17 @@
       "column": "amount_received",
       "negative_count": 0,
       "zero_count": 0,
-      "outlier_count": 32,
-      "outlier_lower": -2969.3625,
-      "outlier_upper": 4640.8625
+      "outlier_count": 197,
+      "outlier_lower": -1338.6000000000004,
+      "outlier_upper": 3010.1000000000004
     },
     {
       "column": "amount_paid",
       "negative_count": 0,
       "zero_count": 0,
-      "outlier_count": 42,
-      "outlier_lower": -3050.945,
-      "outlier_upper": 4775.5975
+      "outlier_count": 207,
+      "outlier_lower": -1373.8287500000001,
+      "outlier_upper": 3098.48125
     }
   ],
   "unknown_categories": [],
@@ -147,7 +147,7 @@
     "issues": [
       {
         "code": "target_mild_imbalance",
-        "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.0%",
+        "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.00%",
         "severity": "WARNING",
         "ratio": 0.046,
         "threshold": 0.05
@@ -159,12 +159,25 @@
     {
       "level": "WARNING",
       "category": "target__target_mild_imbalance",
-      "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.0%"
+      "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.00%"
     }
   ],
   "validation_config": {
+    "critical_feature_columns": [
+      "account",
+      "account_1",
+      "amount_received",
+      "payment_format"
+    ],
     "categorical_columns": [],
     "categorical_whitelist": {},
+    "amount_columns": [
+      "amount_received",
+      "amount_paid"
+    ],
+    "timestamp_columns": [
+      "timestamp"
+    ],
     "thresholds": {
       "missing_value_critical_ratio": 0.3,
       "missing_value_warning_ratio": 0.1,

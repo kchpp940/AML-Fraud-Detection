@@ -1,6 +1,8 @@
+import json
 import os
 import sys
-from typing import Optional
+from dataclasses import asdict
+from typing import Any, Dict, Optional
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
@@ -13,6 +15,92 @@ from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 from aml_fraud_detector.utils.main_utils import save_training_summary
+
+
+def _load_data_quality_report(report_path: str) -> Dict[str, Any]:
+    if not os.path.isfile(report_path):
+        raise FileNotFoundError(
+            f"Data quality report not found at: {report_path}. "
+            f"Ensure data validation was executed before training."
+        )
+    with open(report_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _log_data_quality_risks(report: Dict[str, Any]) -> None:
+    risk_items = report.get("risk_items", [])
+    if not risk_items:
+        logging.info("Data quality check: no risk items detected")
+        return
+
+    criticals = [r for r in risk_items if r.get("level") == "CRITICAL"]
+    warnings = [r for r in risk_items if r.get("level") == "WARNING"]
+
+    logging.warning(
+        f"Data quality check completed: "
+        f"{len(criticals)} critical, {len(warnings)} warnings"
+    )
+
+    for r in criticals:
+        logging.error(
+            f"[DATA QUALITY CRITICAL] [{r.get('category', 'unknown')}] {r.get('message')}"
+        )
+    for r in warnings:
+        logging.warning(
+            f"[DATA QUALITY WARNING] [{r.get('category', 'unknown')}] {r.get('message')}"
+        )
+
+    target_dist = report.get("target_distribution", {})
+    if target_dist:
+        logging.info(
+            f"Target column distribution: {target_dist.get('value_counts', {})}, "
+            f"positive_ratio={target_dist.get('positive_ratio')}, "
+            f"severity={target_dist.get('overall_severity')}"
+        )
+
+
+def _validate_before_training(
+    report: Dict[str, Any], training_config: TrainingConfig
+) -> None:
+    target_col = training_config.features.target_column
+    errors: List[str] = []
+
+    critical_missing = report.get("critical_missing_columns", [])
+    if critical_missing:
+        errors.append(
+            f"Critical feature columns have excessive missing values (>30%): "
+            f"{critical_missing}. Training cannot proceed reliably."
+        )
+
+    target_dist = report.get("target_distribution", {})
+    target_severity = target_dist.get("overall_severity", "NONE")
+    if target_severity == "CRITICAL":
+        target_issues = target_dist.get("issues", [])
+        for issue in target_issues:
+            if issue.get("severity") == "CRITICAL":
+                errors.append(
+                    f"Target column '{target_col}' critical issue: {issue.get('message')}"
+                )
+
+    missing_values = report.get("missing_values", [])
+    for mv in missing_values:
+        if mv.get("column") == target_col and mv.get("severity") == "CRITICAL":
+            errors.append(
+                f"Target column '{target_col}' has "
+                f"{mv.get('missing_count')} missing values "
+                f"({mv.get('missing_ratio'):.2%}). Training cannot proceed."
+            )
+
+    if errors:
+        joined = "\n  - ".join(errors)
+        msg = (
+            "Data quality gate FAILED. Training aborted before data transformation. "
+            f"Fix the following issues or adjust validation thresholds:\n  - {joined}"
+        )
+        logging.error(msg)
+        raise ValueError(msg)
+
+    logging.info("Data quality gate PASSED: proceeding to data transformation")
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
@@ -52,37 +140,16 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"train≈{summary.train_rows}, test≈{summary.test_rows}"
         )
 
-        logging.info("-" * 72)
-        logging.info("Step: Data Validation")
-        logging.info("-" * 72)
         data_validation = DataValidation(training_config=training_config)
-        validation_artifact = data_validation.initiate_data_validation()
-        report_path = validation_artifact.quality_report_path
-        summary.quality_report_path = report_path
-
-        report_data = DataValidation.load_report(report_path)
-        risk_items = report_data.get("risk_items", [])
-        dataset_shape = report_data.get("dataset_shape", [])
-        if dataset_shape:
-            logging.info(
-                f"Quality validation dataset shape: {dataset_shape[0]} rows x {dataset_shape[1]} cols"
-            )
-        if risk_items:
-            logging.warning(
-                f"Data quality report contains {len(risk_items)} risk item(s):"
-            )
-            for item in risk_items:
-                logging.warning(
-                    f"  [{item.get('level', 'UNKNOWN')}] "
-                    f"{item.get('category', '')}: {item.get('message', '')}"
-                )
-        else:
-            logging.info("Data quality report: no risk items detected")
-
-        DataValidation.check_critical_issues(report_data)
+        validation_artifact = data_validation.initiate_data_validation(df=df_sample)
         logging.info(
-            f"Data validation passed, quality report saved: {report_path}"
+            f"Data validation done: report_path={validation_artifact.report_path}, "
+            f"is_valid={validation_artifact.is_valid}"
         )
+
+        quality_report = _load_data_quality_report(validation_artifact.report_path)
+        _log_data_quality_risks(quality_report)
+        _validate_before_training(quality_report, training_config)
 
         data_transformation = DataTransformation(training_config=training_config)
         transform_artifact = data_transformation.initiate_data_transformation(
@@ -159,7 +226,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Best metric value  : {summary.best_metric_value:.6f}")
         print(f"Artifacts dir      : {summary.artifacts_dir}")
         print(f"Preprocessor saved : {summary.preprocessor_path}")
-        print(f"Quality report     : {summary.quality_report_path}")
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")

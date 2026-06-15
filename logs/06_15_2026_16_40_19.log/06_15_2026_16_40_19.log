@@ -1,0 +1,9 @@
+[ 2026-06-15 16:40:19,204] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 16:40:19,206] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 16:40:19,206] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 16:40:19,206] 52 root - INFO - DataValidation initialized: report_out=artifacts/data_quality_report.json, critical_features=['amount_received']
+[ 2026-06-15 16:40:19,206] 415 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-15 16:40:19,206] 424 root - INFO - Validating dataset with shape=(4000, 11)
+[ 2026-06-15 16:40:19,206] 428 root - INFO - Resolved critical feature columns for validation: ['account', 'account_1', 'amount_received', 'payment_format']
+[ 2026-06-15 16:40:19,231] 402 root - INFO - Data quality report saved to: artifacts/data_quality_report.json
+[ 2026-06-15 16:40:19,231] 488 root - INFO - Data validation complete: is_valid=True, critical_issues=0, warning_issues=1
