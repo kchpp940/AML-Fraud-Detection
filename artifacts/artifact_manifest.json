@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-15T18:24:23.619781",
+  "generated_at": "2026-06-15T18:33:43.944305",
   "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
   "artifacts": {
     "model_pkl": {
@@ -22,9 +22,9 @@
     },
     "model_metadata_json": {
       "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model_metadata.json",
-      "size": 665,
-      "mtime_iso": "2026-06-15T18:24:23.619329",
-      "digest": "sha256:9c7a9a238124917e9431dd127994690ffb87be93e7bb7ebaee7117b5c62bc36a"
+      "size": 639,
+      "mtime_iso": "2026-06-15T18:33:43.944099",
+      "digest": "sha256:5ef754f920db7bcdb2261b58a9e31afe51608d6cb00f0239897272aa73e2881d"
     }
   }
 }

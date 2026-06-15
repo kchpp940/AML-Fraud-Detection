@@ -91,12 +91,8 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         summary.summary_path = os.path.abspath(
             training_config.artifacts_subpath("training_summary.json")
         )
-        save_training_summary(
-            file_path=summary.summary_path,
-            summary_obj=summary,
-        )
 
-        metadata_path = save_model_metadata(
+        summary.model_metadata_path = save_model_metadata(
             artifacts_dir=summary.artifacts_dir,
             data_source_path=summary.data_source,
             best_model_name=summary.best_model_name,
@@ -106,10 +102,14 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             all_model_metrics=summary.all_model_metrics,
             model_path=summary.model_path,
         )
-        summary.model_metadata_path = metadata_path
 
         summary.artifact_manifest_path = save_artifact_manifest(
             artifacts_dir=summary.artifacts_dir,
+        )
+
+        save_training_summary(
+            file_path=summary.summary_path,
+            summary_obj=summary,
         )
 
         logging.info("=" * 72)

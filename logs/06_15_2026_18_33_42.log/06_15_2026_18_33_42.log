@@ -1,0 +1,3 @@
+[ 2026-06-15 18:33:43,944] 111 root - INFO - Model metadata saved to: artifacts/model_metadata.json (version=10001)
+[ 2026-06-15 18:33:43,947] 186 root - INFO - Artifact manifest saved to: artifacts/artifact_manifest.json
+[ 2026-06-15 18:33:43,947] 34 root - INFO - Training summary saved to: /Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json
