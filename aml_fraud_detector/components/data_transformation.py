@@ -31,33 +31,25 @@ class DataTransformation:
         self.data_transformation_config = DataTransformationConfig()
 
     def get_data_transformer_object(self, numerical_columns, categorical_columns):
-        """
-        This function is responsible for data transformation
-        """
         try:          
-            # Preprocessing for numerical features:
             num_transformer = make_pipeline(
-                SimpleImputer(strategy='median'),  # Impute missing values with median
-                RobustScaler()  # Scale numerical features
+                SimpleImputer(strategy='median'),
+                RobustScaler()
             )
             
-            # Preprocessing for categorical features:
-            # Frequency Encoding for high cardinality features
             freq_encoder = CountEncoder(normalize=True) 
-            # One-Hot Encoding for low cardinality features
             one_hot_encoder = OneHotEncoder(handle_unknown='ignore')
 
-            # Apply different encodings to different categorical features
             cat_transformer = make_column_transformer(
-                (freq_encoder, ['account', 'account_1']),  # Frequency Encoding for account and account_1
-                (one_hot_encoder, ['payment_format', 'day']),  # One-Hot Encoding for others
-                remainder="drop"  # Drop columns not explicitly transformed
+                (freq_encoder, ['account', 'account_1']),
+                (one_hot_encoder, ['payment_format', 'day']),
+                remainder="drop"
             )
 
             preprocessor = make_column_transformer(
-                (num_transformer, numerical_columns),  # Apply numerical transformer to numerical features
-                (cat_transformer, categorical_columns),  # Apply categorical transformer to categorical features
-                remainder="drop"  # Drop columns not explicitly transformed
+                (num_transformer, numerical_columns),
+                (cat_transformer, categorical_columns),
+                remainder="drop"
             )
 
             logging.info(f"Preprocessed both numerical and categorical columns")
@@ -67,23 +59,22 @@ class DataTransformation:
         except Exception as e:
             raise CustomerException(e, sys)
 
-
-    def initiate_data_transformation(self, train_path, test_path):
+    def _run_transformation_pipeline(
+        self,
+        train_path: str,
+        test_path: str,
+    ):
         logging.info(f"\nEntered the 'data transformation' method or component")
         try:
             train_df = pd.read_csv(train_path)
             test_df = pd.read_csv(test_path)
             logging.info(f"Reading train and test data completed")
 
-            original_raw_columns = train_df.columns.tolist()
-            logging.info(f"Original raw columns: {original_raw_columns}")
+            train_df_for_schema = train_df.copy()
 
             train_df.columns = train_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
             test_df.columns = test_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
             logging.info("Train and Test dataframe columns name renamed")
-
-            cleaned_columns = train_df.columns.tolist()
-            logging.info(f"Cleaned columns: {cleaned_columns}")
 
             logging.info(f"Train Dataframe Head : \n{train_df.head().to_string()}")
             logging.info(f"Test Dataframe Head : \n{test_df.head().to_string()}")
@@ -110,10 +101,13 @@ class DataTransformation:
             }
 
             target_column_name = "is_laundering"        
-            drop_columns = [target_column_name, "timestamp", "date", "time", "amount_paid", "receiving_currency", "payment_currency", "from_bank", "to_bank"]
+            drop_columns = [
+                target_column_name, "timestamp", "date", "time",
+                "amount_paid", "receiving_currency", "payment_currency",
+                "from_bank", "to_bank",
+            ]
             input_features_train_df = train_df.drop(columns=drop_columns, axis=1)
             target_feature_train_df = train_df[target_column_name]
-
             input_features_test_df = test_df.drop(columns=drop_columns, axis=1)
             target_feature_test_df = test_df[target_column_name]
 
@@ -132,8 +126,8 @@ class DataTransformation:
 
             feature_schema = FeatureSchema(
                 schema_source="data_transformation",
-                original_raw_columns=original_raw_columns,
-                cleaned_columns=cleaned_columns,
+                original_raw_columns=train_df_for_schema.columns.tolist(),
+                cleaned_columns=train_df.columns.tolist(),
                 derived_features=derived_features,
                 dropped_columns=drop_columns,
                 model_input_columns=model_input_columns,
@@ -172,22 +166,37 @@ class DataTransformation:
             )
             logging.info(f"Saved data preprocessing object")
 
-            data_transformation_artifact = DataTransformationArtifact(
-                train_arr,
-                test_arr,
-                transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
-                transformed_test_file_path=self.data_transformation_config.transformed_test_file_path,
-                preprocessor_object_file_path=self.data_transformation_config.preprocessor_obj_file_path,
-                feature_schema_file_path=self.data_transformation_config.feature_schema_file_path,
-            )
-            logging.info(f"Data Transformation Artifact created (tuple-compat: train_arr, test_arr)")
-            logging.info(
-                f"  paths: preprocessor={data_transformation_artifact.preprocessor_object_file_path}, "
-                f"schema={data_transformation_artifact.feature_schema_file_path}"
-            )
-
-            return data_transformation_artifact
+            return train_arr, test_arr, feature_schema
 
         except Exception as e:
             raise CustomerException(e, sys)
 
+    def initiate_data_transformation(self, train_path, test_path):
+        """
+        Legacy entry point - returns (train_arr, test_arr) tuple for backward compatibility.
+        All artifact files (preprocessor, feature_schema, transformed arrays) are saved.
+        """
+        train_arr, test_arr, _ = self._run_transformation_pipeline(train_path, test_path)
+        return train_arr, test_arr
+
+    def initiate_data_transformation_artifact(self, train_path, test_path):
+        """
+        New structured entry point - returns DataTransformationArtifact.
+        All artifact files are saved, and the artifact object contains all paths.
+        """
+        train_arr, test_arr, feature_schema = self._run_transformation_pipeline(train_path, test_path)
+
+        data_transformation_artifact = DataTransformationArtifact(
+            transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
+            transformed_test_file_path=self.data_transformation_config.transformed_test_file_path,
+            preprocessor_object_file_path=self.data_transformation_config.preprocessor_obj_file_path,
+            feature_schema_file_path=self.data_transformation_config.feature_schema_file_path,
+        )
+
+        logging.info(
+            f"DataTransformationArtifact created: "
+            f"preprocessor={data_transformation_artifact.preprocessor_object_file_path}, "
+            f"schema={data_transformation_artifact.feature_schema_file_path}"
+        )
+
+        return data_transformation_artifact

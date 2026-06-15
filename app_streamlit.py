@@ -20,11 +20,7 @@ def main():
     )
     st.write("---")
 
-    schema = predict_pipeline.feature_schema
     st.sidebar.header("Specify Input Features")
-    st.sidebar.caption(
-        f"Schema v{schema.schema_version} • Expecting {len(schema.model_input_columns)} model inputs"
-    )
 
     def user_input_features():
         st.sidebar.subheader("Transaction Details")
@@ -51,20 +47,11 @@ def main():
             day=day
         )
         aligned_df = data.get_aligned_DataFrame()
-        raw_df = data.get_data_as_DataFrame()
-        return raw_df, aligned_df
+        return aligned_df
 
-    raw_df, aligned_df = user_input_features()
+    aligned_df = user_input_features()
 
     st.header("Specified Input Parameters")
-    st.dataframe(raw_df)
-    st.write("---")
-
-    st.header("Aligned Model Features (via Schema)")
-    st.caption(
-        f"Columns normalized, derived features filled, extra fields dropped, order fixed "
-        f"per schema v{schema.schema_version}"
-    )
     st.dataframe(aligned_df)
     st.write("---")
 
@@ -74,7 +61,6 @@ def main():
         prediction = predict_pipeline.predict(aligned_df)
         prediction_proba = predict_pipeline.predict_proba(aligned_df)
 
-        # Display Prediction
         st.subheader("Fraud Detector Class Labels")
         class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
         class_labels_df.index = ["Class Labels"]
@@ -90,7 +76,6 @@ def main():
         proba_df = pd.DataFrame(prediction_proba, columns=["Not Fraud", "Fraud"])
         st.dataframe(proba_df)
 
-        # Visualize Prediction Probabilities
         st.subheader("Prediction Probability Distribution")
         fig, ax = plt.subplots()
         ax.bar(proba_df.columns, proba_df.iloc[0], color=["green", "red"])

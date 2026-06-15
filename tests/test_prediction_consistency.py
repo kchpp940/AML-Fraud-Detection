@@ -188,50 +188,8 @@ class TestRequiredFields:
         assert "Payment Format" in required_fields
 
 
-class TestArtifactTupleCompat:
-    def test_data_ingestion_artifact_tuple_unpacking(self):
-        artifact = DataIngestionArtifact(
-            train_file_path="/tmp/train.csv",
-            test_file_path="/tmp/test.csv",
-        )
-        train_path, test_path = artifact
-        assert train_path == "/tmp/train.csv"
-        assert test_path == "/tmp/test.csv"
-        assert artifact.train_file_path == "/tmp/train.csv"
-        assert artifact.test_file_path == "/tmp/test.csv"
-        assert isinstance(artifact, tuple)
-
-    def test_data_transformation_artifact_tuple_unpacking(self):
-        import numpy as np
-        import tempfile
-        import os
-
-        train_arr = np.array([[1.0, 2.0, 0], [3.0, 4.0, 1]])
-        test_arr = np.array([[5.0, 6.0, 0]])
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            train_path = os.path.join(tmpdir, "train.npy")
-            test_path = os.path.join(tmpdir, "test.npy")
-            preprocessor_path = os.path.join(tmpdir, "preprocessor.pkl")
-            schema_path = os.path.join(tmpdir, "schema.pkl")
-
-            artifact = DataTransformationArtifact(
-                train_arr,
-                test_arr,
-                transformed_train_file_path=train_path,
-                transformed_test_file_path=test_path,
-                preprocessor_object_file_path=preprocessor_path,
-                feature_schema_file_path=schema_path,
-            )
-
-            unpacked_train, unpacked_test = artifact
-            np.testing.assert_array_equal(unpacked_train, train_arr)
-            np.testing.assert_array_equal(unpacked_test, test_arr)
-            assert artifact.transformed_train_file_path == train_path
-            assert artifact.feature_schema_file_path == schema_path
-            assert isinstance(artifact, tuple)
-
-    def test_backward_compat_initiate_data_transformation_returns_tuple(self):
+class TestDataTransformationDualEntry:
+    def test_initiate_data_transformation_returns_tuple(self):
         import numpy as np
         from aml_fraud_detector.components.data_transformation import DataTransformation
 
@@ -241,13 +199,89 @@ class TestArtifactTupleCompat:
             "artifacts/test.csv",
         )
 
+        assert isinstance(result, tuple)
+        assert len(result) == 2
         train_arr, test_arr = result
         assert isinstance(train_arr, np.ndarray)
         assert isinstance(test_arr, np.ndarray)
         assert train_arr.ndim == 2
         assert test_arr.ndim == 2
-        assert hasattr(result, "feature_schema_file_path")
-        assert hasattr(result, "preprocessor_object_file_path")
+
+    def test_initiate_data_transformation_artifact_returns_artifact(self):
+        import numpy as np
+        from aml_fraud_detector.components.data_transformation import DataTransformation
+        from aml_fraud_detector.entity.artifact_entity import DataTransformationArtifact
+
+        dt = DataTransformation()
+        artifact = dt.initiate_data_transformation_artifact(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+
+        assert isinstance(artifact, DataTransformationArtifact)
+        assert hasattr(artifact, 'transformed_train_file_path')
+        assert hasattr(artifact, 'transformed_test_file_path')
+        assert hasattr(artifact, 'preprocessor_object_file_path')
+        assert hasattr(artifact, 'feature_schema_file_path')
+        assert os.path.exists(artifact.feature_schema_file_path)
+        assert os.path.exists(artifact.preprocessor_object_file_path)
+
+    def test_artifact_as_arrays_method(self):
+        import numpy as np
+        from aml_fraud_detector.components.data_transformation import DataTransformation
+
+        dt = DataTransformation()
+        artifact = dt.initiate_data_transformation_artifact(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+
+        train_arr, test_arr = artifact.as_arrays()
+        assert isinstance(train_arr, np.ndarray)
+        assert isinstance(test_arr, np.ndarray)
+        assert train_arr.ndim == 2
+        assert test_arr.ndim == 2
+
+    def test_both_entry_points_produce_same_arrays(self):
+        import numpy as np
+        from aml_fraud_detector.components.data_transformation import DataTransformation
+
+        dt = DataTransformation()
+
+        train_arr1, test_arr1 = dt.initiate_data_transformation(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+
+        artifact = dt.initiate_data_transformation_artifact(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+        train_arr2, test_arr2 = artifact.as_arrays()
+
+        np.testing.assert_array_equal(train_arr1, train_arr2)
+        np.testing.assert_array_equal(test_arr1, test_arr2)
+
+    def test_both_entry_points_save_schema(self):
+        from aml_fraud_detector.components.data_transformation import DataTransformation
+        from aml_fraud_detector.utils.main_utils import load_object
+
+        dt = DataTransformation()
+
+        dt.initiate_data_transformation(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+        schema1 = load_object(dt.data_transformation_config.feature_schema_file_path)
+
+        artifact = dt.initiate_data_transformation_artifact(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+        schema2 = load_object(artifact.feature_schema_file_path)
+
+        assert schema1.model_input_columns == schema2.model_input_columns
+        assert schema1.column_types == schema2.column_types
 
 
 class TestCustomDataAlignedDF:
@@ -306,18 +340,16 @@ class TestDataTransformationArtifact:
         import tempfile
         import os
 
-        train_arr = np.array([[1.0, 2.0, 0]])
-        test_arr = np.array([[5.0, 6.0, 0]])
-
         with tempfile.TemporaryDirectory() as tmpdir:
             train_path = os.path.join(tmpdir, "train.npy")
             test_path = os.path.join(tmpdir, "test.npy")
             preprocessor_path = os.path.join(tmpdir, "preprocessor.pkl")
             schema_path = os.path.join(tmpdir, "schema.pkl")
 
+            np.save(train_path, np.array([[1.0, 2.0, 0]]))
+            np.save(test_path, np.array([[5.0, 6.0, 0]]))
+
             artifact = DataTransformationArtifact(
-                train_arr,
-                test_arr,
                 transformed_train_file_path=train_path,
                 transformed_test_file_path=test_path,
                 preprocessor_object_file_path=preprocessor_path,
@@ -327,6 +359,31 @@ class TestDataTransformationArtifact:
             assert artifact.preprocessor_object_file_path == preprocessor_path
             assert artifact.transformed_train_file_path == train_path
             assert artifact.transformed_test_file_path == test_path
+
+    def test_artifact_as_arrays(self):
+        import numpy as np
+        import tempfile
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            train_arr = np.array([[1.0, 2.0, 0], [3.0, 4.0, 1]])
+            test_arr = np.array([[5.0, 6.0, 0]])
+            train_path = os.path.join(tmpdir, "train.npy")
+            test_path = os.path.join(tmpdir, "test.npy")
+
+            np.save(train_path, train_arr)
+            np.save(test_path, test_arr)
+
+            artifact = DataTransformationArtifact(
+                transformed_train_file_path=train_path,
+                transformed_test_file_path=test_path,
+                preprocessor_object_file_path="/tmp/pre.pkl",
+                feature_schema_file_path="/tmp/schema.pkl",
+            )
+
+            loaded_train, loaded_test = artifact.as_arrays()
+            np.testing.assert_array_equal(loaded_train, train_arr)
+            np.testing.assert_array_equal(loaded_test, test_arr)
 
     def test_prediction_pipeline_from_artifact(self, tmp_path, sample_schema):
         import dill
@@ -356,8 +413,6 @@ class TestDataTransformationArtifact:
         np.save(test_path, dummy_test)
 
         artifact = DataTransformationArtifact(
-            dummy_train,
-            dummy_test,
             transformed_train_file_path=train_path,
             transformed_test_file_path=test_path,
             preprocessor_object_file_path=preprocessor_path,
@@ -371,6 +426,54 @@ class TestDataTransformationArtifact:
         assert pipeline.preprocessor_path == preprocessor_path
         assert pipeline.feature_schema_path == schema_path
         assert pipeline.model_path == model_path
+
+class TestUnifiedAlignmentFunction:
+    def test_align_features_with_schema(self, sample_schema):
+        from aml_fraud_detector.utils.main_utils import align_features_with_schema
+
+        df = pd.DataFrame({
+            "account": ["80CF063F0"],
+            "account_1": ["80CFE1EB0"],
+            "amount_received": [386006.86],
+            "payment_format": ["Cheque"],
+            "day": ["Wednesday"],
+            "from_bank": [29],
+        })
+
+        aligned = align_features_with_schema(df, sample_schema, log_context="test")
+        assert list(aligned.columns) == sample_schema.model_input_columns
+        assert "from_bank" not in aligned.columns
+
+    def test_load_feature_schema_validates(self, tmp_path, sample_schema):
+        from aml_fraud_detector.utils.main_utils import (
+            load_feature_schema,
+            save_object,
+        )
+
+        schema_path = str(tmp_path / "schema.pkl")
+        save_object(schema_path, sample_schema)
+
+        loaded = load_feature_schema(schema_path)
+        assert loaded.model_input_columns == sample_schema.model_input_columns
+        assert loaded.schema_version == sample_schema.schema_version
+
+    def test_all_inference_paths_use_same_alignment(self, sample_schema):
+        from aml_fraud_detector.utils.main_utils import align_features_with_schema
+
+        df = pd.DataFrame({
+            "account": ["80CF063F0"],
+            "account_1": ["80CFE1EB0"],
+            "amount_received": [386006.86],
+            "payment_format": ["Cheque"],
+            "day": ["Wednesday"],
+        })
+
+        aligned1 = align_features_with_schema(df, sample_schema, log_context="Flask")
+        aligned2 = align_features_with_schema(df, sample_schema, log_context="Streamlit")
+        aligned3 = align_features_with_schema(df, sample_schema, log_context="PredictionPipeline")
+
+        pd.testing.assert_frame_equal(aligned1, aligned2)
+        pd.testing.assert_frame_equal(aligned2, aligned3)
 
 
 if __name__ == "__main__":

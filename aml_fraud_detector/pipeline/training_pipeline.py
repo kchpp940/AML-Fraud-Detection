@@ -23,16 +23,18 @@ if __name__ == "__main__":
     logging.info(f"Data Ingestion Artifact: {data_ingestion_artifact}")
 
     data_transformation = DataTransformation()
-    data_transformation_artifact = data_transformation.initiate_data_transformation(
+    data_transformation_artifact = data_transformation.initiate_data_transformation_artifact(
         data_ingestion_artifact.train_file_path,
         data_ingestion_artifact.test_file_path,
     )
     logging.info(
-        f"Data Transformation Artifact: preprocessor={data_transformation_artifact.preprocessor_object_file_path}, "
-        f"schema={data_transformation_artifact.feature_schema_file_path}"
+        f"Data Transformation Artifact: "
+        f"preprocessor={data_transformation_artifact.preprocessor_object_file_path}, "
+        f"schema={data_transformation_artifact.feature_schema_file_path}, "
+        f"train_data={data_transformation_artifact.transformed_train_file_path}"
     )
 
-    train_arr, test_arr = data_transformation_artifact
+    train_arr, test_arr = data_transformation_artifact.as_arrays()
 
     model_trainer = ModelTrainer()
     model_trainer.initiate_model_trainer(train_arr, test_arr)
