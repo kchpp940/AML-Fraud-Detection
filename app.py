@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 
 application = Flask(__name__)
@@ -10,10 +10,17 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/model-info")
+def model_info():
+    pipeline = PredictionPipeline()
+    return jsonify(pipeline.model_metadata)
+
+
 @app.route("/predictdata", methods=["GET", "POST"])
 def predict_datapoint():
     if request.method == "GET":
-        return render_template("home.html")
+        pipeline = PredictionPipeline()
+        return render_template("home.html", model_metadata=pipeline.model_metadata)
     else:
         data = CustomData(
             from_bank=_safe_int(request.form.get("from_bank"), 0),
@@ -27,10 +34,14 @@ def predict_datapoint():
             day=request.form.get("day") or "",
         )
         pipeline = PredictionPipeline()
-        result = pipeline.predict_single(data, explain=False)
-
-        results = [result.prediction]
-        return render_template("home.html", results=results[0])
+        result = pipeline.predict_single(data, explain=True)
+        results = result.prediction
+        return render_template(
+            "home.html",
+            results=results,
+            model_metadata=pipeline.model_metadata,
+            result=result,
+        )
 
 
 def _safe_int(value, default):

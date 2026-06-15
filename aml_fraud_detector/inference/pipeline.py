@@ -142,7 +142,8 @@ class PredictionPipeline:
             predictions, probabilities = self._predictor.predict_with_proba(aligned_df)
             explanation: Optional[RiskExplanation] = None
             if explain:
-                explanation = self._risk_explainer.explain_from_prob(
+                explanation = self._risk_explainer.explain_from_row(
+                    aligned_df.iloc[0],
                     float(probabilities[0, 1]),
                     int(predictions[0]),
                 )
@@ -247,6 +248,11 @@ class PredictionPipeline:
             raise
         except Exception as e:
             raise CustomerException(e, sys)
+
+    @property
+    def model_metadata(self) -> Dict[str, Any]:
+        self._ensure_services_ready()
+        return self._artifacts.model_metadata if self._artifacts else {}
 
     @property
     def model_version(self) -> str:

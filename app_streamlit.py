@@ -19,6 +19,32 @@ def main():
     )
     st.write("---")
 
+    predict_pipeline = PredictionPipeline()
+    model_metadata = predict_pipeline.model_metadata
+
+    if model_metadata:
+        st.subheader(f"Model Version: v{model_metadata.get('model_version', 'N/A')}")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Best Model", model_metadata.get("best_model_name", "N/A"))
+        with col2:
+            metric_name = model_metadata.get("selection_metric", "Metric")
+            st.metric(f"Best {metric_name}", f"{model_metadata.get('best_metric_value', 0):.4f}")
+        with col3:
+            st.metric("Feature Schema", f"v{model_metadata.get('feature_schema_version', 'N/A')}")
+
+        with st.expander("Model Details & Metrics"):
+            st.write(f"**Trained At:** {model_metadata.get('training_time', 'N/A')}")
+            st.write(f"**Data Digest:** `{model_metadata.get('data_file_digest', 'N/A')}`")
+            st.write(f"**Artifact Path:** `{model_metadata.get('artifact_path', 'N/A')}`")
+            all_metrics = model_metadata.get("all_model_metrics", {})
+            if all_metrics:
+                st.write("**All Model Metrics:**")
+                metrics_df = pd.DataFrame(all_metrics).T
+                metrics_df.columns = ["Precision", "Recall", "F1 Score"]
+                st.dataframe(metrics_df)
+        st.write("---")
+
     st.sidebar.header("Specify Input Features")
 
     def user_input_features():
@@ -54,11 +80,12 @@ def main():
     st.write("---")
 
     st.header("Prediction Results")
-    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        prediction = predict_pipeline.predict(df)
-        prediction_proba = predict_pipeline.predict_proba(df)
+        result = predict_pipeline.predict_single(transaction_data, explain=True)
+
+        prediction = result.prediction
+        prediction_proba = [[result.legit_probability, result.fraud_probability]]
 
         st.subheader("Fraud Detector Class Labels")
         class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
@@ -66,7 +93,7 @@ def main():
         st.dataframe(class_labels_df.T)
 
         st.subheader("Prediction of the Given Transaction")
-        if prediction[0] == 1:
+        if prediction == 1:
             st.error("**Fraudulent Transaction**")
         else:
             st.success("**Non-Fraudulent Transaction**")
@@ -81,6 +108,26 @@ def main():
         ax.set_ylabel("Probability")
         ax.set_title("Fraud vs. Not Fraud Probability")
         st.pyplot(fig)
+
+        if result.risk_explanation is not None:
+            st.subheader("Risk Explanation")
+            st.info(f"**Risk Level**: {result.risk_explanation.risk_level}")
+            if result.risk_explanation.top_factors:
+                st.write("**Top Risk Factors**:")
+                factor_rows = []
+                for f in result.risk_explanation.top_factors:
+                    factor_rows.append(
+                        {
+                            "Feature": f.get("display_name", f.get("feature", "")),
+                            "Value": f.get("value"),
+                            "Impact": f.get("impact"),
+                            "Contribution %": f"{f.get('contribution_pct', 0):.1f}%",
+                        }
+                    )
+                st.table(pd.DataFrame(factor_rows))
+
+        if result.process_status != "success":
+            st.warning(f"Processing note: {result.error_reason}")
 
     st.write("---")
     st.markdown(

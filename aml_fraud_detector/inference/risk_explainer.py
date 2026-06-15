@@ -25,6 +25,7 @@ class RiskExplainer:
     def __init__(self, artifacts: Optional[ModelArtifacts] = None):
         self._feature_metadata: Dict[str, Any] = {}
         self._feature_labels: Dict[str, str] = {}
+        self._training_stats: Dict[str, Any] = {}
         self._initialized = False
         if artifacts is not None:
             self.bind(artifacts)
@@ -32,6 +33,7 @@ class RiskExplainer:
     def bind(self, artifacts: ModelArtifacts) -> None:
         self._feature_metadata = artifacts.feature_metadata or {}
         self._feature_labels = self._feature_metadata.get("feature_labels", {})
+        self._training_stats = self._feature_metadata.get("training_stats", {})
         self._initialized = True
         logging.info("RiskExplainer bound to artifacts")
 
@@ -51,14 +53,99 @@ class RiskExplainer:
                 return label
         return "Minimal"
 
-    def explain_from_prob(
-        self, fraud_probability: float, prediction: int
+    def _build_top_factors(
+        self, transaction: Dict[str, Any], fraud_prob: float
+    ) -> List[Dict[str, Any]]:
+        factors: List[Dict[str, Any]] = []
+        try:
+            amount = float(transaction.get("amount_received", 0.0))
+            amount_stats = self._training_stats.get("amount_received", {})
+            amount_q75 = float(amount_stats.get("q75", 0.0))
+            amount_mean = float(amount_stats.get("mean", 0.0))
+
+            if amount_q75 > 0 and amount > amount_q75 * 1.5:
+                severity = min(1.0, amount / (amount_q75 * 1.5))
+                factors.append(
+                    {
+                        "feature": "amount_received",
+                        "display_name": self._feature_display_name("amount_received"),
+                        "value": amount,
+                        "impact": "High",
+                        "contribution_pct": round(severity * 35, 1),
+                    }
+                )
+            elif amount_mean > 0 and amount > amount_mean * 2:
+                factors.append(
+                    {
+                        "feature": "amount_received",
+                        "display_name": self._feature_display_name("amount_received"),
+                        "value": amount,
+                        "impact": "Medium",
+                        "contribution_pct": 15.0,
+                    }
+                )
+
+            pf = str(transaction.get("payment_format", ""))
+            pf_stats = self._training_stats.get("payment_format", {})
+            pf_top5 = pf_stats.get("top5", {})
+            if pf in pf_top5:
+                total_count = sum(pf_top5.values())
+                pf_ratio = pf_top5[pf] / total_count if total_count > 0 else 0
+                if pf in {"Wire", "ACH"}:
+                    factors.append(
+                        {
+                            "feature": "payment_format",
+                            "display_name": self._feature_display_name("payment_format"),
+                            "value": pf,
+                            "impact": "Medium",
+                            "contribution_pct": round(pf_ratio * 12, 1),
+                        }
+                    )
+
+            receiving = str(transaction.get("receiving_currency", ""))
+            payment = str(transaction.get("payment_currency", ""))
+            if receiving and payment and receiving != payment:
+                factors.append(
+                    {
+                        "feature": "currency_mismatch",
+                        "display_name": "币种不一致",
+                        "value": f"{payment} -> {receiving}",
+                        "impact": "Medium",
+                        "contribution_pct": 10.0,
+                    }
+                )
+
+            account = str(transaction.get("account", ""))
+            account_stats = self._training_stats.get("account", {})
+            account_top5 = account_stats.get("top5", {})
+            if account and account in account_top5:
+                n_unique = account_stats.get("n_unique", 1)
+                if n_unique > 0:
+                    freq_ratio = account_top5[account] / sum(account_top5.values()) if account_top5 else 0
+                    factors.append(
+                        {
+                            "feature": "account",
+                            "display_name": self._feature_display_name("account"),
+                            "value": account,
+                            "impact": "Low",
+                            "contribution_pct": round(freq_ratio * 8, 1),
+                        }
+                    )
+
+        except Exception as e:
+            logging.warning(f"Error during top_factors extraction: {e}")
+
+        factors.sort(key=lambda x: x.get("contribution_pct", 0.0), reverse=True)
+        return factors[:5]
+
+    def explain_from_row(
+        self, row: pd.Series, fraud_probability: float, prediction: int
     ) -> RiskExplanation:
         self._ensure_initialized()
         try:
-            is_fraud = int(prediction) == FRAUD_LABEL
+            tx = row.to_dict()
             risk_level = self._risk_level(fraud_probability)
-            top_factors: List[Dict[str, Any]] = []
+            top_factors = self._build_top_factors(tx, fraud_probability)
             return RiskExplanation(
                 fraud_probability=float(fraud_probability),
                 top_factors=top_factors,
@@ -89,9 +176,10 @@ class RiskExplainer:
                 )
             explanations: List[RiskExplanation] = []
             for i in range(n):
-                fraud_prob = float(proba[i, 1]) if proba.ndim == 2 else float(proba[i])
+                row = aligned_df.iloc[i]
+                fraud_prob = float(proba[i, 1])
                 explanations.append(
-                    self.explain_from_prob(fraud_prob, int(preds[i]))
+                    self.explain_from_row(row, fraud_prob, int(preds[i]))
                 )
             logging.info(f"RiskExplainer generated {n} explanation(s)")
             return explanations
