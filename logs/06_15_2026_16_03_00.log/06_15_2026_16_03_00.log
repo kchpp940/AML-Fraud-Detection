@@ -1,0 +1,59 @@
+[ 2026-06-15 16:03:01,474] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-15 16:03:05,991] 19 root - INFO - ========================================================================
+[ 2026-06-15 16:03:05,991] 20 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-15 16:03:05,991] 21 root - INFO - ========================================================================
+[ 2026-06-15 16:03:05,991] 180 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 16:03:05,992] 227 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 16:03:05,992] 228 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 16:03:05,992] 25 root - INFO - Training config loaded (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 16:03:05,992] 31 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=50000, test_size=0.2
+[ 2026-06-15 16:03:05,993] 39 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-15 16:03:05,993] 42 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 16:03:05,993] 45 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 16:03:06,008] 52 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-15 16:03:06,008] 63 root - INFO - Using full dataset (no sampling applied)
+[ 2026-06-15 16:03:06,015] 71 root - INFO - Train Test split initiated
+[ 2026-06-15 16:03:06,026] 79 root - INFO - Ingestion completed: train=3200, test=800
+[ 2026-06-15 16:03:06,026] 50 root - INFO - Data ingestion done: total=4000, train≈3200, test≈800
+[ 2026-06-15 16:03:06,026] 55 root - INFO - ------------------------------------------------------------------------
+[ 2026-06-15 16:03:06,027] 56 root - INFO - Step: Data Validation
+[ 2026-06-15 16:03:06,027] 57 root - INFO - ------------------------------------------------------------------------
+[ 2026-06-15 16:03:06,027] 158 root - INFO - DataValidation initialized: target=is_laundering, report_path=artifacts/data_quality_report.json, whitelist_columns=[], categorical_check_columns=[]
+[ 2026-06-15 16:03:06,027] 611 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-15 16:03:06,027] 621 root - INFO - Reading full dataset for validation from: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 16:03:06,029] 625 root - INFO - Loaded full dataset for quality validation: shape=(4000, 11)
+[ 2026-06-15 16:03:06,029] 555 root - INFO - Generating data quality report...
+[ 2026-06-15 16:03:06,029] 166 root - INFO - Checking missing values...
+[ 2026-06-15 16:03:06,030] 187 root - INFO - Checking duplicate transactions...
+[ 2026-06-15 16:03:06,034] 203 root - INFO - Checking abnormal amounts...
+[ 2026-06-15 16:03:06,038] 233 root - INFO - Checking unknown categories against whitelist (0 configured column(s))...
+[ 2026-06-15 16:03:06,038] 315 root - INFO - Checking time field parsing...
+[ 2026-06-15 16:03:06,038] 337 root - INFO - Checking target column: missing / classes / imbalance (col=is_laundering, expected_classes=2)
+[ 2026-06-15 16:03:06,038] 587 root - INFO - Data quality report generated: 1 risk item(s) found
+[ 2026-06-15 16:03:06,038] 596 root - INFO - Saving data quality report to: artifacts/data_quality_report.json
+[ 2026-06-15 16:03:06,038] 603 root - INFO - Data quality report saved: /Users/pkcha/AML-Fraud-Detection/artifacts/data_quality_report.json
+[ 2026-06-15 16:03:06,038] 650 root - WARNING - [DATA QUALITY - CRITICAL] Target column 'is_laundering' not found in dataset
+[ 2026-06-15 16:03:06,039] 634 root - INFO - Data validation artifact created: /Users/pkcha/AML-Fraud-Detection/artifacts/data_quality_report.json
+[ 2026-06-15 16:03:06,039] 656 root - INFO - Loading data quality report from: /Users/pkcha/AML-Fraud-Detection/artifacts/data_quality_report.json
+[ 2026-06-15 16:03:06,039] 67 root - INFO - Quality validation dataset shape: 4000 rows x 11 cols
+[ 2026-06-15 16:03:06,039] 71 root - WARNING - Data quality report contains 1 risk item(s):
+[ 2026-06-15 16:03:06,039] 75 root - WARNING -   [CRITICAL] target__target_not_found: Target column 'is_laundering' not found in dataset
+[ 2026-06-15 16:03:06,039] 170 root - ERROR - Training pipeline failed
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/training_pipeline.py", line 82, in run_training_pipeline
+    DataValidation.check_critical_issues(report_data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_validation.py", line 685, in check_critical_issues
+    raise CustomerException(
+          ~~~~~~~~~~~~~~~~~^
+        ValueError(
+        ^^^^^^^^^^^
+    ...<4 lines>...
+        sys,
+        ^^^^
+    )
+    ^
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/exception/__init__.py", line 12, in __init__
+    self.lineno = exc_tb.tb_lineno
+                  ^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'tb_lineno'

@@ -623,8 +623,21 @@ class DataValidation:
             )
             df = pd.read_csv(resolved_path)
             logging.info(
-                f"Loaded full dataset for quality validation: shape={df.shape}"
+                f"Loaded full dataset for quality validation: shape={df.shape}, "
+                f"columns={list(df.columns)}"
             )
+
+            original_columns = list(df.columns)
+            df.columns = (
+                df.columns.str.lower()
+                .str.replace(" ", "_")
+                .str.replace(".", "_")
+            )
+            normalized_columns = list(df.columns)
+            if original_columns != normalized_columns:
+                logging.info(
+                    f"Normalized column names: {dict(zip(original_columns, normalized_columns))}"
+                )
 
             report = self.generate_report(df)
             abs_report_path = self.save_report(report)
@@ -682,11 +695,8 @@ class DataValidation:
                 error_messages.append(f"  - ({category}) {message}")
 
         summary = "\n".join(error_messages)
-        raise CustomerException(
-            ValueError(
-                f"Cannot proceed with training: {len(critical_issues)} critical "
-                f"data quality issue(s) detected. Review the quality report and "
-                f"fix data before training.\n{summary}"
-            ),
-            sys,
+        raise ValueError(
+            f"Cannot proceed with training: {len(critical_issues)} critical "
+            f"data quality issue(s) detected. Review the quality report and "
+            f"fix data before training.\n{summary}"
         )

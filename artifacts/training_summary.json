@@ -72,9 +72,9 @@
   "best_metric_value": 0.94375,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.9092762445887445,
-      "Recall": 0.90375,
-      "F1 score": 0.9064904774007038
+      "Precision": 0.9022005772005772,
+      "Recall": 0.9,
+      "F1 score": 0.9010967404995239
     },
     "AdaBoost": {
       "Precision": 0.6793195346320345,
@@ -89,33 +89,12 @@
   },
   "preprocessor_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
   "model_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
-  "feature_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
-  "training_signature": "65b45a9020b5e84e",
-  "artifact_manifest": {
-    "manifest_version": "1.0",
-    "hash_algorithm": "sha256",
-    "generated_at": "2026-06-15T15:16:40.559516",
-    "training_signature": "65b45a9020b5e84e",
-    "artifacts": {
-      "model": {
-        "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
-        "sha256": "159bbc4426a0e1ba82f069cace413e6fc1a037f05977f996e4c6b5859b352e53"
-      },
-      "preprocessor": {
-        "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
-        "sha256": "5b76bb9d2c7416a8fb0429e865cbc0949f8fcbb6e0d33e1aac179bf5f926c038"
-      },
-      "feature_metadata": {
-        "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
-        "sha256": "cfda24031e26bc6cf86653ae33bcb1b587953d7f3fe10ee28b76e79f1527a28c"
-      }
-    }
-  },
   "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
   "summary_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json",
+  "quality_report_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/data_quality_report.json",
   "resolved_config": {
     "run_info": {
-      "created_at": "2026-06-15T15:16:03.761379",
+      "created_at": "2026-06-15T16:05:36.512987",
       "config_path": "/Users/pkcha/AML-Fraud-Detection/config/training_config.yaml",
       "config_path_source": "default_file",
       "yaml_config_used": true
@@ -211,9 +190,24 @@
       "raw_csv": "/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv",
       "preprocessor_pkl": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
       "model_pkl": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
-      "feature_metadata_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
-      "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json"
+      "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json",
+      "data_quality_report_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/data_quality_report.json"
+    },
+    "validation": {
+      "categorical_columns": [],
+      "categorical_whitelist": {},
+      "thresholds": {
+        "missing_value_critical_ratio": 0.3,
+        "missing_value_warning_ratio": 0.1,
+        "unknown_category_critical_ratio": 0.05,
+        "unknown_category_warning_ratio": 0.01,
+        "duplicate_row_warning_ratio": 0.1,
+        "target_missing_critical_ratio": 0.0,
+        "target_expected_classes": 2,
+        "target_imbalance_critical_ratio": 0.01,
+        "target_imbalance_warning_ratio": 0.05
+      }
     }
   },
-  "generated_at": "2026-06-15T15:16:41.121399"
+  "generated_at": "2026-06-15T16:05:44.707905"
 }

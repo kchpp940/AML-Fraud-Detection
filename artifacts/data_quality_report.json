@@ -1,0 +1,180 @@
+{
+  "generated_at": "2026-06-15T16:05:36.550946",
+  "dataset_shape": [
+    4000,
+    11
+  ],
+  "missing_values": [
+    {
+      "column": "timestamp",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "from_bank",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "account",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "to_bank",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "account_1",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "amount_received",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "receiving_currency",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "amount_paid",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "payment_currency",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "payment_format",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "is_laundering",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    }
+  ],
+  "critical_missing_columns": [],
+  "duplicates": {
+    "duplicate_row_count": 0,
+    "duplicate_row_ratio": 0.0,
+    "severity": "NONE",
+    "threshold_warning": 0.1
+  },
+  "abnormal_amounts": [
+    {
+      "column": "amount_received",
+      "negative_count": 0,
+      "zero_count": 0,
+      "outlier_count": 32,
+      "outlier_lower": -2969.3625,
+      "outlier_upper": 4640.8625
+    },
+    {
+      "column": "amount_paid",
+      "negative_count": 0,
+      "zero_count": 0,
+      "outlier_count": 42,
+      "outlier_lower": -3050.945,
+      "outlier_upper": 4775.5975
+    }
+  ],
+  "unknown_categories": [],
+  "time_parsing": [
+    {
+      "column": "timestamp",
+      "total_count": 4000,
+      "parse_fail_count": 0,
+      "parse_fail_ratio": 0.0
+    }
+  ],
+  "target_distribution": {
+    "column": "is_laundering",
+    "missing_count": 0,
+    "missing_ratio": 0.0,
+    "missing_threshold": 0.0,
+    "unique_classes": 2,
+    "expected_classes": 2,
+    "value_counts": {
+      "0": 3816,
+      "1": 184
+    },
+    "total_count": 4000,
+    "positive_ratio": 0.046,
+    "imbalance_ratio": 0.046,
+    "imbalance_threshold_critical": 0.01,
+    "imbalance_threshold_warning": 0.05,
+    "issues": [
+      {
+        "code": "target_mild_imbalance",
+        "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.0%",
+        "severity": "WARNING",
+        "ratio": 0.046,
+        "threshold": 0.05
+      }
+    ],
+    "overall_severity": "WARNING"
+  },
+  "risk_items": [
+    {
+      "level": "WARNING",
+      "category": "target__target_mild_imbalance",
+      "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.0%"
+    }
+  ],
+  "validation_config": {
+    "categorical_columns": [],
+    "categorical_whitelist": {},
+    "thresholds": {
+      "missing_value_critical_ratio": 0.3,
+      "missing_value_warning_ratio": 0.1,
+      "unknown_category_critical_ratio": 0.05,
+      "unknown_category_warning_ratio": 0.01,
+      "duplicate_row_warning_ratio": 0.1,
+      "target_missing_critical_ratio": 0.0,
+      "target_expected_classes": 2,
+      "target_imbalance_critical_ratio": 0.01,
+      "target_imbalance_warning_ratio": 0.05
+    }
+  }
+}
