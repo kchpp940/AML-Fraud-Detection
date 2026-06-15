@@ -4,11 +4,16 @@ import mlflow
 import mlflow.sklearn
 from mlflow.models import infer_signature
 from urllib.parse import urlparse
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import model_metrics, load_object, ModelMetrics
+from aml_fraud_detector.utils.main_utils import (
+    model_metrics, 
+    load_object, 
+    ModelMetrics,
+    _serialize_cm
+)
 from aml_fraud_detector.components.model_trainer import ModelTrainerResult
 
 
@@ -16,8 +21,8 @@ class ModelEvaluation:
     def __init__(self):
         logging.info("Model evaluation started")
 
-    def eval_metrics(self, y_true, y_pred) -> ModelMetrics:
-        return model_metrics(y_true, y_pred)
+    def eval_metrics(self, y_test, y_pred):
+        return model_metrics(y_test, y_pred)
     
     def log_metrics_to_mlflow(self, metrics: ModelMetrics):
         mlflow.log_metric("precision", metrics.precision)
@@ -39,16 +44,20 @@ class ModelEvaluation:
                     for param_name, param_value in trainer_result.best_params.items():
                         mlflow.log_param(param_name, param_value)
                     mlflow.log_param("model_path", trainer_result.model_path)
-                    logging.info(f"Logged trainer result to MLflow: {trainer_result.to_log_dict()}")
+                    log_payload = trainer_result.to_log_dict()
+                    logging.info(f"Logged trainer result to MLflow: {log_payload}")
 
                 predictions = model.predict(X_test)
                 signature = infer_signature(X_test, predictions)
                 test_metrics = self.eval_metrics(y_test, predictions)
+                metrics_dict = test_metrics.to_log_dict()
 
-                print(f"Precision: {test_metrics.precision}")
-                print(f"Recall: {test_metrics.recall}")
-                print(f"F1 score: {test_metrics.f1_score}")
-                print(f"Confusion Matrix:\n{test_metrics.confusion_matrix}")
+                print(f"Precision: {metrics_dict['Precision']}")
+                print(f"Recall: {metrics_dict['Recall']}")
+                print(f"F1 score: {metrics_dict['F1 score']}")
+                print(f"Confusion Matrix:\n{metrics_dict['Confusion Matrix']}")
+
+                logging.info(f"Evaluation metrics: {metrics_dict}")
 
                 self.log_metrics_to_mlflow(test_metrics)
 

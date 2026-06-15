@@ -20,6 +20,12 @@ from sklearn.metrics import classification_report, confusion_matrix, auc, roc_cu
 from sklearn.metrics import ConfusionMatrixDisplay, RocCurveDisplay
 
 
+def _serialize_cm(cm: Any) -> Any:
+    if hasattr(cm, 'tolist'):
+        return cm.tolist()
+    return cm
+
+
 @dataclass(frozen=True)
 class ModelMetrics:
     precision: float
@@ -27,12 +33,23 @@ class ModelMetrics:
     f1_score: float
     confusion_matrix: Any
 
+    def __iter__(self):
+        yield self.precision
+        yield self.recall
+        yield self.f1_score
+        yield _serialize_cm(self.confusion_matrix)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return list(self)[key]
+        return getattr(self, key)
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "precision": self.precision,
             "recall": self.recall,
             "f1_score": self.f1_score,
-            "confusion_matrix": self.confusion_matrix.tolist() if hasattr(self.confusion_matrix, 'tolist') else self.confusion_matrix
+            "confusion_matrix": _serialize_cm(self.confusion_matrix)
         }
 
     def to_log_dict(self) -> Dict[str, Any]:
@@ -40,8 +57,14 @@ class ModelMetrics:
             "Precision": self.precision,
             "Recall": self.recall,
             "F1 score": self.f1_score,
-            "Confusion Matrix": self.confusion_matrix
+            "Confusion Matrix": _serialize_cm(self.confusion_matrix)
         }
+
+    def to_legacy_dict(self) -> Dict[str, Any]:
+        return self.to_log_dict()
+
+    def to_legacy_list(self):
+        return [self.to_log_dict()]
 
 
 def save_object(file_path, obj):
@@ -98,8 +121,8 @@ def model_metrics(y_true, y_pred) -> ModelMetrics:
 
 def evaluate_models(X_train, y_train, X_test, y_test, models, params):
     try:
-        train_report: Dict[str, ModelMetrics] = {}
-        test_report: Dict[str, ModelMetrics] = {}
+        train_report: Dict[str, Any] = {}
+        test_report: Dict[str, Any] = {}
         best_params_report: Dict[str, Dict[str, Any]] = {}
         for i in range(len(models)):
             model = list(models.values())[i]
@@ -123,14 +146,16 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
 
             logging.info(f"Obtaining evaluation metrics for {model} by using best hyperparameters")
             train_metrics = model_metrics(y_train, y_train_pred)
-            train_report[model_name] = train_metrics
+            train_report[model_name] = train_metrics.to_legacy_list()
             
             test_metrics = model_metrics(y_test, y_test_pred)
-            test_report[model_name] = test_metrics
+            test_report[model_name] = test_metrics.to_legacy_list()
 
             logging.info(f"[{model_name}] Train metrics: {train_metrics.to_log_dict()}")
             logging.info(f"[{model_name}] Test metrics: {test_metrics.to_log_dict()}")
 
+        logging.info(f"\n Metrics calculation on Train Data: \n{train_report}")
+        logging.info(f"\n Metrics calculation on Test Data: \n{test_report}")
         logging.info(f"\n Best parameters for each model: \n{best_params_report}")
         return train_report, test_report, best_params_report
 
