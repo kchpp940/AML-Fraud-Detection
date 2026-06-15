@@ -35,6 +35,10 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
     summary = TrainingSummary(
         data_source=resolved["data"]["source_path"],
         target_column=resolved["features"]["target_column"],
+        drop_columns=list(resolved["features"]["drop_columns"]),
+        derived_features={
+            "day_from_timestamp": True,
+        },
         selection_metric=resolved["models"]["selection_metric"],
         artifacts_dir=resolved["output"]["artifacts_dir"],
         resolved_config=resolved,

@@ -20,6 +20,19 @@
     "day"
   ],
   "target_column": "is_laundering",
+  "drop_columns": [
+    "timestamp",
+    "date",
+    "time",
+    "amount_paid",
+    "receiving_currency",
+    "payment_currency",
+    "from_bank",
+    "to_bank"
+  ],
+  "derived_features": {
+    "day_from_timestamp": true
+  },
   "candidate_models": [
     "Random Forest",
     "AdaBoost",

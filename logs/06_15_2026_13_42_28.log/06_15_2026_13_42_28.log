@@ -1,0 +1,37 @@
+[ 2026-06-15 13:42:32,500] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,500] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 13:42:32,502] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:42:32,503] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 13:42:32,506] 184 root - INFO - Starting batch prediction for 3 rows
+[ 2026-06-15 13:42:32,652] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,657] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 13:42:32,659] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:42:32,659] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 13:42:32,684] 230 root - INFO - Batch prediction completed: 3 success, 0 failed
+[ 2026-06-15 13:42:32,687] 184 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:42:32,690] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,691] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 13:42:32,693] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:42:32,693] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 13:42:32,704] 230 root - INFO - Batch prediction completed: 2 success, 0 failed
+[ 2026-06-15 13:42:32,704] 184 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:42:32,709] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,716] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 13:42:32,718] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:42:32,718] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 13:42:32,731] 230 root - INFO - Batch prediction completed: 2 success, 0 failed
+[ 2026-06-15 13:42:32,733] 184 root - INFO - Starting batch prediction for 4 rows
+[ 2026-06-15 13:42:32,736] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,737] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 13:42:32,740] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:42:32,740] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 13:42:32,751] 230 root - INFO - Batch prediction completed: 2 success, 2 failed
+[ 2026-06-15 13:42:32,753] 184 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:42:32,758] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,760] 230 root - INFO - Batch prediction completed: 0 success, 2 failed
+[ 2026-06-15 13:42:32,761] 184 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:42:32,764] 40 root - INFO - Loaded schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], num=['amount_received'], cat=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 13:42:32,765] 159 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 13:42:32,768] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:42:32,768] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-15 13:42:32,780] 230 root - INFO - Batch prediction completed: 2 success, 0 failed

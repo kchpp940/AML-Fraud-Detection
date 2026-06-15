@@ -1,0 +1,19 @@
+[ 2026-06-15 13:56:13,545] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,546] 182 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:56:13,661] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,675] 227 root - INFO - Batch prediction completed: 2 success, 0 failed
+[ 2026-06-15 13:56:13,675] 182 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:56:13,677] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,683] 227 root - INFO - Batch prediction completed: 2 success, 0 failed
+[ 2026-06-15 13:56:13,684] 182 root - INFO - Starting batch prediction for 2 rows
+[ 2026-06-15 13:56:13,685] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,695] 227 root - INFO - Batch prediction completed: 2 success, 0 failed
+[ 2026-06-15 13:56:13,696] 182 root - INFO - Starting batch prediction for 3 rows
+[ 2026-06-15 13:56:13,697] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,701] 227 root - INFO - Batch prediction completed: 1 success, 2 failed
+[ 2026-06-15 13:56:13,701] 182 root - INFO - Starting batch prediction for 1 rows
+[ 2026-06-15 13:56:13,703] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,703] 227 root - INFO - Batch prediction completed: 0 success, 1 failed
+[ 2026-06-15 13:56:13,713] 182 root - INFO - Starting batch prediction for 8 rows
+[ 2026-06-15 13:56:13,715] 74 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 13:56:13,734] 227 root - INFO - Batch prediction completed: 6 success, 2 failed

@@ -1,7 +1,7 @@
 import io
 import streamlit as st
 import dill
-from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline, REQUIRED_FIELDS
+from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 import pandas as pd
@@ -120,31 +120,32 @@ def single_transaction_mode(predict_pipeline):
 def batch_prediction_mode(predict_pipeline):
     st.header("Batch Transaction Prediction")
 
+    schema = predict_pipeline.get_schema_info()
+
     st.info(
         """
-        **📋 Required CSV Columns:**
+        **📋 Model Feature Schema** — The following columns are the actual model inputs derived from the training pipeline.
+        Columns in `drop_columns` are ignored during prediction, just as they were during training.
+        If your CSV has a `timestamp` column, `day` will be derived automatically.
+        Extra columns will be preserved in the output but not used for prediction.
         """
     )
 
+    feature_types = schema.get("feature_types", {})
     fields_df = pd.DataFrame([
         {
-            "Column Name": field,
-            "Type": dtype.__name__,
-            "Description": {
-                "from_bank": "汇出银行ID (整数)",
-                "account": "汇款人账号 (字符串)",
-                "to_bank": "汇入银行ID (整数)",
-                "account_1": "收款人账号 (字符串)",
-                "amount_received": "到账金额 (浮点数)",
-                "receiving_currency": "收款币种 (字符串)",
-                "payment_currency": "付款币种 (字符串)",
-                "payment_format": "付款方式 (字符串)",
-                "day": "交易星期 (字符串, e.g., Monday)"
-            }.get(field, "")
+            "Feature Column": col,
+            "Type": feature_types.get(col, "unknown"),
         }
-        for field, dtype in REQUIRED_FIELDS.items()
+        for col in schema.get("feature_columns", [])
     ])
     st.dataframe(fields_df, use_container_width=True, hide_index=True)
+
+    if schema.get("drop_columns"):
+        st.caption(
+            f"**Dropped columns** (not used by model): "
+            + ", ".join(f"`{c}`" for c in schema["drop_columns"])
+        )
 
     st.write("---")
 
@@ -152,7 +153,7 @@ def batch_prediction_mode(predict_pipeline):
     uploaded_file = st.file_uploader(
         "Choose a CSV file containing transactions",
         type=["csv"],
-        help="Upload a CSV file with the required columns listed above."
+        help="Upload a CSV file. Only the model-required feature columns need valid data; extra columns are kept."
     )
 
     if uploaded_file is not None:
@@ -224,11 +225,11 @@ def display_batch_results(result_df, input_df):
             }
         )
 
-        successful_df = result_df[result_df["error_reason"].isna()]
+        successful_df = result_df[result_df["prediction_label"].notna()]
         if len(successful_df) > 0:
             st.subheader("Fraud Probability Distribution")
             fig, ax = plt.subplots(figsize=(10, 4))
-            ax.hist(successful_df["fraud_probability"], bins=20, edgecolor="black", alpha=0.7)
+            ax.hist(successful_df["fraud_probability"].dropna(), bins=20, edgecolor="black", alpha=0.7)
             ax.set_xlabel("Fraud Probability")
             ax.set_ylabel("Number of Transactions")
             ax.set_title("Distribution of Fraud Probabilities")
@@ -237,7 +238,7 @@ def display_batch_results(result_df, input_df):
             st.pyplot(fig)
 
     with tab2:
-        successful_df = result_df[result_df["error_reason"].isna()].copy()
+        successful_df = result_df[result_df["prediction_label"].notna()].copy()
         successful_df = successful_df.drop(columns=["error_reason"])
         if len(successful_df) > 0:
             st.dataframe(
@@ -267,7 +268,7 @@ def display_batch_results(result_df, input_df):
             st.info("No successful predictions.")
 
     with tab3:
-        failed_df = result_df[result_df["error_reason"].notna()].copy()
+        failed_df = result_df[result_df["prediction_label"].isna()].copy()
         if len(failed_df) > 0:
             st.dataframe(
                 failed_df,

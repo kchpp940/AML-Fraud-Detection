@@ -1,38 +1,90 @@
     
 import sys
 import os
+import json
 import pandas as pd
-from typing import Dict, List, Any
+from typing import Dict, List, Optional
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import load_object
 
+_SUMMARY_PATH = os.path.join("artifacts", "training_summary.json")
+_MODEL_PATH = os.path.join("artifacts", "model.pkl")
+_PREPROCESSOR_PATH = os.path.join("artifacts", "preprocessor.pkl")
 
-REQUIRED_FIELDS: Dict[str, type] = {
-    "from_bank": int,
-    "account": str,
-    "to_bank": int,
-    "account_1": str,
-    "amount_received": float,
-    "receiving_currency": str,
-    "payment_currency": str,
-    "payment_format": str,
-    "day": str,
-}
+
+class _Schema:
+    __slots__ = (
+        "feature_columns",
+        "numerical_features",
+        "categorical_features",
+        "drop_columns",
+        "target_column",
+        "derived_features",
+    )
+
+    def __init__(self, summary: Dict):
+        self.feature_columns: List[str] = summary.get("feature_columns", [])
+        self.numerical_features: List[str] = summary.get("numerical_features", [])
+        self.categorical_features: List[str] = summary.get("categorical_features", [])
+        self.drop_columns: List[str] = summary.get("drop_columns", [])
+        self.target_column: str = summary.get("target_column", "")
+        self.derived_features: Dict = summary.get("derived_features", {})
+
+    def to_dict(self) -> Dict:
+        num_types = {f: "numerical" for f in self.numerical_features}
+        cat_types = {f: "categorical" for f in self.categorical_features}
+        return {
+            "feature_columns": self.feature_columns,
+            "numerical_features": self.numerical_features,
+            "categorical_features": self.categorical_features,
+            "drop_columns": self.drop_columns,
+            "target_column": self.target_column,
+            "derived_features": self.derived_features,
+            "feature_types": {**num_types, **cat_types},
+        }
 
 
 class PredictionPipeline:
     def __init__(self):
         self._model = None
         self._preprocessor = None
+        self._schema: Optional[_Schema] = None
 
     def _load_models(self):
         if self._model is None or self._preprocessor is None:
-            model_path = os.path.join("artifacts", "model.pkl")
-            preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
-            self._model = load_object(file_path=model_path)
-            self._preprocessor = load_object(file_path=preprocessor_path)
+            self._model = load_object(file_path=_MODEL_PATH)
+            self._preprocessor = load_object(file_path=_PREPROCESSOR_PATH)
+
+    def _load_schema(self) -> _Schema:
+        if self._schema is not None:
+            return self._schema
+        if not os.path.isfile(_SUMMARY_PATH):
+            raise CustomerException(
+                FileNotFoundError(
+                    f"训练摘要文件不存在: {_SUMMARY_PATH}。"
+                    f"请先运行训练流程或确保 artifacts 目录包含 training_summary.json"
+                ),
+                sys,
+            )
+        with open(_SUMMARY_PATH, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        self._schema = _Schema(raw)
+        logging.info(
+            f"Loaded inference schema from training_summary.json: "
+            f"features={self._schema.feature_columns}, "
+            f"drop={self._schema.drop_columns}, "
+            f"derived={self._schema.derived_features}"
+        )
+        return self._schema
+
+    @property
+    def schema(self) -> _Schema:
+        return self._load_schema()
+
+    def get_schema_info(self) -> Dict:
+        return self._load_schema().to_dict()
 
     def predict(self, features):
         try: 
@@ -52,126 +104,135 @@ class PredictionPipeline:
         except Exception as e:
             raise CustomerException(e, sys)
 
-    def _normalize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df.columns = df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
         return df
 
-    def _validate_row(self, row: pd.Series, row_idx: int) -> List[str]:
-        errors = []
-        actual_fields = set(row.index)
-        required_fields_set = set(REQUIRED_FIELDS.keys())
-
-        missing_fields = required_fields_set - actual_fields
-        if missing_fields:
-            errors.append(f"缺少字段: {', '.join(sorted(missing_fields))}")
-
-        for field, expected_type in REQUIRED_FIELDS.items():
-            if field not in row:
-                continue
-            value = row[field]
-            if pd.isna(value):
-                errors.append(f"字段 '{field}' 值为空")
-                continue
+    def _engineer_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        schema = self._load_schema()
+        df = df.copy()
+        if schema.derived_features.get("day_from_timestamp") and "timestamp" in df.columns:
             try:
-                if expected_type == int:
+                df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+                if "day" not in df.columns:
+                    df["day"] = df["timestamp"].dt.day_name().astype(object)
+                else:
+                    mask = df["day"].isna()
+                    if mask.any():
+                        df.loc[mask, "day"] = df.loc[mask, "timestamp"].dt.day_name().astype(object)
+            except Exception as e:
+                logging.warning(f"Failed to parse timestamp column: {e}")
+        return df
+
+    def _validate_row(self, row: pd.Series, schema: _Schema) -> List[str]:
+        errors = []
+        feature_set = set(schema.feature_columns)
+        row_fields = set(row.index)
+
+        missing = feature_set - row_fields
+        if missing:
+            errors.append(f"缺少模型必需字段: {', '.join(sorted(missing))}")
+
+        for feat in schema.feature_columns:
+            if feat not in row:
+                continue
+            value = row[feat]
+            if pd.isna(value):
+                errors.append(f"字段 '{feat}' 值为空")
+                continue
+            if feat in schema.numerical_features:
+                try:
                     if isinstance(value, bool):
-                        errors.append(f"字段 '{field}' 类型错误: 布尔值不能转换为整数")
-                    else:
-                        int(str(value))
-                elif expected_type == float:
-                    if isinstance(value, bool):
-                        errors.append(f"字段 '{field}' 类型错误: 布尔值不能转换为浮点数")
-                    else:
-                        float(str(value))
-                elif expected_type == str:
-                    str_val = str(value)
-                    if not str_val.strip():
-                        errors.append(f"字段 '{field}' 为空字符串")
-            except (ValueError, TypeError) as e:
-                errors.append(f"字段 '{field}' 格式错误: 预期 {expected_type.__name__}, 实际值 '{value}'")
+                        raise ValueError()
+                    float(str(value))
+                except (ValueError, TypeError):
+                    errors.append(f"字段 '{feat}' 格式错误: 预期数值, 实际值 '{value}'")
+            elif feat in schema.categorical_features:
+                str_val = str(value).strip()
+                if not str_val:
+                    errors.append(f"字段 '{feat}' 为空字符串")
 
         return errors
 
-    def _get_warnings(self, row: pd.Series) -> List[str]:
-        warnings = []
-        actual_fields = set(row.index)
-        required_fields_set = set(REQUIRED_FIELDS.keys())
-        extra_fields = actual_fields - required_fields_set
-        if extra_fields:
-            warnings.append(f"额外字段（将被保留）: {', '.join(sorted(extra_fields))}")
-        return warnings
+    def _prepare_features(self, row_df: pd.DataFrame, schema: _Schema) -> pd.DataFrame:
+        df = row_df.copy()
 
-    def _align_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-        for field in REQUIRED_FIELDS.keys():
-            if field not in df.columns:
-                df[field] = None
-        df = df[list(REQUIRED_FIELDS.keys())]
-        
-        if "from_bank" in df.columns:
-            df["from_bank"] = df["from_bank"].astype("object")
-        if "to_bank" in df.columns:
-            df["to_bank"] = df["to_bank"].astype("object")
-        
+        drop_cols = [schema.target_column] + [
+            c for c in schema.drop_columns if c != schema.target_column
+        ]
+        existing_drop = [c for c in drop_cols if c in df.columns]
+        if existing_drop:
+            df = df.drop(columns=existing_drop, axis=1)
+
+        for feat in schema.feature_columns:
+            if feat not in df.columns:
+                df[feat] = None
+            if feat in schema.numerical_features and feat in df.columns:
+                df[feat] = pd.to_numeric(df[feat], errors="coerce")
+            if feat in schema.categorical_features and feat in df.columns:
+                df[feat] = df[feat].astype(object)
+
+        df = df[schema.feature_columns]
         return df
 
     def predict_batch(self, input_df: pd.DataFrame) -> pd.DataFrame:
         try:
             logging.info(f"Starting batch prediction for {len(input_df)} rows")
             self._load_models()
+            schema = self._load_schema()
 
             input_df = self._normalize_columns(input_df)
+            input_df = self._engineer_features(input_df)
+
             results = []
 
             for idx, (row_idx, row) in enumerate(input_df.iterrows()):
                 result_row = row.to_dict()
-                errors = self._validate_row(row, idx)
-                warnings = self._get_warnings(row)
-                all_messages = errors + warnings
+                errors = self._validate_row(row, schema)
 
                 if errors:
                     result_row["prediction_label"] = None
                     result_row["fraud_probability"] = None
-                    result_row["error_reason"] = "; ".join(all_messages)
+                    result_row["error_reason"] = "; ".join(errors)
                     results.append(result_row)
                     continue
 
                 try:
                     row_df = pd.DataFrame([row])
-                    aligned_df = self._align_features(row_df)
-                    
-                    prediction = self._model.predict(self._preprocessor.transform(aligned_df))
-                    prediction_proba = self._model.predict_proba(self._preprocessor.transform(aligned_df))
-                    
+                    features_df = self._prepare_features(row_df, schema)
+
+                    data_scaled = self._preprocessor.transform(features_df)
+                    prediction = self._model.predict(data_scaled)
+                    prediction_proba = self._model.predict_proba(data_scaled)
+
                     result_row["prediction_label"] = int(prediction[0])
                     result_row["fraud_probability"] = float(prediction_proba[0][1])
-                    result_row["error_reason"] = "; ".join(warnings) if warnings else None
-                    
+                    result_row["error_reason"] = None
+
                 except Exception as e:
                     result_row["prediction_label"] = None
                     result_row["fraud_probability"] = None
-                    result_row["error_reason"] = f"预测失败: {str(e)}" + (f"; {'; '.join(warnings)}" if warnings else "")
-                
+                    result_row["error_reason"] = f"预测失败: {str(e)}"
+
                 results.append(result_row)
 
             result_df = pd.DataFrame(results)
             output_columns = list(input_df.columns) + ["prediction_label", "fraud_probability", "error_reason"]
             result_df = result_df[output_columns]
-            
+
             success_count = result_df["prediction_label"].notna().sum()
             fail_count = result_df["prediction_label"].isna().sum()
             logging.info(f"Batch prediction completed: {success_count} success, {fail_count} failed")
-            
+
             return result_df
 
         except Exception as e:
             logging.error(f"Batch prediction failed: {str(e)}")
             raise CustomerException(e, sys)
-        
 
-# ['from_bank', 'to_bank', 'amount_received']
-# ['account', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+
 class CustomData:
     def __init__(self,
             from_bank: int,

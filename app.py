@@ -1,7 +1,8 @@
 import io
+import base64
 import pandas as pd
-from flask import Flask, request, render_template, jsonify, send_file, Response
-from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline, REQUIRED_FIELDS
+from flask import Flask, request, render_template, jsonify, Response
+from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 
 application = Flask(__name__)
 app = application
@@ -35,6 +36,71 @@ def predict_datapoint():
 
         results = predict_pipeline.predict(pred_df)
         return render_template("home.html", results=results[0])
+
+
+@app.route("/batch", methods=["GET", "POST"])
+def batch_prediction():
+    if request.method == "GET":
+        schema = predict_pipeline.get_schema_info()
+        return render_template("batch.html", schema=schema)
+
+    if "file" not in request.files:
+        schema = predict_pipeline.get_schema_info()
+        return render_template("batch.html", schema=schema, error="未找到上传的文件")
+
+    file = request.files["file"]
+    if file.filename == "":
+        schema = predict_pipeline.get_schema_info()
+        return render_template("batch.html", schema=schema, error="文件名为空")
+
+    if not file.filename.lower().endswith(".csv"):
+        schema = predict_pipeline.get_schema_info()
+        return render_template("batch.html", schema=schema, error="只支持 CSV 格式文件")
+
+    try:
+        file_content = file.read().decode("utf-8")
+        input_df = pd.read_csv(io.StringIO(file_content))
+
+        if len(input_df) == 0:
+            schema = predict_pipeline.get_schema_info()
+            return render_template("batch.html", schema=schema, error="CSV 文件为空")
+
+        result_df = predict_pipeline.predict_batch(input_df)
+
+        total = len(result_df)
+        success_count = int(result_df["prediction_label"].notna().sum())
+        fail_count = int(result_df["prediction_label"].isna().sum())
+        fraud_count = int((result_df["prediction_label"] == 1).sum())
+
+        csv_output = io.StringIO()
+        result_df.to_csv(csv_output, index=False, encoding="utf-8-sig")
+        csv_b64 = base64.b64encode(csv_output.getvalue().encode("utf-8-sig")).decode("ascii")
+
+        display_df = result_df.copy()
+        table_html = display_df.to_html(
+            classes="table table-striped table-bordered table-sm",
+            index=False,
+            na_rep="-",
+            max_rows=200,
+            escape=False
+        )
+
+        return render_template(
+            "batch.html",
+            schema=predict_pipeline.get_schema_info(),
+            table_html=table_html,
+            csv_b64=csv_b64,
+            stats={
+                "total": total,
+                "success": success_count,
+                "failed": fail_count,
+                "fraud": fraud_count,
+            }
+        )
+
+    except Exception as e:
+        schema = predict_pipeline.get_schema_info()
+        return render_template("batch.html", schema=schema, error=str(e))
 
 
 @app.route("/api/predict", methods=["POST"])
@@ -115,17 +181,19 @@ def api_predict_batch():
             )
         
         result_records = result_df.to_dict(orient="records")
-        success_count = result_df["prediction_label"].notna().sum()
-        fail_count = result_df["prediction_label"].isna().sum()
-        fraud_count = (result_df["prediction_label"] == 1).sum()
+        success_count = int(result_df["prediction_label"].notna().sum())
+        fail_count = int(result_df["prediction_label"].isna().sum())
+        fraud_count = int((result_df["prediction_label"] == 1).sum())
         
+        schema = predict_pipeline.get_schema_info()
+
         return jsonify({
             "success": True,
             "total_rows": len(result_df),
-            "success_rows": int(success_count),
-            "failed_rows": int(fail_count),
-            "fraud_count": int(fraud_count),
-            "required_fields": list(REQUIRED_FIELDS.keys()),
+            "success_rows": success_count,
+            "failed_rows": fail_count,
+            "fraud_count": fraud_count,
+            "schema": schema,
             "results": result_records
         })
         
@@ -136,28 +204,11 @@ def api_predict_batch():
         }), 500
 
 
-@app.route("/api/fields", methods=["GET"])
-def api_fields():
+@app.route("/api/schema", methods=["GET"])
+def api_schema():
     return jsonify({
         "success": True,
-        "required_fields": [
-            {
-                "name": field,
-                "type": dtype.__name__,
-                "description": {
-                    "from_bank": "汇出银行ID",
-                    "account": "汇款人账号",
-                    "to_bank": "汇入银行ID",
-                    "account_1": "收款人账号",
-                    "amount_received": "到账金额",
-                    "receiving_currency": "收款币种",
-                    "payment_currency": "付款币种",
-                    "payment_format": "付款方式",
-                    "day": "交易星期"
-                }.get(field, "")
-            }
-            for field, dtype in REQUIRED_FIELDS.items()
-        ]
+        "schema": predict_pipeline.get_schema_info()
     })
 
 
