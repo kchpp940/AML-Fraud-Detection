@@ -1,21 +1,71 @@
 {
-  "model_version": 10001,
-  "training_time": "2026-06-15T18:33:43.943889",
+  "model_version": 10002,
+  "training_time": "2026-06-15T22:37:00.798172",
   "data_file": "/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv",
   "data_file_digest": "sha256:b00f6f3c8fec51bdb0cec34daf88c3befdea15a5db4b75a333f930873a0f9b74",
   "feature_schema_version": "1.0",
   "best_model_name": "XGBoost (XGBoost)",
   "best_model_params": {
-    "n_estimators": 200
+    "objective": "binary:logistic",
+    "base_score": "None",
+    "booster": "None",
+    "callbacks": "None",
+    "colsample_bylevel": "None",
+    "colsample_bynode": "None",
+    "colsample_bytree": "None",
+    "device": "None",
+    "early_stopping_rounds": "None",
+    "enable_categorical": false,
+    "eval_metric": "None",
+    "feature_types": "None",
+    "feature_weights": "None",
+    "gamma": "None",
+    "grow_policy": "None",
+    "importance_type": "None",
+    "interaction_constraints": "None",
+    "learning_rate": 0.1,
+    "max_bin": "None",
+    "max_cat_threshold": "None",
+    "max_cat_to_onehot": "None",
+    "max_delta_step": "None",
+    "max_depth": "None",
+    "max_leaves": "None",
+    "min_child_weight": "None",
+    "missing": NaN,
+    "monotone_constraints": "None",
+    "multi_strategy": "None",
+    "n_estimators": 200,
+    "n_jobs": "None",
+    "num_parallel_tree": "None",
+    "random_state": "None",
+    "reg_alpha": "None",
+    "reg_lambda": "None",
+    "sampling_method": "None",
+    "scale_pos_weight": "None",
+    "subsample": "None",
+    "tree_method": "None",
+    "validate_parameters": "None",
+    "verbosity": "None"
   },
   "selection_metric": "Recall",
   "best_metric_value": 0.94375,
   "all_model_metrics": {
+    "Random Forest": {
+      "Precision": 0.909301948051948,
+      "Recall": 0.9025,
+      "F1 score": 0.9058743854236961
+    },
+    "AdaBoost": {
+      "Precision": 0.6793195346320345,
+      "Recall": 0.76625,
+      "F1 score": 0.7093481510621558
+    },
     "XGBoost": {
-      "Precision": 0.997,
-      "Recall": 0.944,
-      "F1 score": 0.97
+      "Precision": 0.9974289021164021,
+      "Recall": 0.94375,
+      "F1 score": 0.969847266881029
     }
   },
-  "artifact_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl"
+  "artifact_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
+  "generated_at": "2026-06-15T22:37:00.798188"
 }

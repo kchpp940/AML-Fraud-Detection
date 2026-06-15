@@ -1,12 +1,11 @@
 {
-  "generated_at": "2026-06-15T16:40:19.230780",
   "dataset_shape": [
     4000,
     11
   ],
   "missing_values": [
     {
-      "column": "timestamp",
+      "column": "Timestamp",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -14,7 +13,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "from_bank",
+      "column": "From Bank",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -22,7 +21,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "account",
+      "column": "Account",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -30,7 +29,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "to_bank",
+      "column": "To Bank",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -38,7 +37,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "account_1",
+      "column": "Account.1",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -46,7 +45,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "amount_received",
+      "column": "Amount Received",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -54,7 +53,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "receiving_currency",
+      "column": "Receiving Currency",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -62,7 +61,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "amount_paid",
+      "column": "Amount Paid",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -70,7 +69,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "payment_currency",
+      "column": "Payment Currency",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -78,7 +77,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "payment_format",
+      "column": "Payment Format",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -86,7 +85,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "is_laundering",
+      "column": "Is Laundering",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -101,67 +100,11 @@
     "severity": "NONE",
     "threshold_warning": 0.1
   },
-  "abnormal_amounts": [
-    {
-      "column": "amount_received",
-      "negative_count": 0,
-      "zero_count": 0,
-      "outlier_count": 197,
-      "outlier_lower": -1338.6000000000004,
-      "outlier_upper": 3010.1000000000004
-    },
-    {
-      "column": "amount_paid",
-      "negative_count": 0,
-      "zero_count": 0,
-      "outlier_count": 207,
-      "outlier_lower": -1373.8287500000001,
-      "outlier_upper": 3098.48125
-    }
-  ],
+  "abnormal_amounts": [],
   "unknown_categories": [],
-  "time_parsing": [
-    {
-      "column": "timestamp",
-      "total_count": 4000,
-      "parse_fail_count": 0,
-      "parse_fail_ratio": 0.0
-    }
-  ],
-  "target_distribution": {
-    "column": "is_laundering",
-    "missing_count": 0,
-    "missing_ratio": 0.0,
-    "missing_threshold": 0.0,
-    "unique_classes": 2,
-    "expected_classes": 2,
-    "value_counts": {
-      "0": 3816,
-      "1": 184
-    },
-    "total_count": 4000,
-    "positive_ratio": 0.046,
-    "imbalance_ratio": 0.046,
-    "imbalance_threshold_critical": 0.01,
-    "imbalance_threshold_warning": 0.05,
-    "issues": [
-      {
-        "code": "target_mild_imbalance",
-        "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.00%",
-        "severity": "WARNING",
-        "ratio": 0.046,
-        "threshold": 0.05
-      }
-    ],
-    "overall_severity": "WARNING"
-  },
-  "risk_items": [
-    {
-      "level": "WARNING",
-      "category": "target__target_mild_imbalance",
-      "message": "Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.00%"
-    }
-  ],
+  "time_parsing": [],
+  "target_distribution": {},
+  "risk_items": [],
   "validation_config": {
     "critical_feature_columns": [
       "account",
@@ -189,5 +132,6 @@
       "target_imbalance_critical_ratio": 0.01,
       "target_imbalance_warning_ratio": 0.05
     }
-  }
+  },
+  "generated_at": "2026-06-15T22:36:51.411068"
 }

@@ -1,5 +1,6 @@
 import os
 import sys
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import pandas as pd
@@ -11,6 +12,13 @@ from aml_fraud_detector.logger import logging
 from aml_fraud_detector.configuration import TrainingConfig
 
 
+@dataclass
+class DataIngestionConfig:
+    train_data_path: str
+    test_data_path: str
+    raw_data_path: str
+
+
 class DataIngestion:
     def __init__(
         self,
@@ -20,18 +28,17 @@ class DataIngestion:
         self.training_config = training_config or TrainingConfig()
         self.registry = registry
         self._resolved = self.training_config.to_resolved_dict()
+        tc = self.training_config
+        self.ingestion_config = DataIngestionConfig(
+            train_data_path=tc.artifacts_subpath("train.csv"),
+            test_data_path=tc.artifacts_subpath("test.csv"),
+            raw_data_path=tc.artifacts_subpath("data.csv"),
+        )
         logging.info(
             f"DataIngestion initialized with resolved config: "
             f"source={self._resolved['data']['source_path']}, "
             f"sample_size={self._resolved['data']['sample_size']}, "
             f"test_size={self._resolved['data']['test_size']}"
-        )
-
-    def _path(self, key: str) -> str:
-        if self.registry:
-            return self.registry.path(key)
-        return self.training_config.artifacts_subpath(
-            {"raw_csv": "data.csv", "train_csv": "train.csv", "test_csv": "test.csv"}[key]
         )
 
     def initiate_data_ingestion(self) -> Tuple[str, str, pd.DataFrame]:
@@ -61,9 +68,21 @@ class DataIngestion:
                 df_sample = df
                 logging.info("Using full dataset (no sampling applied)")
 
-            raw_data_path = self._path("raw_csv")
-            train_data_path = self._path("train_csv")
-            test_data_path = self._path("test_csv")
+            raw_data_path = (
+                self.registry.path("raw_csv")
+                if self.registry
+                else self.ingestion_config.raw_data_path
+            )
+            train_data_path = (
+                self.registry.path("train_csv")
+                if self.registry
+                else self.ingestion_config.train_data_path
+            )
+            test_data_path = (
+                self.registry.path("test_csv")
+                if self.registry
+                else self.ingestion_config.test_data_path
+            )
 
             os.makedirs(os.path.dirname(raw_data_path), exist_ok=True)
             df_sample.to_csv(raw_data_path, index=False, header=True)
