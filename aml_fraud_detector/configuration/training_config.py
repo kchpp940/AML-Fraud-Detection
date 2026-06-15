@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from aml_fraud_detector.artifact_registry import ARTIFACT_NAMES
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 
@@ -150,8 +149,6 @@ class TrainingSummary:
     model_path: str = ""
     artifacts_dir: str = ""
     summary_path: str = ""
-    model_metadata_path: str = ""
-    artifact_manifest_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -355,12 +352,12 @@ class TrainingConfig:
             "output": {
                 "artifacts_dir": abs_artifacts,
                 "artifacts_dir_input": self.output.artifacts_dir,
-                "train_csv": os.path.join(abs_artifacts, ARTIFACT_NAMES["train_csv"]),
-                "test_csv": os.path.join(abs_artifacts, ARTIFACT_NAMES["test_csv"]),
-                "raw_csv": os.path.join(abs_artifacts, ARTIFACT_NAMES["raw_csv"]),
-                "preprocessor_pkl": os.path.join(abs_artifacts, ARTIFACT_NAMES["preprocessor_pkl"]),
-                "model_pkl": os.path.join(abs_artifacts, ARTIFACT_NAMES["model_pkl"]),
-                "summary_json": os.path.join(abs_artifacts, ARTIFACT_NAMES["training_summary_json"]),
+                "train_csv": os.path.abspath(self.artifacts_subpath("train.csv")),
+                "test_csv": os.path.abspath(self.artifacts_subpath("test.csv")),
+                "raw_csv": os.path.abspath(self.artifacts_subpath("data.csv")),
+                "preprocessor_pkl": os.path.abspath(self.artifacts_subpath("preprocessor.pkl")),
+                "model_pkl": os.path.abspath(self.artifacts_subpath("model.pkl")),
+                "summary_json": os.path.abspath(self.artifacts_subpath("training_summary.json")),
             },
         }
         self._resolved_cache = snapshot

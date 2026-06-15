@@ -1,15 +1,92 @@
 import streamlit as st
-import dill
-from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
-from aml_fraud_detector.exception import CustomerException
-from aml_fraud_detector.logger import logging
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def main():
-    logging.info(f"Starting Streamlit App")
+from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
+from aml_fraud_detector.presentation.response_builder import ResponseBuilder
+from aml_fraud_detector.logger import logging
 
-    # App Title and Description
+
+_pipeline = PredictionPipeline()
+_builder = ResponseBuilder(_pipeline)
+
+
+def _render_model_info(display: dict):
+    st.subheader("Model Version Info")
+    col1, col2 = st.columns(2)
+    col1.metric("Model Version", display["model_version_number"])
+    col1.metric("Model Name", display["model_name"])
+    col2.metric("Trained At", display["training_time"])
+    col2.metric(f"{display['selection_metric']} Score", f"{display['best_metric_value']:.4f}")
+
+
+def _render_validation_alerts(display: dict):
+    if display.get("has_alerts"):
+        st.subheader("Validation Alerts")
+        for err in display.get("validation_errors", []):
+            st.error(f"❌ {err}")
+        for warn in display.get("validation_warnings", []):
+            st.warning(f"⚠️ {warn}")
+
+
+def _render_single_prediction(display: dict):
+    if display.get("is_error"):
+        st.subheader("Prediction Error")
+        st.error(display["error_reason"])
+        return
+
+    st.subheader("Prediction Result")
+    if display["prediction_code"] == 1:
+        st.error(f"**Fraudulent Transaction** — {display['prediction_label']}")
+    else:
+        st.success(f"**Non-Fraudulent Transaction** — {display['prediction_label']}")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Fraud Probability", f"{display['fraud_probability']:.4f}")
+    col2.metric("Legit Probability", f"{display['legit_probability']:.4f}")
+    risk = display["risk_level"]
+    col3.metric("Risk Level", risk)
+
+    st.subheader("Prediction Probabilities")
+    proba_df = pd.DataFrame(
+        {"Not Fraud": [display["legit_probability"]], "Fraud": [display["fraud_probability"]]}
+    )
+    st.dataframe(proba_df)
+
+    fig, ax = plt.subplots()
+    ax.bar(proba_df.columns, proba_df.iloc[0], color=["green", "red"])
+    ax.set_ylabel("Probability")
+    ax.set_title("Fraud vs. Not Fraud Probability")
+    st.pyplot(fig)
+
+    if display.get("transaction_id"):
+        st.caption(f"Transaction ID: {display['transaction_id']}")
+
+
+def _render_batch_prediction(display: dict, response):
+    batch = response.batch_prediction
+    if batch is None:
+        return
+
+    st.subheader("Batch Prediction Summary")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total", display["batch_total"])
+    col2.metric("Fraud Count", display["batch_fraud_count"])
+    col3.metric("Fraud Rate", f"{display['batch_fraud_rate']:.2%}")
+
+    if display.get("batch_is_error"):
+        st.error(f"Batch Error: {display['batch_error_reason']}")
+        return
+
+    flat_df = _builder.to_flat_dataframe(response)
+    if not flat_df.empty:
+        st.subheader("Batch Detail Table")
+        st.dataframe(flat_df)
+
+
+def main():
+    logging.info("Starting Streamlit App")
+
     st.title("Anti-Money Laundering (AML) Fraud Detection")
     st.markdown(
         """
@@ -19,7 +96,6 @@ def main():
     )
     st.write("---")
 
-    # Sidebar for Input Features
     st.sidebar.header("Specify Input Features")
 
     def user_input_features():
@@ -43,50 +119,26 @@ def main():
             receiving_currency=receiving_currency,
             payment_currency=payment_currency,
             payment_format=payment_format,
-            day=day
+            day=day,
         )
-        features_df = data.get_data_as_DataFrame()
-        return features_df
+        return data
 
-    df = user_input_features()
+    custom_data = user_input_features()
+    df = custom_data.get_data_as_DataFrame()
 
-    # Display Input Parameters
     st.header("Specified Input Parameters")
     st.dataframe(df)
     st.write("---")
 
-    # Prediction Section
     st.header("Prediction Results")
-    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        # Make Prediction
-        prediction = predict_pipeline.predict(df)
-        prediction_proba = predict_pipeline.predict_proba(df)
+        response = _builder.build_single_response(custom_data.to_dict())
+        display = ResponseBuilder.extract_display_fields(response)
 
-        # Display Prediction
-        st.subheader("Fraud Detector Class Labels")
-        class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
-        class_labels_df.index = ["Class Labels"]
-        st.dataframe(class_labels_df.T)
-
-        st.subheader("Prediction of the Given Transaction")
-        if prediction[0] == 1:
-            st.error("**Fraudulent Transaction**")
-        else:
-            st.success("**Non-Fraudulent Transaction**")
-
-        st.subheader("Prediction Probabilities")
-        proba_df = pd.DataFrame(prediction_proba, columns=["Not Fraud", "Fraud"])
-        st.dataframe(proba_df)
-
-        # Visualize Prediction Probabilities
-        st.subheader("Prediction Probability Distribution")
-        fig, ax = plt.subplots()
-        ax.bar(proba_df.columns, proba_df.iloc[0], color=["green", "red"])
-        ax.set_ylabel("Probability")
-        ax.set_title("Fraud vs. Not Fraud Probability")
-        st.pyplot(fig)
+        _render_model_info(display)
+        _render_validation_alerts(display)
+        _render_single_prediction(display)
 
     st.write("---")
     st.markdown(
@@ -94,7 +146,7 @@ def main():
         **Note:** This app is for demonstration purposes only. The predictions are based on a machine learning model.
         """
     )
-    logging.info(f"Streamlit app execution completed")
+    logging.info("Streamlit app execution completed")
 
 
 if __name__ == "__main__":

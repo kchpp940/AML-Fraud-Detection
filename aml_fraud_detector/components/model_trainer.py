@@ -12,7 +12,6 @@ from sklearn.ensemble import (
 
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-from aml_fraud_detector.artifact_registry import ArtifactRegistry
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object, upsampling_train_data, evaluate_models
@@ -46,13 +45,8 @@ class ModelTrainerArtifact:
 
 
 class ModelTrainer:
-    def __init__(
-        self,
-        training_config: Optional[TrainingConfig] = None,
-        registry: Optional[ArtifactRegistry] = None,
-    ):
+    def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
-        self.registry = registry
         self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.model_trainer_config = ModelTrainerConfig(
@@ -169,16 +163,10 @@ class ModelTrainer:
             except Exception:
                 pass
 
-            if self.registry:
-                model_path = self.registry.save_object("model_pkl", best_model)
-            else:
-                save_object(
-                    file_path=self.model_trainer_config.trained_model_file_path,
-                    obj=best_model
-                )
-                model_path = os.path.abspath(
-                    self.model_trainer_config.trained_model_file_path
-                )
+            save_object(
+                file_path=self.model_trainer_config.trained_model_file_path,
+                obj=best_model
+            )
 
             predicted = best_model.predict(X_test)
             recall_Score = recall_score(y_test, predicted, average='weighted')
@@ -201,7 +189,9 @@ class ModelTrainer:
                 selection_metric=selection_metric,
                 candidate_models=[display_map[k] for k in candidate_keys],
                 all_model_metrics=all_model_metrics,
-                model_path=model_path,
+                model_path=os.path.abspath(
+                    self.model_trainer_config.trained_model_file_path
+                ),
             )
 
         except Exception as e:

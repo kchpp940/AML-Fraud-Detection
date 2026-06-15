@@ -12,7 +12,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler, OneHotEncoder, OrdinalEncoder
 from category_encoders import TargetEncoder, CountEncoder
 
-from aml_fraud_detector.artifact_registry import ArtifactRegistry
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
@@ -36,13 +35,8 @@ class DataTransformationArtifact:
 
 
 class DataTransformation:
-    def __init__(
-        self,
-        training_config: Optional[TrainingConfig] = None,
-        registry: Optional[ArtifactRegistry] = None,
-    ):
+    def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
-        self.registry = registry
         self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.data_transformation_config = DataTransformationConfig(
@@ -173,16 +167,10 @@ class DataTransformation:
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
 
-            if self.registry:
-                preprocessor_path = self.registry.save_object("preprocessor_pkl", preprocessing_obj)
-            else:
-                save_object(
-                    file_path=self.data_transformation_config.preprocessor_obj_file_path,
-                    obj=preprocessing_obj
-                )
-                preprocessor_path = os.path.abspath(
-                    self.data_transformation_config.preprocessor_obj_file_path
-                )
+            save_object(
+                file_path=self.data_transformation_config.preprocessor_obj_file_path,
+                obj=preprocessing_obj
+            )
             logging.info("Saved data preprocessing object")
 
             return DataTransformationArtifact(
@@ -192,7 +180,9 @@ class DataTransformation:
                 numerical_features=numerical_features,
                 categorical_features=categorical_features,
                 target_column=target_column_name,
-                preprocessor_path=preprocessor_path,
+                preprocessor_path=os.path.abspath(
+                    self.data_transformation_config.preprocessor_obj_file_path
+                ),
             )
 
         except Exception as e:

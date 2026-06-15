@@ -6,7 +6,6 @@ from typing import Optional, Tuple
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from aml_fraud_detector.artifact_registry import ArtifactRegistry
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.configuration import TrainingConfig
@@ -20,13 +19,8 @@ class DataIngestionConfig:
 
 
 class DataIngestion:
-    def __init__(
-        self,
-        training_config: Optional[TrainingConfig] = None,
-        registry: Optional[ArtifactRegistry] = None,
-    ):
+    def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
-        self.registry = registry
         self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.ingestion_config = DataIngestionConfig(
@@ -68,27 +62,11 @@ class DataIngestion:
                 df_sample = df
                 logging.info("Using full dataset (no sampling applied)")
 
-            raw_data_path = (
-                self.registry.path("raw_csv")
-                if self.registry
-                else self.ingestion_config.raw_data_path
+            os.makedirs(
+                os.path.dirname(os.path.join(self.ingestion_config.raw_data_path)),
+                exist_ok=True,
             )
-            train_data_path = (
-                self.registry.path("train_csv")
-                if self.registry
-                else self.ingestion_config.train_data_path
-            )
-            test_data_path = (
-                self.registry.path("test_csv")
-                if self.registry
-                else self.ingestion_config.test_data_path
-            )
-
-            os.makedirs(os.path.dirname(raw_data_path), exist_ok=True)
-            df_sample.to_csv(raw_data_path, index=False, header=True)
-
-            if self.registry:
-                self.registry.record_existing("raw_csv")
+            df_sample.to_csv(self.ingestion_config.raw_data_path, index=False, header=True)
 
             logging.info("Train Test split initiated")
             train_set, test_set = train_test_split(
@@ -96,17 +74,16 @@ class DataIngestion:
                 test_size=self.training_config.data.test_size,
                 random_state=self.training_config.data.random_state,
             )
-            train_set.to_csv(train_data_path, index=False, header=True)
-            test_set.to_csv(test_data_path, index=False, header=True)
-
-            if self.registry:
-                self.registry.record_existing("train_csv")
-                self.registry.record_existing("test_csv")
-
+            train_set.to_csv(self.ingestion_config.train_data_path, index=False, header=True)
+            test_set.to_csv(self.ingestion_config.test_data_path, index=False, header=True)
             logging.info(
                 f"Ingestion completed: train={len(train_set)}, test={len(test_set)}"
             )
 
-            return train_data_path, test_data_path, df_sample
+            return (
+                self.ingestion_config.train_data_path,
+                self.ingestion_config.test_data_path,
+                df_sample,
+            )
         except Exception as e:
             raise CustomerException(e, sys)

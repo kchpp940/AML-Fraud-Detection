@@ -1,18 +1,38 @@
 <html>
+<head>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 6px; box-sizing: border-box; }
+    .btn { padding: 10px 24px; margin-top: 10px; cursor: pointer; }
+    .result-panel { margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 6px; }
+    .result-panel h3 { margin-top: 0; }
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    .alert-error { background: #fdd; color: #900; border: 1px solid #fcc; }
+    .alert-warning { background: #ffe; color: #660; border: 1px solid #eea; }
+    .alert-success { background: #dfd; color: #060; border: 1px solid #cec; }
+    .field { margin-bottom: 6px; }
+    .field span.label { font-weight: bold; display: inline-block; width: 200px; }
+    .risk-critical { color: #c00; font-weight: bold; }
+    .risk-high { color: #e80; font-weight: bold; }
+    .risk-medium { color: #cc0; font-weight: bold; }
+    .risk-low { color: #090; }
+</style>
+</head>
 <body>
-    <div class="login">
-       <h1>Money Laundary Detector</h1>
-   
+    <div class="container">
+       <h1>Anti Money Laundering Detector</h1>
+
        <form action="{{ url_for('predict_datapoint')}}" method="post">
-        <h2>
-            <legend>Anti Money Laundering Detection</legend>
-        </h2>
+        <h2><legend>Transaction Input</legend></h2>
         <div class="form-group">
             <label for="from_bank">Bank where transaction originates:</label>
             <input type="text" id="from_bank" name="from_bank" placeholder="Enter Numeric code (int)">
         </div>
         <div class="form-group">
-            <label for="account"> Code for account where transaction originates:</label>
+            <label for="account">Code for account where transaction originates:</label>
             <input type="text" id="account" name="account" placeholder="Enter code (str)">
         </div>
         <div class="form-group">
@@ -20,31 +40,66 @@
             <input type="text" id="to_bank" name="to_bank" placeholder="Enter Numeric code (int)">
         </div>
         <div class="form-group">
-            <label for="account_1"> Code for account where transaction ends:</label>
+            <label for="account_1">Code for account where transaction ends:</label>
             <input type="text" id="account_1" name="account_1" placeholder="Enter code (str)">
         </div>
         <div class="form-group">
-            <label for="amount_received"> Monetary amount received:</label>
+            <label for="amount_received">Monetary amount received:</label>
             <input type="text" id="amount_received" name="amount_received" placeholder="Enter the amount (float)">
         </div>
         <div class="form-group">
-            <label for="receiving_currency"> Currency such as dollars, euros etc.:</label>
+            <label for="receiving_currency">Currency such as dollars, euros etc.:</label>
             <input type="text" id="receiving_currency" name="receiving_currency" placeholder="Enter currency (str)">
         </div>
         <div class="form-group">
-            <label for="payment_currency"> Currency such as dollars, euros etc.:</label>
+            <label for="payment_currency">Payment currency:</label>
             <input type="text" id="payment_currency" name="payment_currency" placeholder="Enter currency (str)">
         </div>
         <div class="form-group">
-            <label for="payment_format"> How transaction was conducted:</label>
+            <label for="payment_format">How transaction was conducted:</label>
             <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
         </div>
+        <div class="form-group">
+            <label for="day">Day:</label>
+            <input type="text" id="day" name="day" placeholder="Enter day (str)">
+        </div>
         <div style="clear:both;"></div>
-            <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
-    </form>
-    <h2>
-       The prediction is {{results}}
-    </h2>
-   <body>
-</html>
+        <input class="btn" type="submit" value="Predict whether the transaction is Fraud or not" required />
+       </form>
 
+       {% if display %}
+       <div class="result-panel">
+           <h3>Model Info</h3>
+           <div class="field"><span class="label">Model Version:</span> {{ display.model_version_number }}</div>
+           <div class="field"><span class="label">Model Name:</span> {{ display.model_name }}</div>
+           <div class="field"><span class="label">Trained At:</span> {{ display.training_time }}</div>
+           <div class="field"><span class="label">Metric ({{ display.selection_metric }}):</span> {{ display.best_metric_value }}</div>
+
+           {% if display.has_alerts %}
+           <h3>Validation Alerts</h3>
+           {% for err in display.validation_errors %}
+           <div class="alert alert-error">{{ err }}</div>
+           {% endfor %}
+           {% for warn in display.validation_warnings %}
+           <div class="alert alert-warning">{{ warn }}</div>
+           {% endfor %}
+           {% endif %}
+
+           {% if display.is_error %}
+           <h3>Prediction Error</h3>
+           <div class="alert alert-error">{{ display.error_reason }}</div>
+           {% else %}
+           <h3>Prediction Result</h3>
+           <div class="field"><span class="label">Prediction:</span> {{ display.prediction_label }}</div>
+           <div class="field"><span class="label">Fraud Probability:</span> {{ "%.4f"|format(display.fraud_probability) }}</div>
+           <div class="field"><span class="label">Legit Probability:</span> {{ "%.4f"|format(display.legit_probability) }}</div>
+           <div class="field"><span class="label">Risk Level:</span>
+               <span class="risk-{{ display.risk_level|lower }}">{{ display.risk_level }}</span>
+           </div>
+           <div class="field"><span class="label">Transaction ID:</span> {{ display.transaction_id }}</div>
+           {% endif %}
+       </div>
+       {% endif %}
+    </div>
+</body>
+</html>
