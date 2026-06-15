@@ -1,4 +1,6 @@
 {
+  "contract_version": "1.0",
+  "generated_at": "2026-06-15T14:45:50.979160",
   "original_features": [
     "amount_received",
     "account",
@@ -108,5 +110,6 @@
         "Monday": 919
       }
     }
-  }
+  },
+  "training_signature": "65b45a9020b5e84e"
 }

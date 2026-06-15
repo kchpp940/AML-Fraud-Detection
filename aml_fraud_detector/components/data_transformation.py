@@ -34,6 +34,8 @@ class DataTransformationArtifact:
     categorical_features: List[str] = field(default_factory=list)
     target_column: str = ""
     preprocessor_path: str = ""
+    feature_metadata_path: str = ""
+    training_signature: str = ""
 
 
 class DataTransformation:
@@ -198,6 +200,10 @@ class DataTransformation:
                 preprocessor_path=os.path.abspath(
                     self.data_transformation_config.preprocessor_obj_file_path
                 ),
+                feature_metadata_path=os.path.abspath(
+                    self.data_transformation_config.feature_metadata_file_path
+                ),
+                training_signature=feature_metadata.get("training_signature", ""),
             )
 
         except Exception as e:

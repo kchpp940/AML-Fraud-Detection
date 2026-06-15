@@ -31,6 +31,16 @@
 <body>
     <div class="login">
        <h1>Money Laundering Detector</h1>
+       <div>
+         <a href="/batchpredict" class="nav-link">批量预测 →</a>
+       </div>
+
+       <style>
+         .nav-link { display: inline-block; margin-right: 15px; color: #3498db; text-decoration: none; }
+         .nav-link:hover { text-decoration: underline; }
+         .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; padding: 12px; margin: 10px 0; border-radius: 4px; }
+         .signature-info { font-size: 12px; color: #7f8c8d; margin-top: 10px; }
+       </style>
 
        <form action="{{ url_for('predict_datapoint')}}" method="post">
         <h2>
@@ -77,6 +87,12 @@
     </form>
 
     {% if result %}
+    {% if signature_valid == false %}
+    <div class="alert-warning">
+      <strong>⚠️ 签名验证警告:</strong> {{ signature_message }}
+    </div>
+    {% endif %}
+
     <div class="result-box {{ 'result-fraud' if result.prediction == 1 else 'result-normal' }}">
         <h3>Prediction: {{ result.prediction_label }}</h3>
         <div class="prob-box">
@@ -102,6 +118,12 @@
         <p style="color:#888;">No risk explanation available (feature_metadata.json missing, please retrain the model).</p>
         {% endif %}
     </div>
+
+    {% if training_signature %}
+    <div class="signature-info">
+      契约版本: v{{ contract_version }} | 训练签名: {{ training_signature }}
+    </div>
+    {% endif %}
     {% endif %}
    </div>
 </body>

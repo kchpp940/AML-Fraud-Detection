@@ -1,7 +1,9 @@
 import sys
 import json
 import os
-from typing import Any, Dict, List, Optional
+import hashlib
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -66,6 +68,8 @@ DEFAULT_LABEL = "未知字段"
 DEFAULT_HIGH = "{label} 取值 {value}，增加了风险",
 DEFAULT_LOW = "{label} 取值 {value}，风险较低",
 
+INFERENCE_CONTRACT_VERSION = "1.0"
+
 
 def _format_value(val: Any) -> str:
     if isinstance(val, float):
@@ -85,6 +89,37 @@ def _describe_factor(feature: str, value: Any, direction: str) -> str:
     return tpl.format(value=str_val, label=label)
 
 
+def generate_training_signature(
+    feature_columns: List[str],
+    numerical_features: List[str],
+    categorical_features: List[str],
+    baseline_values: Dict[str, Any],
+) -> str:
+    sig_components: List[str] = []
+    sig_components.append("v1")
+    sig_components.append("|".join(sorted(feature_columns)))
+    sig_components.append("|".join(sorted(numerical_features)))
+    sig_components.append("|".join(sorted(categorical_features)))
+    for key in sorted(baseline_values.keys()):
+        sig_components.append(f"{key}={baseline_values[key]}")
+    raw = "||".join(sig_components).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
+def validate_training_signature(
+    metadata_signature: str,
+    summary_signature: str,
+) -> Tuple[bool, str]:
+    if not metadata_signature or not summary_signature:
+        return False, "训练签名缺失，无法验证产物一致性"
+    if metadata_signature != summary_signature:
+        return (
+            False,
+            f"训练签名不一致：metadata={metadata_signature[:8]}...  summary={summary_signature[:8]}...",
+        )
+    return True, "训练签名验证通过"
+
+
 def extract_feature_metadata(
     preprocessor,
     numerical_features: List[str],
@@ -93,6 +128,8 @@ def extract_feature_metadata(
 ) -> Dict[str, Any]:
     try:
         metadata: Dict[str, Any] = {
+            "contract_version": INFERENCE_CONTRACT_VERSION,
+            "generated_at": datetime.now().isoformat(),
             "original_features": list(numerical_features + categorical_features),
             "numerical_features": list(numerical_features),
             "categorical_features": list(categorical_features),
@@ -151,6 +188,16 @@ def extract_feature_metadata(
                     "top5": {str(k): int(v) for k, v in vc.head(5).items()},
                 }
 
+        metadata["training_signature"] = generate_training_signature(
+            feature_columns=metadata["original_features"],
+            numerical_features=metadata["numerical_features"],
+            categorical_features=metadata["categorical_features"],
+            baseline_values=metadata["baseline_values"],
+        )
+        logging.info(
+            f"Generated training signature: {metadata['training_signature']}"
+        )
+
         return metadata
     except Exception as e:
         raise CustomerException(e, sys)
@@ -176,6 +223,86 @@ def load_feature_metadata(file_path: str) -> Dict[str, Any]:
         raise CustomerException(e, sys)
 
 
+def load_training_summary(file_path: str) -> Optional[Dict[str, Any]]:
+    try:
+        if not os.path.exists(file_path):
+            return None
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _explain_single_row(
+    row_df: pd.DataFrame,
+    model,
+    preprocessor,
+    feature_metadata: Dict[str, Any],
+    top_n: int,
+    preprocessed_X: Optional[np.ndarray] = None,
+) -> Dict[str, Any]:
+    if preprocessed_X is None:
+        X = preprocessor.transform(row_df)
+        if hasattr(X, "toarray"):
+            X = X.toarray()
+        else:
+            X = np.asarray(X)
+    else:
+        X = preprocessed_X
+
+    base_proba = float(model.predict_proba(X)[0, 1])
+    prediction = int(model.predict(X)[0])
+
+    original_features = feature_metadata.get("original_features", [])
+    baseline_values = feature_metadata.get("baseline_values", {})
+
+    contributions: List[Dict[str, Any]] = []
+    for feat in original_features:
+        if feat not in baseline_values:
+            continue
+        modified_df = row_df.copy()
+        modified_df[feat] = baseline_values[feat]
+        try:
+            X_mod = preprocessor.transform(modified_df)
+            if hasattr(X_mod, "toarray"):
+                X_mod = X_mod.toarray()
+            else:
+                X_mod = np.asarray(X_mod)
+            mod_proba = float(model.predict_proba(X_mod)[0, 1])
+        except Exception:
+            mod_proba = base_proba
+
+        contribution = base_proba - mod_proba
+        raw_value = row_df[feat].iloc[0]
+        direction = "high_risk" if contribution > 0 else "low_risk"
+
+        contributions.append({
+            "feature": feat,
+            "label": feature_metadata.get("feature_labels", {}).get(feat, feat),
+            "value": _format_value(raw_value),
+            "contribution": round(contribution, 6),
+            "direction": direction,
+            "description": _describe_factor(feat, raw_value, direction),
+        })
+
+    contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
+    total_abs = sum(abs(c["contribution"]) for c in contributions)
+    for c in contributions:
+        if total_abs > 0:
+            c["contribution_pct"] = round(abs(c["contribution"]) / total_abs * 100, 1)
+        else:
+            c["contribution_pct"] = 0.0
+
+    top_factors = contributions[:top_n]
+
+    return {
+        "prediction": prediction,
+        "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
+        "fraud_probability": round(base_proba, 4),
+        "top_factors": top_factors,
+    }
+
+
 def explain_risk(
     features_df: pd.DataFrame,
     model,
@@ -184,62 +311,99 @@ def explain_risk(
     top_n: int = 5,
 ) -> Dict[str, Any]:
     try:
-        X = preprocessor.transform(features_df)
-        if hasattr(X, "toarray"):
-            X = X.toarray()
+        X_full = preprocessor.transform(features_df)
+        if hasattr(X_full, "toarray"):
+            X_full = X_full.toarray()
         else:
-            X = np.asarray(X)
+            X_full = np.asarray(X_full)
 
-        base_proba = float(model.predict_proba(X)[0, 1])
-        prediction = int(model.predict(X)[0])
+        n_rows = features_df.shape[0]
+        if n_rows == 1:
+            single_result = _explain_single_row(
+                row_df=features_df,
+                model=model,
+                preprocessor=preprocessor,
+                feature_metadata=feature_metadata,
+                top_n=top_n,
+                preprocessed_X=X_full,
+            )
+            return {
+                "contract_version": feature_metadata.get("contract_version", "1.0"),
+                "training_signature": feature_metadata.get("training_signature", ""),
+                "is_batch": False,
+                "count": 1,
+                "results": [single_result],
+            }
+
+        base_probas = model.predict_proba(X_full)[:, 1]
+        predictions = model.predict(X_full)
 
         original_features = feature_metadata.get("original_features", [])
         baseline_values = feature_metadata.get("baseline_values", {})
 
-        contributions: List[Dict[str, Any]] = []
-        for feat in original_features:
-            if feat not in baseline_values:
-                continue
-            modified_df = features_df.copy()
-            modified_df[feat] = baseline_values[feat]
-            try:
-                X_mod = preprocessor.transform(modified_df)
-                if hasattr(X_mod, "toarray"):
-                    X_mod = X_mod.toarray()
+        results: List[Dict[str, Any]] = []
+        for i in range(n_rows):
+            row_df = features_df.iloc[[i]].copy()
+            base_proba = float(base_probas[i])
+            prediction = int(predictions[i])
+
+            contributions: List[Dict[str, Any]] = []
+            for feat in original_features:
+                if feat not in baseline_values:
+                    continue
+                modified_df = row_df.copy()
+                modified_df[feat] = baseline_values[feat]
+                try:
+                    X_mod = preprocessor.transform(modified_df)
+                    if hasattr(X_mod, "toarray"):
+                        X_mod = X_mod.toarray()
+                    else:
+                        X_mod = np.asarray(X_mod)
+                    mod_proba = float(model.predict_proba(X_mod)[0, 1])
+                except Exception:
+                    mod_proba = base_proba
+
+                contribution = base_proba - mod_proba
+                raw_value = row_df[feat].iloc[0]
+                direction = "high_risk" if contribution > 0 else "low_risk"
+
+                contributions.append({
+                    "feature": feat,
+                    "label": feature_metadata.get("feature_labels", {}).get(feat, feat),
+                    "value": _format_value(raw_value),
+                    "contribution": round(contribution, 6),
+                    "direction": direction,
+                    "description": _describe_factor(feat, raw_value, direction),
+                })
+
+            contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
+            total_abs = sum(abs(c["contribution"]) for c in contributions)
+            for c in contributions:
+                if total_abs > 0:
+                    c["contribution_pct"] = round(abs(c["contribution"]) / total_abs * 100, 1)
                 else:
-                    X_mod = np.asarray(X_mod)
-                mod_proba = float(model.predict_proba(X_mod)[0, 1])
-            except Exception:
-                mod_proba = base_proba
+                    c["contribution_pct"] = 0.0
 
-            contribution = base_proba - mod_proba
-            raw_value = features_df[feat].iloc[0]
-            direction = "high_risk" if contribution > 0 else "low_risk"
-
-            contributions.append({
-                "feature": feat,
-                "label": feature_metadata.get("feature_labels", {}).get(feat, feat),
-                "value": _format_value(raw_value),
-                "contribution": round(contribution, 6),
-                "direction": direction,
-                "description": _describe_factor(feat, raw_value, direction),
+            results.append({
+                "row_index": i,
+                "prediction": prediction,
+                "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
+                "fraud_probability": round(base_proba, 4),
+                "top_factors": contributions[:top_n],
             })
 
-        contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
-        total_abs = sum(abs(c["contribution"]) for c in contributions)
-        for c in contributions:
-            if total_abs > 0:
-                c["contribution_pct"] = round(abs(c["contribution"]) / total_abs * 100, 1)
-            else:
-                c["contribution_pct"] = 0.0
-
-        top_factors = contributions[:top_n]
+        fraud_count = int(sum(1 for r in results if r["prediction"] == 1))
+        normal_count = n_rows - fraud_count
 
         return {
-            "prediction": prediction,
-            "prediction_label": "欺诈交易" if prediction == 1 else "正常交易",
-            "fraud_probability": round(base_proba, 4),
-            "top_factors": top_factors,
+            "contract_version": feature_metadata.get("contract_version", "1.0"),
+            "training_signature": feature_metadata.get("training_signature", ""),
+            "is_batch": True,
+            "count": n_rows,
+            "fraud_count": fraud_count,
+            "normal_count": normal_count,
+            "fraud_rate": round(fraud_count / n_rows * 100, 2) if n_rows > 0 else 0.0,
+            "results": results,
         }
     except Exception as e:
         raise CustomerException(e, sys)

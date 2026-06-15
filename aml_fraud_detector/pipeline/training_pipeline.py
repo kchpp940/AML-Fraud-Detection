@@ -63,11 +63,14 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         summary.numerical_features = transform_artifact.numerical_features
         summary.categorical_features = transform_artifact.categorical_features
         summary.preprocessor_path = transform_artifact.preprocessor_path
+        summary.feature_metadata_path = transform_artifact.feature_metadata_path
+        summary.training_signature = transform_artifact.training_signature
         summary.target_column = transform_artifact.target_column or summary.target_column
         logging.info(
             f"Data transformation done: {len(summary.feature_columns)} features "
             f"({len(summary.numerical_features)} num, "
-            f"{len(summary.categorical_features)} cat)"
+            f"{len(summary.categorical_features)} cat) "
+            f"training_signature={summary.training_signature}"
         )
 
         model_trainer = ModelTrainer(training_config=training_config)
@@ -128,6 +131,8 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Artifacts dir      : {summary.artifacts_dir}")
         print(f"Preprocessor saved : {summary.preprocessor_path}")
         print(f"Model saved        : {summary.model_path}")
+        print(f"Feature metadata   : {summary.feature_metadata_path}")
+        print(f"Training signature : {summary.training_signature}")
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")
 

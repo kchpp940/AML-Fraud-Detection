@@ -147,6 +147,8 @@ class TrainingSummary:
     all_model_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
     preprocessor_path: str = ""
     model_path: str = ""
+    feature_metadata_path: str = ""
+    training_signature: str = ""
     artifacts_dir: str = ""
     summary_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
@@ -357,6 +359,7 @@ class TrainingConfig:
                 "raw_csv": os.path.abspath(self.artifacts_subpath("data.csv")),
                 "preprocessor_pkl": os.path.abspath(self.artifacts_subpath("preprocessor.pkl")),
                 "model_pkl": os.path.abspath(self.artifacts_subpath("model.pkl")),
+                "feature_metadata_json": os.path.abspath(self.artifacts_subpath("feature_metadata.json")),
                 "summary_json": os.path.abspath(self.artifacts_subpath("training_summary.json")),
             },
         }
