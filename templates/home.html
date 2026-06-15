@@ -1,51 +1,8 @@
 <html>
-<head>
-<style>
-  body { font-family: Arial, sans-serif; margin: 30px; background: #f5f7fa; }
-  .login { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  h1 { color: #2c3e50; }
-  h2 { color: #34495e; }
-  .form-group { margin-bottom: 15px; }
-  .form-group label { display: block; margin-bottom: 4px; font-weight: bold; color: #555; }
-  .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-  .btn { padding: 10px 24px; background: #3498db; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-  .btn:hover { background: #2980b9; }
-  .result-box { margin-top: 20px; padding: 20px; border-radius: 6px; }
-  .result-fraud { background: #fdedec; border-left: 4px solid #e74c3c; }
-  .result-normal { background: #eafaf1; border-left: 4px solid #27ae60; }
-  .result-box h3 { margin-top: 0; }
-  .factor-list { list-style: none; padding: 0; }
-  .factor-item { padding: 10px 0; border-bottom: 1px solid #eee; }
-  .factor-item:last-child { border-bottom: none; }
-  .factor-label { font-weight: bold; color: #2c3e50; }
-  .factor-value { color: #555; }
-  .factor-direction-high { color: #e74c3c; font-weight: bold; }
-  .factor-direction-low { color: #27ae60; font-weight: bold; }
-  .factor-bar { height: 8px; border-radius: 4px; margin-top: 4px; }
-  .factor-bar-high { background: #e74c3c; }
-  .factor-bar-low { background: #27ae60; }
-  .factor-desc { color: #666; font-size: 14px; margin-top: 2px; }
-  .prob-box { background: #f8f9fa; padding: 12px; border-radius: 4px; margin: 10px 0; }
-</style>
-</head>
 <body>
     <div class="login">
-       <h1>Money Laundering Detector</h1>
-       <div>
-         <a href="/batchpredict" class="nav-link">批量预测 →</a>
-       </div>
-
-       <style>
-         .nav-link { display: inline-block; margin-right: 15px; color: #3498db; text-decoration: none; }
-         .nav-link:hover { text-decoration: underline; }
-         .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; padding: 12px; margin: 10px 0; border-radius: 4px; }
-         .alert-error { background: #fdecea; color: #842029; border-left: 4px solid #e74c3c; padding: 12px; margin: 10px 0; border-radius: 4px; }
-         .alert-success { background: #eafaf1; color: #155724; border-left: 4px solid #27ae60; padding: 12px; margin: 10px 0; border-radius: 4px; }
-         .validation-list { margin: 6px 0 0 20px; padding: 0; }
-         .validation-list li { margin: 4px 0; }
-         .signature-info { font-size: 12px; color: #7f8c8d; margin-top: 10px; }
-       </style>
-
+       <h1>Money Laundary Detector</h1>
+   
        <form action="{{ url_for('predict_datapoint')}}" method="post">
         <h2>
             <legend>Anti Money Laundering Detection</legend>
@@ -82,82 +39,12 @@
             <label for="payment_format"> How transaction was conducted:</label>
             <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
         </div>
-        <div class="form-group">
-            <label for="day"> Day of the transaction:</label>
-            <input type="text" id="day" name="day" placeholder="Enter day of week (e.g. Monday)">
-        </div>
         <div style="clear:both;"></div>
-            <input class="btn" type="submit" value="Predict whether the transactions is Fraud or not" required />
+            <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
     </form>
-
-    {% if result %}
-    {% if overall_validation == "passed" %}
-    <div class="alert-success">
-      <strong>✅ 产物一致性校验通过</strong>
-      <ul class="validation-list">
-        <li>训练签名验证: {{ signature_message }}</li>
-        {% if artifact_messages %}
-          {% for msg in artifact_messages %}
-          <li>三类产物哈希校验: {{ msg }}</li>
-          {% endfor %}
-        {% endif %}
-      </ul>
-    </div>
-    {% else %}
-      {% if artifact_valid == false or signature_valid == false %}
-      <div class="alert-error">
-        <strong>❌ 产物一致性校验失败：风险解释可能与当前模型不一致</strong>
-        <ul class="validation-list">
-          <li>训练签名验证 ({{ '通过' if signature_valid else '未通过' }}): {{ signature_message }}</li>
-          {% if artifact_messages %}
-            {% for msg in artifact_messages %}
-            <li>三类产物哈希校验: {{ msg }}</li>
-            {% endfor %}
-          {% else %}
-            <li>三类产物哈希校验: 缺少 manifest（建议重新训练模型）</li>
-          {% endif %}
-        </ul>
-      </div>
-      {% elif signature_valid == false %}
-      <div class="alert-warning">
-        <strong>⚠️ 签名验证警告:</strong> {{ signature_message }}
-      </div>
-      {% endif %}
-    {% endif %}
-
-    <div class="result-box {{ 'result-fraud' if result.prediction == 1 else 'result-normal' }}">
-        <h3>Prediction: {{ result.prediction_label }}</h3>
-        <div class="prob-box">
-            <strong>Fraud Probability:</strong> {{ "%.2f%%"|format(result.fraud_probability * 100) }}
-        </div>
-
-        {% set top_factors = result.get('risk_explanation', {}).get('top_factors', []) %}
-        {% if top_factors %}
-        <h3>Risk Factor Analysis</h3>
-        <ul class="factor-list">
-            {% for factor in top_factors %}
-            <li class="factor-item">
-                <span class="factor-label">{{ loop.index }}. {{ factor.label }}</span>
-                — Current value: <span class="factor-value">{{ factor.value }}</span><br>
-                <span class="{{ 'factor-direction-high' if factor.direction == 'high_risk' else 'factor-direction-low' }}">
-                    Contribution: {{ factor.contribution_pct }}% ({{ 'Increase Risk' if factor.direction == 'high_risk' else 'Decrease Risk' }})
-                </span>
-                <div class="factor-bar {{ 'factor-bar-high' if factor.direction == 'high_risk' else 'factor-bar-low' }}" style="width: {{ factor.contribution_pct }}%"></div>
-                <div class="factor-desc">{{ factor.description }}</div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p style="color:#888;">No risk explanation available (feature_metadata.json missing, please retrain the model).</p>
-        {% endif %}
-    </div>
-
-    {% if training_signature %}
-    <div class="signature-info">
-      契约版本: v{{ contract_version }} | 训练签名: {{ training_signature }}
-    </div>
-    {% endif %}
-    {% endif %}
-   </div>
-</body>
+    <h2>
+       The prediction is {{results}}
+    </h2>
+   <body>
 </html>
+

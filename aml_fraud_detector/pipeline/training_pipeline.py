@@ -7,13 +7,13 @@ from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 
 from aml_fraud_detector.components.data_ingestion import DataIngestion
+from aml_fraud_detector.components.data_validation import DataValidation
 from aml_fraud_detector.components.data_transformation import DataTransformation
 from aml_fraud_detector.components.model_trainer import ModelTrainer
 from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 from aml_fraud_detector.utils.main_utils import save_training_summary
-from aml_fraud_detector.utils.risk_explainer import build_artifact_manifest
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
@@ -53,6 +53,32 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"train≈{summary.train_rows}, test≈{summary.test_rows}"
         )
 
+        logging.info("-" * 72)
+        logging.info("Step: Data Validation")
+        logging.info("-" * 72)
+        data_validation = DataValidation(training_config=training_config)
+        quality_report = data_validation.initiate_data_validation(df_sample)
+        report_path = os.path.abspath(data_validation.report_path)
+
+        report_data = asdict(quality_report)
+        risk_items = report_data.get("risk_items", [])
+        if risk_items:
+            logging.warning(
+                f"Data quality report contains {len(risk_items)} risk item(s):"
+            )
+            for item in risk_items:
+                logging.warning(
+                    f"  [{item.get('level', 'UNKNOWN')}] "
+                    f"{item.get('category', '')}: {item.get('message', '')}"
+                )
+        else:
+            logging.info("Data quality report: no risk items detected")
+
+        DataValidation.check_critical_issues(report_data)
+        logging.info(
+            f"Data validation passed, quality report saved: {report_path}"
+        )
+
         data_transformation = DataTransformation(training_config=training_config)
         transform_artifact = data_transformation.initiate_data_transformation(
             train_data_path, test_data_path
@@ -64,14 +90,11 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         summary.numerical_features = transform_artifact.numerical_features
         summary.categorical_features = transform_artifact.categorical_features
         summary.preprocessor_path = transform_artifact.preprocessor_path
-        summary.feature_metadata_path = transform_artifact.feature_metadata_path
-        summary.training_signature = transform_artifact.training_signature
         summary.target_column = transform_artifact.target_column or summary.target_column
         logging.info(
             f"Data transformation done: {len(summary.feature_columns)} features "
             f"({len(summary.numerical_features)} num, "
-            f"{len(summary.categorical_features)} cat) "
-            f"training_signature={summary.training_signature}"
+            f"{len(summary.categorical_features)} cat)"
         )
 
         model_trainer = ModelTrainer(training_config=training_config)
@@ -90,21 +113,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         logging.info(
             f"Model training done: best='{summary.best_model_name}', "
             f"{summary.selection_metric}={summary.best_metric_value:.4f}"
-        )
-
-        logging.info("Building artifact manifest (model / preprocessor / feature_metadata)")
-        summary.artifact_manifest = build_artifact_manifest(
-            model_path=summary.model_path,
-            preprocessor_path=summary.preprocessor_path,
-            feature_metadata_path=summary.feature_metadata_path,
-            training_signature=summary.training_signature,
-        )
-        manifest_artifacts = summary.artifact_manifest["artifacts"]
-        logging.info(
-            f"Artifact manifest built: "
-            f"model={manifest_artifacts['model']['sha256'][:12]}..., "
-            f"preprocessor={manifest_artifacts['preprocessor']['sha256'][:12]}..., "
-            f"feature_metadata={manifest_artifacts['feature_metadata']['sha256'][:12]}..."
         )
 
         summary.summary_path = os.path.abspath(
@@ -146,13 +154,8 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Best metric value  : {summary.best_metric_value:.6f}")
         print(f"Artifacts dir      : {summary.artifacts_dir}")
         print(f"Preprocessor saved : {summary.preprocessor_path}")
+        print(f"Quality report     : {report_path}")
         print(f"Model saved        : {summary.model_path}")
-        print(f"Feature metadata   : {summary.feature_metadata_path}")
-        print(f"Training signature : {summary.training_signature}")
-        if summary.artifact_manifest:
-            print(f"Artifact manifest  :")
-            for name, info in summary.artifact_manifest.get("artifacts", {}).items():
-                print(f"  - {name:18s}: {info.get('sha256', '?')[:16]}...  ({info.get('path', '')})")
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")
 

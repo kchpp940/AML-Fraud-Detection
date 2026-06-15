@@ -15,14 +15,12 @@ from category_encoders import TargetEncoder, CountEncoder
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
-from aml_fraud_detector.utils.risk_explainer import extract_feature_metadata, save_feature_metadata
 from aml_fraud_detector.configuration import TrainingConfig
 
 
 @dataclass
 class DataTransformationConfig:
     preprocessor_obj_file_path: str
-    feature_metadata_file_path: str
 
 
 @dataclass
@@ -34,8 +32,6 @@ class DataTransformationArtifact:
     categorical_features: List[str] = field(default_factory=list)
     target_column: str = ""
     preprocessor_path: str = ""
-    feature_metadata_path: str = ""
-    training_signature: str = ""
 
 
 class DataTransformation:
@@ -44,8 +40,7 @@ class DataTransformation:
         self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.data_transformation_config = DataTransformationConfig(
-            preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl"),
-            feature_metadata_file_path=tc.artifacts_subpath("feature_metadata.json"),
+            preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl")
         )
         logging.info(
             f"DataTransformation initialized with resolved config: "
@@ -178,18 +173,6 @@ class DataTransformation:
             )
             logging.info("Saved data preprocessing object")
 
-            feature_metadata = extract_feature_metadata(
-                preprocessor=preprocessing_obj,
-                numerical_features=numerical_features,
-                categorical_features=categorical_features,
-                train_df=input_features_train_df,
-            )
-            save_feature_metadata(
-                metadata=feature_metadata,
-                file_path=self.data_transformation_config.feature_metadata_file_path,
-            )
-            logging.info("Saved feature metadata for risk explanation")
-
             return DataTransformationArtifact(
                 train_array=train_arr,
                 test_array=test_arr,
@@ -200,10 +183,6 @@ class DataTransformation:
                 preprocessor_path=os.path.abspath(
                     self.data_transformation_config.preprocessor_obj_file_path
                 ),
-                feature_metadata_path=os.path.abspath(
-                    self.data_transformation_config.feature_metadata_file_path
-                ),
-                training_signature=feature_metadata.get("training_signature", ""),
             )
 
         except Exception as e:
