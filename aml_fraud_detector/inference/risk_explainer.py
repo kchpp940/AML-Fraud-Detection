@@ -22,20 +22,60 @@ class RiskExplainer:
         (0.05, "Low"),
     ]
 
+    FRAUD_CLASS_INDEX = 1
+    LEGIT_CLASS_INDEX = 0
+
     def __init__(self, artifacts: Optional[ModelArtifacts] = None):
+        self._model: Any = None
+        self._preprocessor: Any = None
         self._feature_metadata: Dict[str, Any] = {}
         self._feature_labels: Dict[str, str] = {}
-        self._training_stats: Dict[str, Any] = {}
+        self._baseline_values: Dict[str, Any] = {}
+        self._all_features: List[str] = []
+        self._baseline_df: Optional[pd.DataFrame] = None
+        self._baseline_pred_proba: Optional[np.ndarray] = None
         self._initialized = False
         if artifacts is not None:
             self.bind(artifacts)
 
     def bind(self, artifacts: ModelArtifacts) -> None:
+        self._model = artifacts.model
+        self._preprocessor = artifacts.preprocessor
         self._feature_metadata = artifacts.feature_metadata or {}
         self._feature_labels = self._feature_metadata.get("feature_labels", {})
-        self._training_stats = self._feature_metadata.get("training_stats", {})
+        self._baseline_values = self._feature_metadata.get("baseline_values", {})
+        self._all_features = list(self._feature_metadata.get("original_features", []))
+
+        if self._model is None or self._preprocessor is None:
+            raise CustomerException(
+                RuntimeError("RiskExplainer requires both model and preprocessor to compute marginal contributions"),
+                sys,
+            )
+        if not self._baseline_values:
+            raise CustomerException(
+                RuntimeError("feature_metadata.json missing 'baseline_values' section required for marginal contribution calculation"),
+                sys,
+            )
+
+        baseline_row = {f: self._baseline_values[f] for f in self._all_features}
+        self._baseline_df = pd.DataFrame([baseline_row])
+
+        try:
+            baseline_x = self._preprocessor.transform(self._baseline_df)
+            if hasattr(baseline_x, "toarray"):
+                baseline_x = baseline_x.toarray()
+            self._baseline_pred_proba = self._model.predict_proba(baseline_x)[0]
+        except Exception as e:
+            raise CustomerException(
+                RuntimeError(f"Failed to compute baseline prediction for RiskExplainer: {e}"),
+                sys,
+            )
+
         self._initialized = True
-        logging.info("RiskExplainer bound to artifacts")
+        logging.info(
+            f"RiskExplainer bound: baseline_fraud_prob={self._baseline_pred_proba[self.FRAUD_CLASS_INDEX]:.4f}, "
+            f"features={self._all_features}"
+        )
 
     def _ensure_initialized(self) -> None:
         if not self._initialized:
@@ -53,99 +93,92 @@ class RiskExplainer:
                 return label
         return "Minimal"
 
-    def _build_top_factors(
-        self, transaction: Dict[str, Any], fraud_prob: float
+    def _impact_label(self, abs_contribution: float) -> str:
+        if abs_contribution >= 0.20:
+            return "Critical"
+        elif abs_contribution >= 0.10:
+            return "High"
+        elif abs_contribution >= 0.05:
+            return "Medium"
+        elif abs_contribution >= 0.01:
+            return "Low"
+        else:
+            return "Minimal"
+
+    def _predict_row(self, row_df: pd.DataFrame) -> np.ndarray:
+        x = self._preprocessor.transform(row_df)
+        if hasattr(x, "toarray"):
+            x = x.toarray()
+        return self._model.predict_proba(x)[0]
+
+    def _compute_marginal_contributions(
+        self, row: pd.Series
     ) -> List[Dict[str, Any]]:
-        factors: List[Dict[str, Any]] = []
-        try:
-            amount = float(transaction.get("amount_received", 0.0))
-            amount_stats = self._training_stats.get("amount_received", {})
-            amount_q75 = float(amount_stats.get("q75", 0.0))
-            amount_mean = float(amount_stats.get("mean", 0.0))
+        baseline_fraud_prob = float(self._baseline_pred_proba[self.FRAUD_CLASS_INDEX])
+        contributions: List[Dict[str, Any]] = []
 
-            if amount_q75 > 0 and amount > amount_q75 * 1.5:
-                severity = min(1.0, amount / (amount_q75 * 1.5))
-                factors.append(
-                    {
-                        "feature": "amount_received",
-                        "display_name": self._feature_display_name("amount_received"),
-                        "value": amount,
-                        "impact": "High",
-                        "contribution_pct": round(severity * 35, 1),
-                    }
-                )
-            elif amount_mean > 0 and amount > amount_mean * 2:
-                factors.append(
-                    {
-                        "feature": "amount_received",
-                        "display_name": self._feature_display_name("amount_received"),
-                        "value": amount,
-                        "impact": "Medium",
-                        "contribution_pct": 15.0,
-                    }
-                )
+        for feature in self._all_features:
+            single_change_row = self._baseline_df.copy()
+            single_change_row.at[0, feature] = row[feature]
 
-            pf = str(transaction.get("payment_format", ""))
-            pf_stats = self._training_stats.get("payment_format", {})
-            pf_top5 = pf_stats.get("top5", {})
-            if pf in pf_top5:
-                total_count = sum(pf_top5.values())
-                pf_ratio = pf_top5[pf] / total_count if total_count > 0 else 0
-                if pf in {"Wire", "ACH"}:
-                    factors.append(
-                        {
-                            "feature": "payment_format",
-                            "display_name": self._feature_display_name("payment_format"),
-                            "value": pf,
-                            "impact": "Medium",
-                            "contribution_pct": round(pf_ratio * 12, 1),
-                        }
-                    )
+            try:
+                pred_proba = self._predict_row(single_change_row)
+                fraud_prob = float(pred_proba[self.FRAUD_CLASS_INDEX])
+                marginal_contribution = fraud_prob - baseline_fraud_prob
+            except Exception as e:
+                logging.warning(f"Failed to compute marginal contribution for {feature}: {e}")
+                marginal_contribution = 0.0
+                fraud_prob = baseline_fraud_prob
 
-            receiving = str(transaction.get("receiving_currency", ""))
-            payment = str(transaction.get("payment_currency", ""))
-            if receiving and payment and receiving != payment:
-                factors.append(
-                    {
-                        "feature": "currency_mismatch",
-                        "display_name": "币种不一致",
-                        "value": f"{payment} -> {receiving}",
-                        "impact": "Medium",
-                        "contribution_pct": 10.0,
-                    }
-                )
+            impact = self._impact_label(abs(marginal_contribution))
+            contribution_pct = round(abs(marginal_contribution) * 100, 2)
 
-            account = str(transaction.get("account", ""))
-            account_stats = self._training_stats.get("account", {})
-            account_top5 = account_stats.get("top5", {})
-            if account and account in account_top5:
-                n_unique = account_stats.get("n_unique", 1)
-                if n_unique > 0:
-                    freq_ratio = account_top5[account] / sum(account_top5.values()) if account_top5 else 0
-                    factors.append(
-                        {
-                            "feature": "account",
-                            "display_name": self._feature_display_name("account"),
-                            "value": account,
-                            "impact": "Low",
-                            "contribution_pct": round(freq_ratio * 8, 1),
-                        }
-                    )
+            contributions.append(
+                {
+                    "feature": feature,
+                    "display_name": self._feature_display_name(feature),
+                    "value": row[feature],
+                    "baseline_value": self._baseline_values[feature],
+                    "fraud_prob_with_feature": fraud_prob,
+                    "baseline_fraud_prob": baseline_fraud_prob,
+                    "marginal_contribution": marginal_contribution,
+                    "contribution_pct": contribution_pct,
+                    "impact": impact,
+                    "direction": "increasing" if marginal_contribution > 0 else "decreasing",
+                }
+            )
 
-        except Exception as e:
-            logging.warning(f"Error during top_factors extraction: {e}")
-
-        factors.sort(key=lambda x: x.get("contribution_pct", 0.0), reverse=True)
-        return factors[:5]
+        contributions.sort(key=lambda x: abs(x["marginal_contribution"]), reverse=True)
+        return contributions
 
     def explain_from_row(
         self, row: pd.Series, fraud_probability: float, prediction: int
     ) -> RiskExplanation:
         self._ensure_initialized()
         try:
-            tx = row.to_dict()
             risk_level = self._risk_level(fraud_probability)
-            top_factors = self._build_top_factors(tx, fraud_probability)
+            all_contributions = self._compute_marginal_contributions(row)
+
+            top_factors = []
+            total_abs = sum(abs(c["marginal_contribution"]) for c in all_contributions)
+            for c in all_contributions:
+                if total_abs > 0:
+                    relative_pct = round(abs(c["marginal_contribution"]) / total_abs * 100, 1)
+                else:
+                    relative_pct = 0.0
+                top_factors.append(
+                    {
+                        "feature": c["feature"],
+                        "display_name": c["display_name"],
+                        "value": c["value"],
+                        "baseline_value": c["baseline_value"],
+                        "marginal_contribution": c["marginal_contribution"],
+                        "contribution_pct": relative_pct,
+                        "impact": c["impact"],
+                        "direction": c["direction"],
+                    }
+                )
+
             return RiskExplanation(
                 fraud_probability=float(fraud_probability),
                 top_factors=top_factors,
@@ -181,7 +214,7 @@ class RiskExplainer:
                 explanations.append(
                     self.explain_from_row(row, fraud_prob, int(preds[i]))
                 )
-            logging.info(f"RiskExplainer generated {n} explanation(s)")
+            logging.info(f"RiskExplainer generated {n} explanation(s) using marginal contributions")
             return explanations
         except CustomerException:
             raise
