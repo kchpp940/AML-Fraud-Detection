@@ -160,6 +160,49 @@ open up your local host and port
 
 
 
+## Model Version Management
+
+Each training run automatically generates a `model_metadata.json` file in the artifacts directory, providing full traceability from training to deployment.
+
+### Generated File: `artifacts/model_metadata.json`
+
+| Field | Description |
+|---|---|
+| `model_version` | Auto-incremented integer, starting from 1 |
+| `training_time` | ISO 8601 timestamp of when training completed |
+| `data_file` | Absolute path of the source data file |
+| `data_file_digest` | SHA-256 hash of the source data file |
+| `feature_schema_version` | Version string from `feature_metadata.json` |
+| `best_model_name` | Name of the best-performing model |
+| `best_model_params` | Hyperparameters of the best model |
+| `selection_metric` | Metric used for model selection (e.g., Recall) |
+| `best_metric_value` | Value of the selection metric for the best model |
+| `all_model_metrics` | Precision / Recall / F1 for every candidate model |
+| `artifact_path` | Absolute path to the saved model artifact (`model.pkl`) |
+
+### How It Works
+
+1. **Training**: After the training pipeline finishes, `save_model_metadata()` is called. It computes a SHA-256 digest of the source data, reads the feature schema version, and auto-increments the model version.
+2. **Prediction**: `PredictionPipeline` loads `model_metadata.json` at startup and stores it as `self.model_metadata`.
+3. **Web UI**: Both Flask (`/model-info` API and prediction page) and Streamlit display the current model version, best model name, selection metric, and all model metrics.
+
+### Deployment
+
+When deploying, ensure the `artifacts/` directory (including `model_metadata.json`) is copied alongside `model.pkl` and `preprocessor.pkl`. The web services read this file at startup to show which model is currently loaded.
+
+### Troubleshooting
+
+- **"model_metadata.json not found"** warning: The prediction service can still run without it, but model version info will not be displayed. Re-run the training pipeline to generate the file.
+- **Version not incrementing**: Delete `artifacts/model_metadata.json` and retrain. The version starts from 1 if the file does not exist.
+- **Data digest mismatch**: Compare the `data_file_digest` field with a fresh hash of the data file to verify the deployed model was trained on the expected dataset:
+  ```bash
+  python -c "
+  import hashlib, sys
+  h = hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()
+  print(f'sha256:{h}')
+  " <path_to_csv>
+  ```
+
 ## Web Interfaces
 Two web interfaces were developed to interact with the model:
 - **FastAPI:** A high-performance web framework for building APIs with Python, used to create an API endpoint for real-time fraud detection.

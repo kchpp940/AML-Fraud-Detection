@@ -1,6 +1,7 @@
 import streamlit as st
 import dill
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
+from aml_fraud_detector.utils.main_utils import load_model_metadata
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 import pandas as pd
@@ -9,7 +10,6 @@ import matplotlib.pyplot as plt
 def main():
     logging.info(f"Starting Streamlit App")
 
-    # App Title and Description
     st.title("Anti-Money Laundering (AML) Fraud Detection")
     st.markdown(
         """
@@ -19,7 +19,30 @@ def main():
     )
     st.write("---")
 
-    # Sidebar for Input Features
+    model_metadata = load_model_metadata()
+    if model_metadata:
+        st.subheader(f"Model Version: v{model_metadata.get('model_version', 'N/A')}")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Best Model", model_metadata.get("best_model_name", "N/A"))
+        with col2:
+            metric_name = model_metadata.get("selection_metric", "Metric")
+            st.metric(f"Best {metric_name}", f"{model_metadata.get('best_metric_value', 0):.4f}")
+        with col3:
+            st.metric("Feature Schema", f"v{model_metadata.get('feature_schema_version', 'N/A')}")
+
+        with st.expander("Model Details & Metrics"):
+            st.write(f"**Trained At:** {model_metadata.get('training_time', 'N/A')}")
+            st.write(f"**Data Digest:** `{model_metadata.get('data_file_digest', 'N/A')}`")
+            st.write(f"**Artifact Path:** `{model_metadata.get('artifact_path', 'N/A')}`")
+            all_metrics = model_metadata.get("all_model_metrics", {})
+            if all_metrics:
+                st.write("**All Model Metrics:**")
+                metrics_df = pd.DataFrame(all_metrics).T
+                metrics_df.columns = ["Precision", "Recall", "F1 Score"]
+                st.dataframe(metrics_df)
+        st.write("---")
+
     st.sidebar.header("Specify Input Features")
 
     def user_input_features():

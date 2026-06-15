@@ -1,0 +1,2 @@
+[ 2026-06-15 17:15:06,746] 110 root - INFO - Model metadata saved to: artifacts/model_metadata.json (version=1)
+[ 2026-06-15 17:15:06,746] 125 root - INFO - Model metadata loaded: version=1, best_model=XGBoost (XGBoost)

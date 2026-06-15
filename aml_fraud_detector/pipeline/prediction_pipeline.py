@@ -5,12 +5,12 @@ import pandas as pd
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import load_object
+from aml_fraud_detector.utils.main_utils import load_object, load_model_metadata
 
 
 class PredictionPipeline:
     def __init__(self):
-        pass 
+        self.model_metadata = load_model_metadata()
 
     def predict(self, features):
         try: 

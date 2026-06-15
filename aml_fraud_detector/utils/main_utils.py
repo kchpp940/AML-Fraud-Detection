@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import hashlib
 import dill
 import numpy as np
 import pandas as pd
@@ -34,6 +35,101 @@ def save_training_summary(file_path: str, summary_obj) -> str:
     except Exception as e:
         logging.info("Exception Occurred in save_training_summary function utils")
         raise CustomerException(e, sys)
+
+
+def _compute_file_digest(file_path: str, algorithm: str = "sha256", chunk_size: int = 8192) -> str:
+    h = hashlib.new(algorithm)
+    with open(file_path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            h.update(chunk)
+    return f"{algorithm}:{h.hexdigest()}"
+
+
+def _read_feature_schema_version(artifacts_dir: str) -> str:
+    meta_path = os.path.join(artifacts_dir, "feature_metadata.json")
+    if os.path.isfile(meta_path):
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            return meta.get("contract_version", "unknown")
+        except Exception:
+            return "unknown"
+    return "unknown"
+
+
+def save_model_metadata(
+    artifacts_dir: str,
+    data_source_path: str,
+    best_model_name: str,
+    best_model_params: dict,
+    selection_metric: str,
+    best_metric_value: float,
+    all_model_metrics: dict,
+    model_path: str,
+) -> str:
+    try:
+        os.makedirs(artifacts_dir, exist_ok=True)
+
+        data_digest = ""
+        if os.path.isfile(data_source_path):
+            data_digest = _compute_file_digest(data_source_path)
+
+        feature_schema_version = _read_feature_schema_version(artifacts_dir)
+
+        existing_path = os.path.join(artifacts_dir, "model_metadata.json")
+        version = 1
+        if os.path.isfile(existing_path):
+            try:
+                with open(existing_path, "r", encoding="utf-8") as f:
+                    prev = json.load(f)
+                version = prev.get("model_version", 0) + 1
+            except Exception:
+                version = 1
+
+        metadata = {
+            "model_version": version,
+            "training_time": datetime.now().isoformat(),
+            "data_file": os.path.abspath(data_source_path),
+            "data_file_digest": data_digest,
+            "feature_schema_version": feature_schema_version,
+            "best_model_name": best_model_name,
+            "best_model_params": best_model_params,
+            "selection_metric": selection_metric,
+            "best_metric_value": best_metric_value,
+            "all_model_metrics": all_model_metrics,
+            "artifact_path": os.path.abspath(model_path),
+        }
+
+        out_path = os.path.join(artifacts_dir, "model_metadata.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False, default=str)
+
+        logging.info(f"Model metadata saved to: {out_path} (version={version})")
+        return os.path.abspath(out_path)
+    except Exception as e:
+        logging.info("Exception occurred in save_model_metadata")
+        raise CustomerException(e, sys)
+
+
+def load_model_metadata(artifacts_dir: str = "artifacts") -> dict:
+    try:
+        meta_path = os.path.join(artifacts_dir, "model_metadata.json")
+        if not os.path.isfile(meta_path):
+            logging.warning(f"model_metadata.json not found at: {meta_path}")
+            return {}
+        with open(meta_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+        logging.info(
+            f"Model metadata loaded: version={metadata.get('model_version')}, "
+            f"best_model={metadata.get('best_model_name')}"
+        )
+        return metadata
+    except Exception as e:
+        logging.warning(f"Failed to load model_metadata.json: {e}")
+        return {}
 
 
 def save_object(file_path, obj):

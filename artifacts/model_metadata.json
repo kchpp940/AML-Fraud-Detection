@@ -1,0 +1,22 @@
+{
+  "model_version": 1,
+  "training_time": "2026-06-15T17:15:06.745864",
+  "data_file": "/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv",
+  "data_file_digest": "sha256:b00f6f3c8fec51bdb0cec34daf88c3befdea15a5db4b75a333f930873a0f9b74",
+  "feature_schema_version": "1.0",
+  "best_model_name": "XGBoost (XGBoost)",
+  "best_model_params": {
+    "n_estimators": 200,
+    "learning_rate": 0.1
+  },
+  "selection_metric": "Recall",
+  "best_metric_value": 0.94375,
+  "all_model_metrics": {
+    "XGBoost": {
+      "Precision": 0.9974,
+      "Recall": 0.9438,
+      "F1 score": 0.9698
+    }
+  },
+  "artifact_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl"
+}

@@ -1,7 +1,52 @@
 <html>
+<head>
+    <style>
+        .model-info {
+            background: #f0f4f8;
+            border: 1px solid #b0c4de;
+            border-radius: 6px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .model-info h3 { margin: 0 0 8px 0; font-size: 15px; color: #2c3e50; }
+        .model-info table { border-collapse: collapse; }
+        .model-info td { padding: 2px 10px 2px 0; }
+        .model-info td:first-child { font-weight: bold; color: #34495e; }
+    </style>
+</head>
 <body>
     <div class="login">
        <h1>Money Laundary Detector</h1>
+
+       {% if model_metadata %}
+       <div class="model-info">
+           <h3>Model Version: v{{ model_metadata.get('model_version', 'N/A') }}</h3>
+           <table>
+               <tr><td>Best Model</td><td>{{ model_metadata.get('best_model_name', 'N/A') }}</td></tr>
+               <tr><td>Selection Metric</td><td>{{ model_metadata.get('selection_metric', 'N/A') }}</td></tr>
+               <tr><td>Best {{ model_metadata.get('selection_metric', '') }}</td><td>{{ "%.4f"|format(model_metadata.get('best_metric_value', 0)) }}</td></tr>
+               <tr><td>Feature Schema</td><td>v{{ model_metadata.get('feature_schema_version', 'N/A') }}</td></tr>
+               <tr><td>Trained At</td><td>{{ model_metadata.get('training_time', 'N/A') }}</td></tr>
+               <tr><td>Data Digest</td><td>{{ model_metadata.get('data_file_digest', 'N/A')[:32] }}...</td></tr>
+           </table>
+           {% if model_metadata.get('all_model_metrics') %}
+           <br><b>All Model Metrics:</b>
+           <table border="1" cellpadding="4" cellspacing="0" style="font-size:12px;">
+               <tr><th>Model</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+               {% for name, m in model_metadata.get('all_model_metrics', {}).items() %}
+               <tr>
+                   <td>{{ name }}</td>
+                   <td>{{ "%.4f"|format(m.get('Precision', 0)) }}</td>
+                   <td>{{ "%.4f"|format(m.get('Recall', 0)) }}</td>
+                   <td>{{ "%.4f"|format(m.get('F1 score', 0)) }}</td>
+               </tr>
+               {% endfor %}
+           </table>
+           {% endif %}
+       </div>
+       {% endif %}
    
        <form action="{{ url_for('predict_datapoint')}}" method="post">
         <h2>
@@ -47,4 +92,3 @@
     </h2>
    <body>
 </html>
-
