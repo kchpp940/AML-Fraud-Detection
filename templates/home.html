@@ -29,8 +29,6 @@
         }
         input:focus, select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.15); }
         .hint { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
-        .row { display: flex; gap: 12px; }
-        .row .form-group { flex: 1; }
         .btn {
             width: 100%;
             padding: 12px 20px;
@@ -87,22 +85,6 @@
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="from_bank" class="required">Bank where transaction originates (发起银行编号)</label>
-                    <input type="number" id="from_bank" name="from_bank" min="0" step="1"
-                        placeholder="例如: 70"
-                        value="{{ form_data.from_bank if form_data else '' }}">
-                    <div class="hint">整数，例如: 70, 338871</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="to_bank" class="required">Bank where transaction ends (接收银行编号)</label>
-                    <input type="number" id="to_bank" name="to_bank" min="0" step="1"
-                        placeholder="例如: 1502"
-                        value="{{ form_data.to_bank if form_data else '' }}">
-                    <div class="hint">整数，例如: 1502, 235843</div>
-                </div>
-
-                <div class="form-group">
                     <label for="account" class="required">Code for account where transaction originates (发起账户)</label>
                     <input type="text" id="account" name="account"
                         placeholder="例如: 100428660"
@@ -126,22 +108,6 @@
                     <div class="hint">支持千分位逗号、货币符号等，例如: 46480.59 / 1,234,567.89 / $1000.50</div>
                 </div>
 
-                <div class="form-group">
-                    <label for="receiving_currency" class="required">Receiving Currency (接收货币)</label>
-                    <input type="text" id="receiving_currency" name="receiving_currency"
-                        placeholder="例如: US Dollar"
-                        value="{{ form_data.receiving_currency if form_data else '' }}">
-                    <div class="hint">例如: US Dollar, Euro, Brazil Real</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="payment_currency" class="required">Payment Currency (支付货币)</label>
-                    <input type="text" id="payment_currency" name="payment_currency"
-                        placeholder="例如: US Dollar"
-                        value="{{ form_data.payment_currency if form_data else '' }}">
-                    <div class="hint">例如: US Dollar, Euro, Brazil Real</div>
-                </div>
-
                 <div class="form-group full-width">
                     <label for="payment_format" class="required">How transaction was conducted (支付方式)</label>
                     <input type="text" id="payment_format" name="payment_format"
@@ -152,26 +118,10 @@
 
                 <div class="form-group full-width">
                     <label for="day" class="required">Day of Transaction (交易日期/星期)</label>
-                    <div class="row">
-                        <input type="date" id="day_date"
-                            onchange="document.getElementById('day').value = this.value;">
-                        <select id="day_select"
-                            onchange="if(this.value){document.getElementById('day').value=this.value;}document.getElementById('day_date').value='';">
-                            <option value="">— 或选择星期 —</option>
-                            <option value="Monday">周一 (Monday)</option>
-                            <option value="Tuesday">周二 (Tuesday)</option>
-                            <option value="Wednesday">周三 (Wednesday)</option>
-                            <option value="Thursday">周四 (Thursday)</option>
-                            <option value="Friday">周五 (Friday)</option>
-                            <option value="Saturday">周六 (Saturday)</option>
-                            <option value="Sunday">周日 (Sunday)</option>
-                        </select>
-                    </div>
                     <input type="text" id="day" name="day"
-                        placeholder="日期选择框 / 星期下拉 / 手动输入 (YYYY-MM-DD 或 Monday 或 0-6)"
-                        value="{{ form_data.day if form_data else '' }}"
-                        style="margin-top:8px;">
-                    <div class="hint">推荐用上方日期选择器或星期下拉；也可手动输入: 日期(2022-09-07) / 星期名(Monday) / 数字(0=周一...6=周日)</div>
+                        placeholder="例如: 2022-09-07 / Wednesday / 周一 / 0-6"
+                        value="{{ form_data.day if form_data else '' }}">
+                    <div class="hint">支持多种格式：日期(2022-09-07) / 星期名(Monday, 周一) / 星期数字(0=周一 ... 6=周日)</div>
                 </div>
             </div>
 

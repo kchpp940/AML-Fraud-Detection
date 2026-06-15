@@ -9,17 +9,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-WEEKDAY_OPTIONS = [
-    ("Monday (周一)", "Monday"),
-    ("Tuesday (周二)", "Tuesday"),
-    ("Wednesday (周三)", "Wednesday"),
-    ("Thursday (周四)", "Thursday"),
-    ("Friday (周五)", "Friday"),
-    ("Saturday (周六)", "Saturday"),
-    ("Sunday (周日)", "Sunday"),
-]
-
-
 def main():
     logging.info("Starting Streamlit App")
 
@@ -36,24 +25,6 @@ def main():
 
     def user_input_features():
         st.sidebar.subheader("Transaction Details")
-
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            from_bank = st.number_input(
-                "From Bank (发起银行)",
-                min_value=0,
-                step=1,
-                help="The bank ID from which the transaction originates.",
-                value=70,
-            )
-        with col2:
-            to_bank = st.number_input(
-                "To Bank (接收银行)",
-                min_value=0,
-                step=1,
-                help="The bank ID to which the transaction is sent.",
-                value=1502,
-            )
 
         account = st.sidebar.text_input(
             "Account (Sender) 发起账户",
@@ -72,61 +43,22 @@ def main():
             help="The amount received in the transaction. Supports comma separators, e.g. 1,234,567.89",
         )
 
-        col3, col4 = st.sidebar.columns(2)
-        with col3:
-            receiving_currency = st.sidebar.text_input(
-                "Receiving Currency",
-                value="Euro",
-                help="The currency in which the amount is received.",
-            )
-        with col4:
-            payment_currency = st.sidebar.text_input(
-                "Payment Currency",
-                value="Euro",
-                help="The currency used for the payment.",
-            )
-
         payment_format = st.sidebar.text_input(
             "Payment Format (支付方式)",
             value="Cheque",
             help="The format of the payment (e.g., Cheque, Credit Card, Wire, ACH).",
         )
 
-        st.sidebar.subheader("Date / Weekday")
-        day_mode = st.sidebar.radio(
-            "选择日期或星期",
-            ["日期 (Date)", "星期 (Weekday)", "自由输入 (Manual)"],
-            horizontal=True,
+        day = st.sidebar.text_input(
+            "Day of Transaction (交易日期/星期)",
+            value="2022-09-03",
+            help="支持多种格式：日期(2022-09-07) / 星期名(Monday, 周一) / 星期数字(0=周一 ... 6=周日)",
         )
-        day = None
-        if day_mode == "日期 (Date)":
-            d = st.sidebar.date_input("Transaction Date")
-            day = d.strftime("%Y-%m-%d") if d else None
-        elif day_mode == "星期 (Weekday)":
-            label = st.sidebar.selectbox(
-                "Weekday",
-                options=[o[0] for o in WEEKDAY_OPTIONS],
-                index=0,
-            )
-            for lbl, val in WEEKDAY_OPTIONS:
-                if lbl == label:
-                    day = val
-                    break
-        else:
-            day = st.sidebar.text_input(
-                "Day (自由输入)",
-                value="Wednesday",
-                help="支持格式: 日期(YYYY-MM-DD)、星期名(Monday/周一)、星期数字(0-6: 周一-周日)",
-            )
 
         return {
-            "from_bank": from_bank,
             "account": account,
-            "to_bank": to_bank,
             "account_1": account_1,
             "amount_received": amount_received,
-            "receiving_currency": receiving_currency,
-            "payment_currency": payment_currency,
             "payment_format": payment_format,
             "day": day,
         }
@@ -150,8 +82,14 @@ def main():
                 data = CustomData(**raw_inputs)
                 features_df = data.get_data_as_DataFrame()
 
-                with st.expander("查看规范化后的数据（已送入模型）"):
+                with st.expander("查看规范化后的数据（已送入模型，5 列）"):
+                    st.markdown("DataFrame 列顺序与类型与训练预处理器完全一致：")
                     st.dataframe(features_df.T, use_container_width=True)
+                    dtype_info = pd.DataFrame({
+                        "Column": features_df.columns,
+                        "Dtype": [str(features_df[c].dtype) for c in features_df.columns],
+                    })
+                    st.dataframe(dtype_info, use_container_width=True, hide_index=True)
 
                 prediction = predict_pipeline.predict(features_df)
                 prediction_proba = predict_pipeline.predict_proba(features_df)

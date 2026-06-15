@@ -21,13 +21,9 @@ def predict_datapoint():
 
     try:
         data = CustomData(
-            from_bank=request.form.get("from_bank"),
             account=request.form.get("account"),
-            to_bank=request.form.get("to_bank"),
             account_1=request.form.get("account_1"),
             amount_received=request.form.get("amount_received"),
-            receiving_currency=request.form.get("receiving_currency"),
-            payment_currency=request.form.get("payment_currency"),
             payment_format=request.form.get("payment_format"),
             day=request.form.get("day"),
         )
