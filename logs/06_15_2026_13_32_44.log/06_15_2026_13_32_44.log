@@ -1,0 +1,6 @@
+[ 2026-06-15 13:32:47,550] 342 matplotlib - DEBUG - matplotlib data path: /Users/pkcha/.local/lib/python3.13/site-packages/matplotlib/mpl-data
+[ 2026-06-15 13:32:47,554] 342 matplotlib - DEBUG - CONFIGDIR=/Users/pkcha/.matplotlib
+[ 2026-06-15 13:32:47,555] 1557 matplotlib - DEBUG - interactive is False
+[ 2026-06-15 13:32:47,555] 1558 matplotlib - DEBUG - platform is darwin
+[ 2026-06-15 13:32:47,594] 342 matplotlib - DEBUG - CACHEDIR=/Users/pkcha/.matplotlib
+[ 2026-06-15 13:32:47,596] 1635 matplotlib.font_manager - DEBUG - Using fontManager instance from /Users/pkcha/.matplotlib/fontlist-v390.json

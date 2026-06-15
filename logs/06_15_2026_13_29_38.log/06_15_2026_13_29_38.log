@@ -1,0 +1,4 @@
+[ 2026-06-15 13:29:41,868] 116 root - INFO - Starting batch prediction for 6 rows
+[ 2026-06-15 13:29:42,003] 157 root - INFO - Batch prediction completed: 0 success, 6 failed
+[ 2026-06-15 13:29:42,005] 116 root - INFO - Starting batch prediction for 5 rows
+[ 2026-06-15 13:29:42,044] 157 root - INFO - Batch prediction completed: 5 success, 0 failed

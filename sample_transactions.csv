@@ -1,0 +1,9 @@
+﻿from_bank,account,to_bank,account_1,amount_received,receiving_currency,payment_currency,payment_format,day,transaction_id
+48.0,ACC_00158,18,ACC2_00062,2974.67,US Dollar,US Dollar,Cheque,Saturday,1001
+38.0,ACC_00057,42,ACC2_00093,670.29,Yuan,US Dollar,Credit Card,Saturday,1002
+12.0,ACC_00100,200,ACC2_00100,1500.5,US Dollar,US Dollar,Wire,Monday,1003
+56.0,ACC_00200,50,ACC2_00200,2000.0,Euro,Euro,Cheque,Tuesday,1004
+78.0,ACC_00400,60,ACC2_00400,3500.75,Yen,Yen,Credit Card,Wednesday,1005
+100.0,ACC_00500,70,ACC2_00500,not_a_number,US Dollar,US Dollar,Wire,Thursday,1006
+,ACC_00600,80,ACC2_00600,1800.25,Euro,Euro,Cheque,Friday,1007
+50.0,,90,ACC2_00700,2200.0,US Dollar,US Dollar,Credit Card,Monday,1008
