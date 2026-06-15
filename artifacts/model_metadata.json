@@ -1,6 +1,6 @@
 {
-  "model_version": 10002,
-  "training_time": "2026-06-15T22:37:00.798172",
+  "model_version": 2,
+  "training_time": "2026-06-15T22:49:36.546875",
   "data_file": "/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv",
   "data_file_digest": "sha256:b00f6f3c8fec51bdb0cec34daf88c3befdea15a5db4b75a333f930873a0f9b74",
   "feature_schema_version": "1.0",
@@ -51,9 +51,9 @@
   "best_metric_value": 0.94375,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.909301948051948,
-      "Recall": 0.9025,
-      "F1 score": 0.9058743854236961
+      "Precision": 0.882924482924483,
+      "Recall": 0.8875,
+      "F1 score": 0.8852035520701189
     },
     "AdaBoost": {
       "Precision": 0.6793195346320345,
@@ -67,5 +67,5 @@
     }
   },
   "artifact_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
-  "generated_at": "2026-06-15T22:37:00.798188"
+  "generated_at": "2026-06-15T22:49:36.546972"
 }

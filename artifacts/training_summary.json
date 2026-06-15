@@ -72,9 +72,9 @@
   "best_metric_value": 0.94375,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.909301948051948,
-      "Recall": 0.9025,
-      "F1 score": 0.9058743854236961
+      "Precision": 0.882924482924483,
+      "Recall": 0.8875,
+      "F1 score": 0.8852035520701189
     },
     "AdaBoost": {
       "Precision": 0.6793195346320345,
@@ -95,7 +95,7 @@
   "artifact_manifest_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/artifact_manifest.json",
   "resolved_config": {
     "run_info": {
-      "created_at": "2026-06-15T22:36:51.357564",
+      "created_at": "2026-06-15T22:48:18.527310",
       "config_path": "/Users/pkcha/AML-Fraud-Detection/config/training_config.yaml",
       "config_path_source": "default_file",
       "yaml_config_used": true
@@ -194,5 +194,5 @@
       "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json"
     }
   },
-  "generated_at": "2026-06-15T22:37:00.798746"
+  "generated_at": "2026-06-15T22:49:36.550816"
 }

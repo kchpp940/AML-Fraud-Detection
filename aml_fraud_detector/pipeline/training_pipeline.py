@@ -16,8 +16,8 @@ from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 
 
-def _next_model_version(artifacts_dir: str) -> int:
-    metadata_path = os.path.join(artifacts_dir, "model_metadata.json")
+def _next_model_version(registry: ArtifactRegistry) -> int:
+    metadata_path = registry.path("model_metadata_json")
     if os.path.isfile(metadata_path):
         import json
         try:
@@ -132,12 +132,12 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"{summary.selection_metric}={summary.best_metric_value:.4f}"
         )
 
-        model_version = _next_model_version(registry.artifacts_dir)
+        model_version = _next_model_version(registry)
         model_metadata = _build_model_metadata(
             model_version=model_version,
             trainer_artifact=trainer_artifact,
             data_source=summary.data_source,
-            artifacts_dir=registry.artifacts_dir,
+            registry=registry,
         )
         model_metadata_path = registry.save_model_metadata(model_metadata)
         logging.info(
@@ -232,12 +232,11 @@ def _build_model_metadata(
     model_version: int,
     trainer_artifact,
     data_source: str,
-    artifacts_dir: str,
+    registry: ArtifactRegistry,
 ) -> dict:
-    raw_csv_path = os.path.join(artifacts_dir, "data.csv")
-    data_digest = ""
-    if os.path.isfile(raw_csv_path):
-        data_digest = ArtifactRegistry.compute_hash(raw_csv_path)
+    raw_entry = registry.get_entry("raw_csv")
+    raw_csv_path = registry.path("raw_csv")
+    data_digest = raw_entry.digest if raw_entry else ArtifactRegistry.compute_hash(raw_csv_path)
     return {
         "model_version": model_version,
         "training_time": datetime.now().isoformat(),
