@@ -173,12 +173,18 @@ class DataTransformation:
             logging.info(f"Saved data preprocessing object")
 
             data_transformation_artifact = DataTransformationArtifact(
+                train_arr,
+                test_arr,
                 transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
                 transformed_test_file_path=self.data_transformation_config.transformed_test_file_path,
                 preprocessor_object_file_path=self.data_transformation_config.preprocessor_obj_file_path,
                 feature_schema_file_path=self.data_transformation_config.feature_schema_file_path,
             )
-            logging.info(f"Data Transformation Artifact: {data_transformation_artifact}")
+            logging.info(f"Data Transformation Artifact created (tuple-compat: train_arr, test_arr)")
+            logging.info(
+                f"  paths: preprocessor={data_transformation_artifact.preprocessor_object_file_path}, "
+                f"schema={data_transformation_artifact.feature_schema_file_path}"
+            )
 
             return data_transformation_artifact
 

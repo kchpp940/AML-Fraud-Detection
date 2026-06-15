@@ -7,7 +7,10 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aml_fraud_detector.entity.feature_schema import FeatureSchema, SCHEMA_VERSION
-from aml_fraud_detector.entity.artifact_entity import DataTransformationArtifact
+from aml_fraud_detector.entity.artifact_entity import (
+    DataIngestionArtifact,
+    DataTransformationArtifact,
+)
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 
 
@@ -185,18 +188,145 @@ class TestRequiredFields:
         assert "Payment Format" in required_fields
 
 
+class TestArtifactTupleCompat:
+    def test_data_ingestion_artifact_tuple_unpacking(self):
+        artifact = DataIngestionArtifact(
+            train_file_path="/tmp/train.csv",
+            test_file_path="/tmp/test.csv",
+        )
+        train_path, test_path = artifact
+        assert train_path == "/tmp/train.csv"
+        assert test_path == "/tmp/test.csv"
+        assert artifact.train_file_path == "/tmp/train.csv"
+        assert artifact.test_file_path == "/tmp/test.csv"
+        assert isinstance(artifact, tuple)
+
+    def test_data_transformation_artifact_tuple_unpacking(self):
+        import numpy as np
+        import tempfile
+        import os
+
+        train_arr = np.array([[1.0, 2.0, 0], [3.0, 4.0, 1]])
+        test_arr = np.array([[5.0, 6.0, 0]])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            train_path = os.path.join(tmpdir, "train.npy")
+            test_path = os.path.join(tmpdir, "test.npy")
+            preprocessor_path = os.path.join(tmpdir, "preprocessor.pkl")
+            schema_path = os.path.join(tmpdir, "schema.pkl")
+
+            artifact = DataTransformationArtifact(
+                train_arr,
+                test_arr,
+                transformed_train_file_path=train_path,
+                transformed_test_file_path=test_path,
+                preprocessor_object_file_path=preprocessor_path,
+                feature_schema_file_path=schema_path,
+            )
+
+            unpacked_train, unpacked_test = artifact
+            np.testing.assert_array_equal(unpacked_train, train_arr)
+            np.testing.assert_array_equal(unpacked_test, test_arr)
+            assert artifact.transformed_train_file_path == train_path
+            assert artifact.feature_schema_file_path == schema_path
+            assert isinstance(artifact, tuple)
+
+    def test_backward_compat_initiate_data_transformation_returns_tuple(self):
+        import numpy as np
+        from aml_fraud_detector.components.data_transformation import DataTransformation
+
+        dt = DataTransformation()
+        result = dt.initiate_data_transformation(
+            "artifacts/train.csv",
+            "artifacts/test.csv",
+        )
+
+        train_arr, test_arr = result
+        assert isinstance(train_arr, np.ndarray)
+        assert isinstance(test_arr, np.ndarray)
+        assert train_arr.ndim == 2
+        assert test_arr.ndim == 2
+        assert hasattr(result, "feature_schema_file_path")
+        assert hasattr(result, "preprocessor_object_file_path")
+
+
+class TestCustomDataAlignedDF:
+    def test_get_aligned_dataframe_columns(self):
+        data = CustomData(
+            from_bank=29,
+            account="80CF063F0",
+            to_bank=235843,
+            account_1="80CFE1EB0",
+            amount_received=386006.86,
+            receiving_currency="Brazil Real",
+            payment_currency="Brazil Real",
+            payment_format="Cheque",
+            day="Wednesday",
+        )
+        aligned_df = data.get_aligned_DataFrame()
+        schema = data._prediction_pipeline.feature_schema
+        assert list(aligned_df.columns) == schema.model_input_columns
+        assert "from_bank" not in aligned_df.columns
+        assert "to_bank" not in aligned_df.columns
+        assert "receiving_currency" not in aligned_df.columns
+
+    def test_get_aligned_dataframe_with_timestamp(self):
+        data = CustomData(
+            Timestamp="2022-09-07 12:15:00",
+            Account="80CF063F0",
+            Account_1="80CFE1EB0",
+            Amount_Received=386006.86,
+            Payment_Format="Cheque",
+        )
+        aligned_df = data.get_aligned_DataFrame()
+        schema = data._prediction_pipeline.feature_schema
+        assert list(aligned_df.columns) == schema.model_input_columns
+        assert aligned_df["day"].iloc[0] == "Wednesday"
+
+    def test_raw_vs_aligned_dataframe(self):
+        data = CustomData(
+            from_bank=29,
+            account="80CF063F0",
+            to_bank=235843,
+            account_1="80CFE1EB0",
+            amount_received=386006.86,
+            payment_format="Cheque",
+            day="Wednesday",
+        )
+        raw_df = data.get_data_as_DataFrame()
+        aligned_df = data.get_aligned_DataFrame()
+        assert len(raw_df.columns) != len(aligned_df.columns)
+        assert "from_bank" in raw_df.columns
+        assert "from_bank" not in aligned_df.columns
+
+
 class TestDataTransformationArtifact:
     def test_data_transformation_artifact_contains_schema_path(self):
-        artifact = DataTransformationArtifact(
-            transformed_train_file_path="/tmp/train.npy",
-            transformed_test_file_path="/tmp/test.npy",
-            preprocessor_object_file_path="/tmp/preprocessor.pkl",
-            feature_schema_file_path="/tmp/feature_schema.pkl",
-        )
-        assert artifact.feature_schema_file_path == "/tmp/feature_schema.pkl"
-        assert artifact.preprocessor_object_file_path == "/tmp/preprocessor.pkl"
-        assert artifact.transformed_train_file_path == "/tmp/train.npy"
-        assert artifact.transformed_test_file_path == "/tmp/test.npy"
+        import numpy as np
+        import tempfile
+        import os
+
+        train_arr = np.array([[1.0, 2.0, 0]])
+        test_arr = np.array([[5.0, 6.0, 0]])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            train_path = os.path.join(tmpdir, "train.npy")
+            test_path = os.path.join(tmpdir, "test.npy")
+            preprocessor_path = os.path.join(tmpdir, "preprocessor.pkl")
+            schema_path = os.path.join(tmpdir, "schema.pkl")
+
+            artifact = DataTransformationArtifact(
+                train_arr,
+                test_arr,
+                transformed_train_file_path=train_path,
+                transformed_test_file_path=test_path,
+                preprocessor_object_file_path=preprocessor_path,
+                feature_schema_file_path=schema_path,
+            )
+            assert artifact.feature_schema_file_path == schema_path
+            assert artifact.preprocessor_object_file_path == preprocessor_path
+            assert artifact.transformed_train_file_path == train_path
+            assert artifact.transformed_test_file_path == test_path
 
     def test_prediction_pipeline_from_artifact(self, tmp_path, sample_schema):
         import dill
@@ -204,6 +334,8 @@ class TestDataTransformationArtifact:
         preprocessor_path = str(tmp_path / "preprocessor.pkl")
         schema_path = str(tmp_path / "feature_schema.pkl")
         model_path = str(tmp_path / "model.pkl")
+        train_path = str(tmp_path / "train.npy")
+        test_path = str(tmp_path / "test.npy")
 
         with open(schema_path, "wb") as f:
             dill.dump(sample_schema, f)
@@ -218,9 +350,16 @@ class TestDataTransformationArtifact:
         with open(model_path, "wb") as f:
             dill.dump(model, f)
 
+        dummy_train = np.array([[1.0, 2.0, 0]])
+        dummy_test = np.array([[3.0, 4.0, 1]])
+        np.save(train_path, dummy_train)
+        np.save(test_path, dummy_test)
+
         artifact = DataTransformationArtifact(
-            transformed_train_file_path=str(tmp_path / "train.npy"),
-            transformed_test_file_path=str(tmp_path / "test.npy"),
+            dummy_train,
+            dummy_test,
+            transformed_train_file_path=train_path,
+            transformed_test_file_path=test_path,
             preprocessor_object_file_path=preprocessor_path,
             feature_schema_file_path=schema_path,
         )

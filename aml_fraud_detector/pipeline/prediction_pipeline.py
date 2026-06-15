@@ -129,6 +129,22 @@ class CustomData:
         except Exception as e:
             raise CustomerException(e, sys)
 
+    def get_aligned_DataFrame(self):
+        try:
+            raw_df = self.get_data_as_DataFrame()
+            schema = self._prediction_pipeline.feature_schema
+            logging.info(
+                f"Aligning input columns {raw_df.columns.tolist()} "
+                f"to model input columns {schema.model_input_columns}"
+            )
+            aligned_df = schema.align_features(raw_df)
+            logging.info(f"Aligned DataFrame columns: {aligned_df.columns.tolist()}")
+            logging.info(f"Aligned DataFrame dtypes:\n{aligned_df.dtypes}")
+            return aligned_df
+
+        except Exception as e:
+            raise CustomerException(e, sys)
+
     @classmethod
     def from_flask_request(cls, request_form):
         data = {}

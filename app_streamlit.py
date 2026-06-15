@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 def main():
     logging.info(f"Starting Streamlit App")
 
-    # App Title and Description
+    predict_pipeline = PredictionPipeline()
+
     st.title("Anti-Money Laundering (AML) Fraud Detection")
     st.markdown(
         """
@@ -19,8 +20,11 @@ def main():
     )
     st.write("---")
 
-    # Sidebar for Input Features
+    schema = predict_pipeline.feature_schema
     st.sidebar.header("Specify Input Features")
+    st.sidebar.caption(
+        f"Schema v{schema.schema_version} • Expecting {len(schema.model_input_columns)} model inputs"
+    )
 
     def user_input_features():
         st.sidebar.subheader("Transaction Details")
@@ -32,7 +36,8 @@ def main():
         receiving_currency = st.sidebar.text_input("Receiving Currency", help="The currency in which the amount is received.")
         payment_currency = st.sidebar.text_input("Payment Currency", help="The currency used for the payment.")
         payment_format = st.sidebar.text_input("Payment Format", help="The format of the payment (e.g., wire transfer, check).")
-        day = st.sidebar.text_input("Day", help="The day of the transaction.")
+        day_options = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        day = st.sidebar.selectbox("Day", day_options, help="The day of the week the transaction occurred.")
 
         data = CustomData(
             from_bank=from_bank,
@@ -45,24 +50,29 @@ def main():
             payment_format=payment_format,
             day=day
         )
-        features_df = data.get_data_as_DataFrame()
-        return features_df
+        aligned_df = data.get_aligned_DataFrame()
+        raw_df = data.get_data_as_DataFrame()
+        return raw_df, aligned_df
 
-    df = user_input_features()
+    raw_df, aligned_df = user_input_features()
 
-    # Display Input Parameters
     st.header("Specified Input Parameters")
-    st.dataframe(df)
+    st.dataframe(raw_df)
     st.write("---")
 
-    # Prediction Section
+    st.header("Aligned Model Features (via Schema)")
+    st.caption(
+        f"Columns normalized, derived features filled, extra fields dropped, order fixed "
+        f"per schema v{schema.schema_version}"
+    )
+    st.dataframe(aligned_df)
+    st.write("---")
+
     st.header("Prediction Results")
-    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        # Make Prediction
-        prediction = predict_pipeline.predict(df)
-        prediction_proba = predict_pipeline.predict_proba(df)
+        prediction = predict_pipeline.predict(aligned_df)
+        prediction_proba = predict_pipeline.predict_proba(aligned_df)
 
         # Display Prediction
         st.subheader("Fraud Detector Class Labels")

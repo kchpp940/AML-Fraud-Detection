@@ -1,6 +1,5 @@
 import os
 import sys
-import numpy as np
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 
@@ -28,10 +27,12 @@ if __name__ == "__main__":
         data_ingestion_artifact.train_file_path,
         data_ingestion_artifact.test_file_path,
     )
-    logging.info(f"Data Transformation Artifact: {data_transformation_artifact}")
+    logging.info(
+        f"Data Transformation Artifact: preprocessor={data_transformation_artifact.preprocessor_object_file_path}, "
+        f"schema={data_transformation_artifact.feature_schema_file_path}"
+    )
 
-    train_arr = np.load(data_transformation_artifact.transformed_train_file_path)
-    test_arr = np.load(data_transformation_artifact.transformed_test_file_path)
+    train_arr, test_arr = data_transformation_artifact
 
     model_trainer = ModelTrainer()
     model_trainer.initiate_model_trainer(train_arr, test_arr)
