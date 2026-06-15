@@ -1,0 +1,15 @@
+[ 2026-06-15 14:08:22,569] 236 root - INFO - Starting batch prediction for 3 rows
+[ 2026-06-15 14:08:22,750] 116 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 14:08:22,776] 293 root - INFO - Batch prediction completed: 3 success, 0 failed
+[ 2026-06-15 14:08:22,782] 236 root - INFO - Starting batch prediction for 3 rows
+[ 2026-06-15 14:08:22,856] 116 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 14:08:23,009] 293 root - INFO - Batch prediction completed: 1 success, 2 failed
+[ 2026-06-15 14:08:23,776] 342 matplotlib - DEBUG - matplotlib data path: /Users/pkcha/.local/lib/python3.13/site-packages/matplotlib/mpl-data
+[ 2026-06-15 14:08:23,781] 342 matplotlib - DEBUG - CONFIGDIR=/Users/pkcha/.matplotlib
+[ 2026-06-15 14:08:23,782] 1557 matplotlib - DEBUG - interactive is False
+[ 2026-06-15 14:08:23,783] 1558 matplotlib - DEBUG - platform is darwin
+[ 2026-06-15 14:08:23,826] 342 matplotlib - DEBUG - CACHEDIR=/Users/pkcha/.matplotlib
+[ 2026-06-15 14:08:23,829] 1635 matplotlib.font_manager - DEBUG - Using fontManager instance from /Users/pkcha/.matplotlib/fontlist-v390.json
+[ 2026-06-15 14:08:24,004] 236 root - INFO - Starting batch prediction for 8 rows
+[ 2026-06-15 14:08:24,008] 116 root - INFO - Loaded inference schema from training_summary.json: features=['amount_received', 'account', 'account_1', 'payment_format', 'day'], drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], derived={'day_from_timestamp': True}
+[ 2026-06-15 14:08:24,063] 293 root - INFO - Batch prediction completed: 6 success, 2 failed

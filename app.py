@@ -2,7 +2,14 @@ import io
 import base64
 import pandas as pd
 from flask import Flask, request, render_template, jsonify, Response
-from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
+from aml_fraud_detector.pipeline.prediction_pipeline import (
+    CustomData,
+    PredictionPipeline,
+    BATCH_RESULT_PROCESS_STATUS,
+    BATCH_RESULT_PREDICTION_LABEL,
+    BATCH_STATUS_SUCCESS,
+    BATCH_STATUS_FAILED,
+)
 
 application = Flask(__name__)
 app = application
@@ -40,22 +47,23 @@ def predict_datapoint():
 
 @app.route("/batch", methods=["GET", "POST"])
 def batch_prediction():
+    result_metadata = predict_pipeline.get_batch_result_metadata()
     if request.method == "GET":
         schema = predict_pipeline.get_schema_info()
-        return render_template("batch.html", schema=schema)
+        return render_template("batch.html", schema=schema, result_metadata=result_metadata)
 
     if "file" not in request.files:
         schema = predict_pipeline.get_schema_info()
-        return render_template("batch.html", schema=schema, error="未找到上传的文件")
+        return render_template("batch.html", schema=schema, result_metadata=result_metadata, error="未找到上传的文件")
 
     file = request.files["file"]
     if file.filename == "":
         schema = predict_pipeline.get_schema_info()
-        return render_template("batch.html", schema=schema, error="文件名为空")
+        return render_template("batch.html", schema=schema, result_metadata=result_metadata, error="文件名为空")
 
     if not file.filename.lower().endswith(".csv"):
         schema = predict_pipeline.get_schema_info()
-        return render_template("batch.html", schema=schema, error="只支持 CSV 格式文件")
+        return render_template("batch.html", schema=schema, result_metadata=result_metadata, error="只支持 CSV 格式文件")
 
     try:
         file_content = file.read().decode("utf-8")
@@ -63,14 +71,14 @@ def batch_prediction():
 
         if len(input_df) == 0:
             schema = predict_pipeline.get_schema_info()
-            return render_template("batch.html", schema=schema, error="CSV 文件为空")
+            return render_template("batch.html", schema=schema, result_metadata=result_metadata, error="CSV 文件为空")
 
         result_df = predict_pipeline.predict_batch(input_df)
 
         total = len(result_df)
-        success_count = int(result_df["prediction_label"].notna().sum())
-        fail_count = int(result_df["prediction_label"].isna().sum())
-        fraud_count = int((result_df["prediction_label"] == 1).sum())
+        success_count = int((result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_SUCCESS).sum())
+        fail_count = int((result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_FAILED).sum())
+        fraud_count = int((result_df[BATCH_RESULT_PREDICTION_LABEL] == 1).sum())
 
         csv_output = io.StringIO()
         result_df.to_csv(csv_output, index=False, encoding="utf-8-sig")
@@ -88,6 +96,7 @@ def batch_prediction():
         return render_template(
             "batch.html",
             schema=predict_pipeline.get_schema_info(),
+            result_metadata=result_metadata,
             table_html=table_html,
             csv_b64=csv_b64,
             stats={
@@ -100,7 +109,7 @@ def batch_prediction():
 
     except Exception as e:
         schema = predict_pipeline.get_schema_info()
-        return render_template("batch.html", schema=schema, error=str(e))
+        return render_template("batch.html", schema=schema, result_metadata=result_metadata, error=str(e))
 
 
 @app.route("/api/predict", methods=["POST"])
@@ -181,11 +190,12 @@ def api_predict_batch():
             )
         
         result_records = result_df.to_dict(orient="records")
-        success_count = int(result_df["prediction_label"].notna().sum())
-        fail_count = int(result_df["prediction_label"].isna().sum())
-        fraud_count = int((result_df["prediction_label"] == 1).sum())
+        success_count = int((result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_SUCCESS).sum())
+        fail_count = int((result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_FAILED).sum())
+        fraud_count = int((result_df[BATCH_RESULT_PREDICTION_LABEL] == 1).sum())
         
         schema = predict_pipeline.get_schema_info()
+        result_metadata = predict_pipeline.get_batch_result_metadata()
 
         return jsonify({
             "success": True,
@@ -194,6 +204,7 @@ def api_predict_batch():
             "failed_rows": fail_count,
             "fraud_count": fraud_count,
             "schema": schema,
+            "result_schema": result_metadata,
             "results": result_records
         })
         
@@ -209,6 +220,14 @@ def api_schema():
     return jsonify({
         "success": True,
         "schema": predict_pipeline.get_schema_info()
+    })
+
+
+@app.route("/api/batch/result-schema", methods=["GET"])
+def api_batch_result_schema():
+    return jsonify({
+        "success": True,
+        "result_schema": predict_pipeline.get_batch_result_metadata()
     })
 
 

@@ -13,6 +13,23 @@ _SUMMARY_PATH = os.path.join("artifacts", "training_summary.json")
 _MODEL_PATH = os.path.join("artifacts", "model.pkl")
 _PREPROCESSOR_PATH = os.path.join("artifacts", "preprocessor.pkl")
 
+BATCH_RESULT_ROW_INDEX = "row_index"
+BATCH_RESULT_PROCESS_STATUS = "process_status"
+BATCH_RESULT_PREDICTION_LABEL = "prediction_label"
+BATCH_RESULT_FRAUD_PROBABILITY = "fraud_probability"
+BATCH_RESULT_ERROR_REASON = "error_reason"
+
+BATCH_RESULT_FIXED_COLUMNS = [
+    BATCH_RESULT_ROW_INDEX,
+    BATCH_RESULT_PROCESS_STATUS,
+    BATCH_RESULT_PREDICTION_LABEL,
+    BATCH_RESULT_FRAUD_PROBABILITY,
+    BATCH_RESULT_ERROR_REASON,
+]
+
+BATCH_STATUS_SUCCESS = "success"
+BATCH_STATUS_FAILED = "failed"
+
 
 class _Schema:
     __slots__ = (
@@ -51,6 +68,31 @@ class PredictionPipeline:
         self._model = None
         self._preprocessor = None
         self._schema: Optional[_Schema] = None
+
+    @staticmethod
+    def get_batch_result_columns(input_columns: List[str]) -> List[str]:
+        return list(input_columns) + BATCH_RESULT_FIXED_COLUMNS
+
+    @staticmethod
+    def get_batch_result_fixed_columns() -> List[str]:
+        return list(BATCH_RESULT_FIXED_COLUMNS)
+
+    @staticmethod
+    def get_batch_result_metadata() -> Dict:
+        return {
+            "fixed_columns": list(BATCH_RESULT_FIXED_COLUMNS),
+            "column_descriptions": {
+                BATCH_RESULT_ROW_INDEX: "输入 CSV 的原始行号（从 0 开始）",
+                BATCH_RESULT_PROCESS_STATUS: f"处理状态: '{BATCH_STATUS_SUCCESS}' 或 '{BATCH_STATUS_FAILED}'",
+                BATCH_RESULT_PREDICTION_LABEL: "预测标签: 0=正常, 1=欺诈（失败时为 null）",
+                BATCH_RESULT_FRAUD_PROBABILITY: "欺诈概率: 0-1（失败时为 null）",
+                BATCH_RESULT_ERROR_REASON: "错误原因（成功时为 null）",
+            },
+            "status_values": {
+                "success": BATCH_STATUS_SUCCESS,
+                "failed": BATCH_STATUS_FAILED,
+            },
+        }
 
     def _load_models(self):
         if self._model is None or self._preprocessor is None:
@@ -177,6 +219,18 @@ class PredictionPipeline:
         df = df[schema.feature_columns]
         return df
 
+    def _build_result_row(self, row_dict: Dict, row_idx: int, status: str,
+                         prediction_label: Optional[int],
+                         fraud_probability: Optional[float],
+                         error_reason: Optional[str]) -> Dict:
+        row = dict(row_dict)
+        row[BATCH_RESULT_ROW_INDEX] = row_idx
+        row[BATCH_RESULT_PROCESS_STATUS] = status
+        row[BATCH_RESULT_PREDICTION_LABEL] = prediction_label
+        row[BATCH_RESULT_FRAUD_PROBABILITY] = fraud_probability
+        row[BATCH_RESULT_ERROR_REASON] = error_reason
+        return row
+
     def predict_batch(self, input_df: pd.DataFrame) -> pd.DataFrame:
         try:
             logging.info(f"Starting batch prediction for {len(input_df)} rows")
@@ -189,14 +243,18 @@ class PredictionPipeline:
             results = []
 
             for idx, (row_idx, row) in enumerate(input_df.iterrows()):
-                result_row = row.to_dict()
+                row_dict = row.to_dict()
                 errors = self._validate_row(row, schema)
 
                 if errors:
-                    result_row["prediction_label"] = None
-                    result_row["fraud_probability"] = None
-                    result_row["error_reason"] = "; ".join(errors)
-                    results.append(result_row)
+                    results.append(self._build_result_row(
+                        row_dict=row_dict,
+                        row_idx=idx,
+                        status=BATCH_STATUS_FAILED,
+                        prediction_label=None,
+                        fraud_probability=None,
+                        error_reason="; ".join(errors),
+                    ))
                     continue
 
                 try:
@@ -207,23 +265,31 @@ class PredictionPipeline:
                     prediction = self._model.predict(data_scaled)
                     prediction_proba = self._model.predict_proba(data_scaled)
 
-                    result_row["prediction_label"] = int(prediction[0])
-                    result_row["fraud_probability"] = float(prediction_proba[0][1])
-                    result_row["error_reason"] = None
+                    results.append(self._build_result_row(
+                        row_dict=row_dict,
+                        row_idx=idx,
+                        status=BATCH_STATUS_SUCCESS,
+                        prediction_label=int(prediction[0]),
+                        fraud_probability=float(prediction_proba[0][1]),
+                        error_reason=None,
+                    ))
 
                 except Exception as e:
-                    result_row["prediction_label"] = None
-                    result_row["fraud_probability"] = None
-                    result_row["error_reason"] = f"预测失败: {str(e)}"
-
-                results.append(result_row)
+                    results.append(self._build_result_row(
+                        row_dict=row_dict,
+                        row_idx=idx,
+                        status=BATCH_STATUS_FAILED,
+                        prediction_label=None,
+                        fraud_probability=None,
+                        error_reason=f"预测失败: {str(e)}",
+                    ))
 
             result_df = pd.DataFrame(results)
-            output_columns = list(input_df.columns) + ["prediction_label", "fraud_probability", "error_reason"]
+            output_columns = self.get_batch_result_columns(list(input_df.columns))
             result_df = result_df[output_columns]
 
-            success_count = result_df["prediction_label"].notna().sum()
-            fail_count = result_df["prediction_label"].isna().sum()
+            success_count = (result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_SUCCESS).sum()
+            fail_count = (result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_FAILED).sum()
             logging.info(f"Batch prediction completed: {success_count} success, {fail_count} failed")
 
             return result_df

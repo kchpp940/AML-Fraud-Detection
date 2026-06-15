@@ -1,7 +1,17 @@
 import io
 import streamlit as st
 import dill
-from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
+from aml_fraud_detector.pipeline.prediction_pipeline import (
+    CustomData,
+    PredictionPipeline,
+    BATCH_RESULT_PROCESS_STATUS,
+    BATCH_RESULT_PREDICTION_LABEL,
+    BATCH_RESULT_FRAUD_PROBABILITY,
+    BATCH_RESULT_ERROR_REASON,
+    BATCH_RESULT_ROW_INDEX,
+    BATCH_STATUS_SUCCESS,
+    BATCH_STATUS_FAILED,
+)
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 import pandas as pd
@@ -121,6 +131,7 @@ def batch_prediction_mode(predict_pipeline):
     st.header("Batch Transaction Prediction")
 
     schema = predict_pipeline.get_schema_info()
+    result_metadata = predict_pipeline.get_batch_result_metadata()
 
     st.info(
         """
@@ -146,6 +157,22 @@ def batch_prediction_mode(predict_pipeline):
             f"**Dropped columns** (not used by model): "
             + ", ".join(f"`{c}`" for c in schema["drop_columns"])
         )
+
+    st.write("---")
+
+    st.subheader("📄 Output Result Schema")
+    st.caption(
+        f"The following columns are appended to the output: "
+        + ", ".join(f"`{c}`" for c in result_metadata["fixed_columns"])
+    )
+    result_desc_df = pd.DataFrame([
+        {
+            "Output Column": col,
+            "Description": desc,
+        }
+        for col, desc in result_metadata["column_descriptions"].items()
+    ])
+    st.dataframe(result_desc_df, use_container_width=True, hide_index=True)
 
     st.write("---")
 
@@ -183,11 +210,11 @@ def display_batch_results(result_df, input_df):
     st.subheader("📊 Prediction Results Summary")
 
     total_count = len(result_df)
-    success_count = result_df["prediction_label"].notna().sum()
-    fail_count = result_df["prediction_label"].isna().sum()
-    fraud_count = (result_df["prediction_label"] == 1).sum()
-    not_fraud_count = (result_df["prediction_label"] == 0).sum()
-    warning_count = result_df["error_reason"].notna().sum() - fail_count
+    success_count = (result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_SUCCESS).sum()
+    fail_count = (result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_FAILED).sum()
+    fraud_count = (result_df[BATCH_RESULT_PREDICTION_LABEL] == 1).sum()
+    not_fraud_count = (result_df[BATCH_RESULT_PREDICTION_LABEL] == 0).sum()
+    warning_count = result_df[BATCH_RESULT_ERROR_REASON].notna().sum() - fail_count
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     col1.metric("Total Transactions", total_count)
@@ -207,29 +234,38 @@ def display_batch_results(result_df, input_df):
             result_df,
             use_container_width=True,
             column_config={
-                "prediction_label": st.column_config.NumberColumn(
+                BATCH_RESULT_ROW_INDEX: st.column_config.NumberColumn(
+                    "Row Index",
+                    format="%d",
+                    help="Original row number in input CSV (0-based)"
+                ),
+                BATCH_RESULT_PROCESS_STATUS: st.column_config.TextColumn(
+                    "Status",
+                    help="'success' or 'failed'"
+                ),
+                BATCH_RESULT_PREDICTION_LABEL: st.column_config.NumberColumn(
                     "Prediction",
                     format="%d",
-                    help="0 = Not Fraud, 1 = Fraud"
+                    help="0 = Not Fraud, 1 = Fraud (null for failed rows)"
                 ),
-                "fraud_probability": st.column_config.ProgressColumn(
+                BATCH_RESULT_FRAUD_PROBABILITY: st.column_config.ProgressColumn(
                     "Fraud Probability",
                     format="%.2f",
                     min_value=0,
                     max_value=1
                 ),
-                "error_reason": st.column_config.TextColumn(
+                BATCH_RESULT_ERROR_REASON: st.column_config.TextColumn(
                     "Error Reason",
                     width="large"
                 )
             }
         )
 
-        successful_df = result_df[result_df["prediction_label"].notna()]
+        successful_df = result_df[result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_SUCCESS]
         if len(successful_df) > 0:
             st.subheader("Fraud Probability Distribution")
             fig, ax = plt.subplots(figsize=(10, 4))
-            ax.hist(successful_df["fraud_probability"].dropna(), bins=20, edgecolor="black", alpha=0.7)
+            ax.hist(successful_df[BATCH_RESULT_FRAUD_PROBABILITY].dropna(), bins=20, edgecolor="black", alpha=0.7)
             ax.set_xlabel("Fraud Probability")
             ax.set_ylabel("Number of Transactions")
             ax.set_title("Distribution of Fraud Probabilities")
@@ -238,18 +274,25 @@ def display_batch_results(result_df, input_df):
             st.pyplot(fig)
 
     with tab2:
-        successful_df = result_df[result_df["prediction_label"].notna()].copy()
-        successful_df = successful_df.drop(columns=["error_reason"])
+        successful_df = result_df[result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_SUCCESS].copy()
+        successful_df = successful_df.drop(columns=[BATCH_RESULT_ERROR_REASON])
         if len(successful_df) > 0:
             st.dataframe(
                 successful_df,
                 use_container_width=True,
                 column_config={
-                    "prediction_label": st.column_config.NumberColumn(
+                    BATCH_RESULT_ROW_INDEX: st.column_config.NumberColumn(
+                        "Row Index",
+                        format="%d"
+                    ),
+                    BATCH_RESULT_PROCESS_STATUS: st.column_config.TextColumn(
+                        "Status"
+                    ),
+                    BATCH_RESULT_PREDICTION_LABEL: st.column_config.NumberColumn(
                         "Prediction",
                         format="%d"
                     ),
-                    "fraud_probability": st.column_config.ProgressColumn(
+                    BATCH_RESULT_FRAUD_PROBABILITY: st.column_config.ProgressColumn(
                         "Fraud Probability",
                         format="%.2f",
                         min_value=0,
@@ -258,23 +301,30 @@ def display_batch_results(result_df, input_df):
                 }
             )
 
-            fraud_df = successful_df[successful_df["prediction_label"] == 1]
+            fraud_df = successful_df[successful_df[BATCH_RESULT_PREDICTION_LABEL] == 1]
             if len(fraud_df) > 0:
                 st.subheader("🚨 High Risk Transactions")
                 st.warning(f"Found {len(fraud_df)} potentially fraudulent transactions")
-                st.dataframe(fraud_df.sort_values("fraud_probability", ascending=False),
+                st.dataframe(fraud_df.sort_values(BATCH_RESULT_FRAUD_PROBABILITY, ascending=False),
                            use_container_width=True)
         else:
             st.info("No successful predictions.")
 
     with tab3:
-        failed_df = result_df[result_df["prediction_label"].isna()].copy()
+        failed_df = result_df[result_df[BATCH_RESULT_PROCESS_STATUS] == BATCH_STATUS_FAILED].copy()
         if len(failed_df) > 0:
             st.dataframe(
                 failed_df,
                 use_container_width=True,
                 column_config={
-                    "error_reason": st.column_config.TextColumn(
+                    BATCH_RESULT_ROW_INDEX: st.column_config.NumberColumn(
+                        "Row Index",
+                        format="%d"
+                    ),
+                    BATCH_RESULT_PROCESS_STATUS: st.column_config.TextColumn(
+                        "Status"
+                    ),
+                    BATCH_RESULT_ERROR_REASON: st.column_config.TextColumn(
                         "Error Reason",
                         width="large"
                     )
@@ -282,7 +332,7 @@ def display_batch_results(result_df, input_df):
             )
 
             st.subheader("Common Errors")
-            error_counts = failed_df["error_reason"].value_counts().head(10)
+            error_counts = failed_df[BATCH_RESULT_ERROR_REASON].value_counts().head(10)
             error_df = pd.DataFrame({
                 "Error Type": error_counts.index,
                 "Count": error_counts.values

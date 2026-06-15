@@ -118,6 +118,28 @@
         </div>
 
         <h4>Results</h4>
+        <p class="text-muted small">
+            <strong>Output columns (fixed):</strong>
+            {% for col in result_metadata.fixed_columns %}
+                <code>{{ col }}</code>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        <table class="table table-sm table-bordered schema-table mb-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Column</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for col, desc in result_metadata.column_descriptions.items() %}
+                <tr>
+                    <td><code>{{ col }}</code></td>
+                    <td>{{ desc }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         <div class="result-table-wrapper border rounded mb-3">
             {{ table_html | safe }}
         </div>
