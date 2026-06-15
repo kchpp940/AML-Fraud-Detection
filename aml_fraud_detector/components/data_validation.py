@@ -18,13 +18,14 @@ class MissingValueDetail:
     column: str
     missing_count: int
     missing_ratio: float
-    is_critical: bool
+    severity: str
 
 
 @dataclass
 class DuplicateDetail:
     duplicate_row_count: int
     duplicate_row_ratio: float
+    severity: str
 
 
 @dataclass
@@ -38,10 +39,22 @@ class AbnormalAmountDetail:
 
 
 @dataclass
+class UnknownCategoryValue:
+    value: str
+    count: int
+    ratio: float
+
+
+@dataclass
 class UnknownCategoryDetail:
     column: str
-    unique_values: List[str]
-    sample_unknown: List[str]
+    whitelist_count: int
+    unknown_values: List[UnknownCategoryValue]
+    total_unknown_count: int
+    total_unknown_ratio: float
+    severity: str
+    threshold_critical: float
+    threshold_warning: float
 
 
 @dataclass
@@ -53,12 +66,27 @@ class TimeParsingDetail:
 
 
 @dataclass
+class TargetCheckIssue:
+    code: str
+    message: str
+    severity: str
+    ratio: float
+    threshold: Optional[float]
+
+
+@dataclass
 class TargetDistributionDetail:
     column: str
+    missing_count: int
+    missing_ratio: float
+    unique_classes: int
+    expected_classes: int
     value_counts: Dict[str, int]
     total_count: int
     positive_ratio: float
-    is_severely_imbalanced: bool
+    imbalance_ratio: float
+    issues: List[TargetCheckIssue]
+    overall_severity: str
 
 
 @dataclass
@@ -86,22 +114,25 @@ AMOUNT_COLUMNS = [
     "received_amount", "paid_amount",
 ]
 
-CATEGORICAL_COLUMNS = [
-    "payment_format", "payment_currency", "receiving_currency",
-    "from_bank", "to_bank", "day",
-]
-
 TIME_COLUMNS = ["timestamp", "date", "time"]
 
-CRITICAL_FEATURE_COLUMNS = [
-    "amount_received", "amount_paid",
-    "payment_format", "from_bank", "to_bank",
-    "account", "account_1",
-]
-
-MISSING_RATIO_CRITICAL_THRESHOLD = 0.3
-TARGET_IMBALANCE_RATIO_THRESHOLD = 0.01
 OUTLIER_IQR_MULTIPLIER = 3.0
+
+SEVERITY_NONE = "NONE"
+SEVERITY_WARNING = "WARNING"
+SEVERITY_CRITICAL = "CRITICAL"
+
+
+def _ratio_to_severity(
+    ratio: float,
+    critical_threshold: float,
+    warning_threshold: float,
+) -> str:
+    if ratio >= critical_threshold:
+        return SEVERITY_CRITICAL
+    if ratio >= warning_threshold:
+        return SEVERITY_WARNING
+    return SEVERITY_NONE
 
 
 class DataValidation:
@@ -113,9 +144,16 @@ class DataValidation:
         self.report_path = self.training_config.artifacts_subpath(
             "data_quality_report.json"
         )
+        self.validation_cfg = self.training_config.validation
+        self.thresholds = self.validation_cfg.thresholds
+        self.categorical_whitelist: Dict[str, set] = {
+            col: set(vals)
+            for col, vals in self.validation_cfg.categorical_whitelist.items()
+        }
         logging.info(
             f"DataValidation initialized: target={self.target_column}, "
-            f"report_path={self.report_path}"
+            f"report_path={self.report_path}, "
+            f"whitelist_columns={list(self.categorical_whitelist.keys())}"
         )
 
     def _check_missing_values(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
@@ -124,15 +162,18 @@ class DataValidation:
         for col in df.columns:
             missing_count = int(df[col].isna().sum())
             missing_ratio = missing_count / len(df) if len(df) > 0 else 0.0
-            is_critical = (
-                col in CRITICAL_FEATURE_COLUMNS
-                and missing_ratio >= MISSING_RATIO_CRITICAL_THRESHOLD
+            severity = _ratio_to_severity(
+                missing_ratio,
+                critical_threshold=self.thresholds.missing_value_critical_ratio,
+                warning_threshold=self.thresholds.missing_value_warning_ratio,
             )
             results.append({
                 "column": col,
                 "missing_count": missing_count,
                 "missing_ratio": round(missing_ratio, 6),
-                "is_critical": is_critical,
+                "severity": severity,
+                "threshold_critical": self.thresholds.missing_value_critical_ratio,
+                "threshold_warning": self.thresholds.missing_value_warning_ratio,
             })
         return results
 
@@ -140,9 +181,16 @@ class DataValidation:
         logging.info("Checking duplicate transactions...")
         dup_count = int(df.duplicated().sum())
         dup_ratio = dup_count / len(df) if len(df) > 0 else 0.0
+        severity = _ratio_to_severity(
+            dup_ratio,
+            critical_threshold=1.1,
+            warning_threshold=self.thresholds.duplicate_row_warning_ratio,
+        )
         return {
             "duplicate_row_count": dup_count,
             "duplicate_row_ratio": round(dup_ratio, 6),
+            "severity": severity,
+            "threshold_warning": self.thresholds.duplicate_row_warning_ratio,
         }
 
     def _check_abnormal_amounts(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
@@ -176,20 +224,60 @@ class DataValidation:
         return results
 
     def _check_unknown_categories(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
-        logging.info("Checking unknown categories...")
+        logging.info("Checking unknown categories against whitelist...")
         results: List[Dict[str, Any]] = []
-        cat_cols = [c for c in CATEGORICAL_COLUMNS if c in df.columns]
-        for col in cat_cols:
-            unique_vals = sorted(df[col].dropna().unique().tolist())
-            sample_unknown: List[str] = []
-            for val in unique_vals:
-                val_str = str(val).strip()
-                if val_str == "" or val_str.lower() in ("nan", "none", "null", "unknown", "n/a", "-"):
-                    sample_unknown.append(val_str)
+        total_rows = len(df)
+        for col in self.validation_cfg.categorical_columns:
+            if col not in df.columns:
+                continue
+            whitelist = self.categorical_whitelist.get(col, set())
+            series = df[col].dropna()
+            series_str = series.astype(str).str.strip()
+            value_counts = series_str.value_counts()
+
+            if not whitelist:
+                results.append({
+                    "column": col,
+                    "whitelist_defined": False,
+                    "whitelist_count": 0,
+                    "unique_count": int(value_counts.shape[0]),
+                    "unknown_values": [],
+                    "total_unknown_count": 0,
+                    "total_unknown_ratio": 0.0,
+                    "severity": SEVERITY_NONE,
+                    "threshold_critical": self.thresholds.unknown_category_critical_ratio,
+                    "threshold_warning": self.thresholds.unknown_category_warning_ratio,
+                })
+                continue
+
+            unknown_counts: List[Dict[str, Any]] = []
+            total_unknown = 0
+            for val, cnt in value_counts.items():
+                if val not in whitelist:
+                    ratio = cnt / total_rows if total_rows > 0 else 0.0
+                    unknown_counts.append({
+                        "value": val,
+                        "count": int(cnt),
+                        "ratio": round(ratio, 6),
+                    })
+                    total_unknown += int(cnt)
+            total_unknown_ratio = total_unknown / total_rows if total_rows > 0 else 0.0
+            severity = _ratio_to_severity(
+                total_unknown_ratio,
+                critical_threshold=self.thresholds.unknown_category_critical_ratio,
+                warning_threshold=self.thresholds.unknown_category_warning_ratio,
+            )
             results.append({
                 "column": col,
-                "unique_count": len(unique_vals),
-                "sample_unknown": sample_unknown[:10],
+                "whitelist_defined": True,
+                "whitelist_count": len(whitelist),
+                "unique_count": int(value_counts.shape[0]),
+                "unknown_values": unknown_counts,
+                "total_unknown_count": total_unknown,
+                "total_unknown_ratio": round(total_unknown_ratio, 6),
+                "severity": severity,
+                "threshold_critical": self.thresholds.unknown_category_critical_ratio,
+                "threshold_warning": self.thresholds.unknown_category_warning_ratio,
             })
         return results
 
@@ -203,9 +291,9 @@ class DataValidation:
             if pd.api.types.is_datetime64_any_dtype(df[col]):
                 parse_fail_count = int(df[col].isna().sum())
             else:
+                original_na = int(df[col].isna().sum())
                 coerced = pd.to_datetime(df[col], errors="coerce")
-                parse_fail_count = int(coerced.isna().sum() - df[col].isna().sum())
-                parse_fail_count = max(parse_fail_count, 0)
+                parse_fail_count = max(int(coerced.isna().sum()) - original_na, 0)
             parse_fail_ratio = parse_fail_count / total_count if total_count > 0 else 0.0
             results.append({
                 "column": col,
@@ -216,105 +304,219 @@ class DataValidation:
         return results
 
     def _check_target_distribution(self, df: pd.DataFrame) -> Dict[str, Any]:
-        logging.info(f"Checking target column distribution: {self.target_column}")
-        if self.target_column not in df.columns:
-            return {
-                "column": self.target_column,
-                "error": f"Target column '{self.target_column}' not found in dataset",
-                "value_counts": {},
-                "total_count": 0,
-                "positive_ratio": 0.0,
-                "is_severely_imbalanced": True,
-            }
-        series = df[self.target_column]
-        value_counts = series.value_counts().to_dict()
-        value_counts_str = {str(k): int(v) for k, v in value_counts.items()}
-        total_count = len(series)
-        positive_values = series[series == 1]
-        positive_ratio = len(positive_values) / total_count if total_count > 0 else 0.0
-        is_imbalanced = positive_ratio < TARGET_IMBALANCE_RATIO_THRESHOLD and positive_ratio > 0.0
-        if positive_ratio == 0.0 and total_count > 0:
-            is_imbalanced = True
-        return {
+        logging.info(
+            f"Checking target column: missing / classes / imbalance "
+            f"(col={self.target_column}, expected_classes={self.thresholds.target_expected_classes})"
+        )
+        result: Dict[str, Any] = {
             "column": self.target_column,
-            "value_counts": value_counts_str,
-            "total_count": total_count,
-            "positive_ratio": round(positive_ratio, 6),
-            "is_severely_imbalanced": is_imbalanced,
+            "missing_count": 0,
+            "missing_ratio": 0.0,
+            "missing_threshold": self.thresholds.target_missing_critical_ratio,
+            "unique_classes": 0,
+            "expected_classes": self.thresholds.target_expected_classes,
+            "value_counts": {},
+            "total_count": 0,
+            "positive_ratio": 0.0,
+            "imbalance_ratio": 0.0,
+            "imbalance_threshold_critical": self.thresholds.target_imbalance_critical_ratio,
+            "imbalance_threshold_warning": self.thresholds.target_imbalance_warning_ratio,
+            "issues": [],
+            "overall_severity": SEVERITY_NONE,
         }
+
+        if self.target_column not in df.columns:
+            result["issues"].append({
+                "code": "target_not_found",
+                "message": f"Target column '{self.target_column}' not found in dataset",
+                "severity": SEVERITY_CRITICAL,
+                "ratio": 1.0,
+                "threshold": None,
+            })
+            result["overall_severity"] = SEVERITY_CRITICAL
+            return result
+
+        series = df[self.target_column]
+        total_count = len(series)
+        missing_count = int(series.isna().sum())
+        missing_ratio = missing_count / total_count if total_count > 0 else 0.0
+        result["missing_count"] = missing_count
+        result["missing_ratio"] = round(missing_ratio, 6)
+
+        if missing_ratio > self.thresholds.target_missing_critical_ratio:
+            result["issues"].append({
+                "code": "target_missing",
+                "message": (
+                    f"Target column has {missing_count} missing values "
+                    f"({missing_ratio*100:.4f}%), "
+                    f"exceeds critical threshold {self.thresholds.target_missing_critical_ratio*100:.1f}%"
+                ),
+                "severity": SEVERITY_CRITICAL,
+                "ratio": missing_ratio,
+                "threshold": self.thresholds.target_missing_critical_ratio,
+            })
+
+        series_valid = series.dropna()
+        unique_classes = series_valid.nunique()
+        value_counts = series_valid.value_counts().to_dict()
+        value_counts_str = {str(k): int(v) for k, v in value_counts.items()}
+        result["unique_classes"] = int(unique_classes)
+        result["value_counts"] = value_counts_str
+        result["total_count"] = total_count
+
+        if unique_classes == 0:
+            result["issues"].append({
+                "code": "target_empty",
+                "message": "Target column has no valid (non-null) values",
+                "severity": SEVERITY_CRITICAL,
+                "ratio": 1.0,
+                "threshold": None,
+            })
+        elif unique_classes == 1:
+            result["issues"].append({
+                "code": "target_single_class",
+                "message": (
+                    f"Target column has only 1 class (expected "
+                    f"{self.thresholds.target_expected_classes}): "
+                    f"value={list(value_counts_str.keys())[0]}, "
+                    f"count={list(value_counts_str.values())[0]}"
+                ),
+                "severity": SEVERITY_CRITICAL,
+                "ratio": 0.0,
+                "threshold": float(self.thresholds.target_expected_classes),
+            })
+        elif unique_classes != self.thresholds.target_expected_classes:
+            result["issues"].append({
+                "code": "target_non_binary",
+                "message": (
+                    f"Target column has {unique_classes} unique classes, "
+                    f"expected {self.thresholds.target_expected_classes}. "
+                    f"Classes: {list(value_counts_str.keys())}"
+                ),
+                "severity": SEVERITY_WARNING,
+                "ratio": float(unique_classes),
+                "threshold": float(self.thresholds.target_expected_classes),
+            })
+
+        valid_count = len(series_valid)
+        if valid_count > 0:
+            numeric_series = pd.to_numeric(series_valid, errors="coerce")
+            numeric_valid = numeric_series.dropna()
+            if len(numeric_valid) > 0:
+                positive_count = int((numeric_valid == 1).sum())
+            else:
+                positive_count = 0
+            positive_ratio = positive_count / valid_count
+            minority_ratio = min(positive_count / valid_count, (valid_count - positive_count) / valid_count) if valid_count > 0 else 0.0
+        else:
+            positive_ratio = 0.0
+            minority_ratio = 0.0
+        result["positive_ratio"] = round(positive_ratio, 6)
+        result["imbalance_ratio"] = round(minority_ratio, 6)
+
+        if valid_count > 0 and minority_ratio > 0 and minority_ratio < self.thresholds.target_imbalance_critical_ratio:
+            result["issues"].append({
+                "code": "target_severe_imbalance",
+                "message": (
+                    f"Target column is severely imbalanced: minority ratio = "
+                    f"{minority_ratio*100:.4f}%, "
+                    f"critical threshold = "
+                    f"{self.thresholds.target_imbalance_critical_ratio*100:.1f}%"
+                ),
+                "severity": SEVERITY_CRITICAL,
+                "ratio": minority_ratio,
+                "threshold": self.thresholds.target_imbalance_critical_ratio,
+            })
+        elif valid_count > 0 and minority_ratio > 0 and minority_ratio < self.thresholds.target_imbalance_warning_ratio:
+            result["issues"].append({
+                "code": "target_mild_imbalance",
+                "message": (
+                    f"Target column is mildly imbalanced: minority ratio = "
+                    f"{minority_ratio*100:.4f}%, "
+                    f"warning threshold = "
+                    f"{self.thresholds.target_imbalance_warning_ratio*100:.1f}%"
+                ),
+                "severity": SEVERITY_WARNING,
+                "ratio": minority_ratio,
+                "threshold": self.thresholds.target_imbalance_warning_ratio,
+            })
+
+        severities = [it["severity"] for it in result["issues"]]
+        if SEVERITY_CRITICAL in severities:
+            result["overall_severity"] = SEVERITY_CRITICAL
+        elif SEVERITY_WARNING in severities:
+            result["overall_severity"] = SEVERITY_WARNING
+        return result
 
     def _build_risk_items(
         self,
         missing_values: List[Dict[str, Any]],
         duplicates: Dict[str, Any],
-        abnormal_amounts: List[Dict[str, Any]],
+        unknown_categories: List[Dict[str, Any]],
         target_distribution: Dict[str, Any],
     ) -> List[Dict[str, str]]:
         risks: List[Dict[str, str]] = []
 
-        critical_missing = [
-            m["column"] for m in missing_values if m["is_critical"]
-        ]
-        if critical_missing:
-            risks.append({
-                "level": "CRITICAL",
-                "category": "missing_values",
-                "message": (
-                    f"Critical columns with >= {MISSING_RATIO_CRITICAL_THRESHOLD*100:.0f}% "
-                    f"missing: {critical_missing}"
-                ),
-            })
-
-        high_missing = [
-            m["column"] for m in missing_values
-            if m["missing_ratio"] >= 0.1 and not m["is_critical"]
-        ]
-        if high_missing:
-            risks.append({
-                "level": "WARNING",
-                "category": "missing_values",
-                "message": f"Columns with >= 10% missing: {high_missing}",
-            })
-
-        dup_ratio = duplicates.get("duplicate_row_ratio", 0)
-        if dup_ratio >= 0.1:
-            risks.append({
-                "level": "WARNING",
-                "category": "duplicates",
-                "message": (
-                    f"Duplicate rows: {duplicates['duplicate_row_count']} "
-                    f"({dup_ratio*100:.1f}%)"
-                ),
-            })
-
-        for amt in abnormal_amounts:
-            if amt["negative_count"] > 0:
+        for m in missing_values:
+            if m["severity"] == SEVERITY_CRITICAL:
                 risks.append({
-                    "level": "WARNING",
-                    "category": "abnormal_amount",
+                    "level": SEVERITY_CRITICAL,
+                    "category": "missing_values",
                     "message": (
-                        f"Column '{amt['column']}' has {amt['negative_count']} "
-                        f"negative values"
+                        f"Column '{m['column']}' has severe missing data: "
+                        f"{m['missing_count']} rows ({m['missing_ratio']*100:.2f}%), "
+                        f"critical threshold = {m['threshold_critical']*100:.1f}%"
+                    ),
+                })
+            elif m["severity"] == SEVERITY_WARNING:
+                risks.append({
+                    "level": SEVERITY_WARNING,
+                    "category": "missing_values",
+                    "message": (
+                        f"Column '{m['column']}' has notable missing data: "
+                        f"{m['missing_count']} rows ({m['missing_ratio']*100:.2f}%), "
+                        f"warning threshold = {m['threshold_warning']*100:.1f}%"
                     ),
                 })
 
-        target_error = target_distribution.get("error")
-        if target_error:
+        if duplicates.get("severity") == SEVERITY_WARNING:
             risks.append({
-                "level": "CRITICAL",
-                "category": "target",
-                "message": target_error,
-            })
-        elif target_distribution.get("is_severely_imbalanced"):
-            positive_ratio = target_distribution.get("positive_ratio", 0)
-            risks.append({
-                "level": "CRITICAL",
-                "category": "target_imbalance",
+                "level": SEVERITY_WARNING,
+                "category": "duplicates",
                 "message": (
-                    f"Target column '{target_distribution['column']}' is severely "
-                    f"imbalanced: positive ratio = {positive_ratio*100:.4f}% "
-                    f"(threshold: {TARGET_IMBALANCE_RATIO_THRESHOLD*100:.1f}%)"
+                    f"Duplicate rows: {duplicates['duplicate_row_count']} "
+                    f"({duplicates['duplicate_row_ratio']*100:.2f}%), "
+                    f"warning threshold = {duplicates['threshold_warning']*100:.1f}%"
                 ),
+            })
+
+        for uc in unknown_categories:
+            if uc["severity"] == SEVERITY_CRITICAL:
+                risks.append({
+                    "level": SEVERITY_CRITICAL,
+                    "category": "unknown_categories",
+                    "message": (
+                        f"Column '{uc['column']}' has severe unknown category values: "
+                        f"{uc['total_unknown_count']} rows ({uc['total_unknown_ratio']*100:.2f}%), "
+                        f"critical threshold = {uc['threshold_critical']*100:.1f}%"
+                    ),
+                })
+            elif uc["severity"] == SEVERITY_WARNING:
+                risks.append({
+                    "level": SEVERITY_WARNING,
+                    "category": "unknown_categories",
+                    "message": (
+                        f"Column '{uc['column']}' has notable unknown category values: "
+                        f"{uc['total_unknown_count']} rows ({uc['total_unknown_ratio']*100:.2f}%), "
+                        f"warning threshold = {uc['threshold_warning']*100:.1f}%"
+                    ),
+                })
+
+        for issue in target_distribution.get("issues", []):
+            risks.append({
+                "level": issue["severity"],
+                "category": f"target__{issue['code']}",
+                "message": issue["message"],
             })
 
         return risks
@@ -330,11 +532,12 @@ class DataValidation:
             target_distribution = self._check_target_distribution(df)
 
             risk_items = self._build_risk_items(
-                missing_values, duplicates, abnormal_amounts, target_distribution
+                missing_values, duplicates, unknown_categories, target_distribution
             )
 
             critical_missing_cols = [
-                m["column"] for m in missing_values if m["is_critical"]
+                m["column"] for m in missing_values
+                if m["severity"] == SEVERITY_CRITICAL
             ]
 
             report = DataQualityReport(
@@ -412,7 +615,7 @@ class DataValidation:
         for item in report.risk_items:
             level = item["level"]
             message = item["message"]
-            if level == "CRITICAL":
+            if level == SEVERITY_CRITICAL:
                 logging.warning(f"[DATA QUALITY - CRITICAL] {message}")
             else:
                 logging.info(f"[DATA QUALITY - WARNING] {message}")
@@ -428,38 +631,31 @@ class DataValidation:
 
     @staticmethod
     def check_critical_issues(report_data: Dict[str, Any]) -> None:
-        critical_missing = report_data.get("critical_missing_columns", [])
-        target_dist = report_data.get("target_distribution", {})
-        target_error = target_dist.get("error")
+        risk_items = report_data.get("risk_items", [])
+        critical_issues = [
+            item for item in risk_items
+            if item.get("level") == SEVERITY_CRITICAL
+        ]
+        if not critical_issues:
+            return
 
-        if target_error:
-            raise CustomerException(
-                ValueError(
-                    f"Cannot proceed with training: {target_error}"
-                ),
-                sys,
-            )
+        error_messages = []
+        seen_categories = set()
+        for item in critical_issues:
+            category = item.get("category", "unknown")
+            message = item.get("message", "")
+            if category not in seen_categories:
+                error_messages.append(f"- [{category}] {message}")
+                seen_categories.add(category)
+            else:
+                error_messages.append(f"  - ({category}) {message}")
 
-        if critical_missing:
-            raise CustomerException(
-                ValueError(
-                    f"Cannot proceed with training: critical columns with severe "
-                    f"missing data (>= {MISSING_RATIO_CRITICAL_THRESHOLD*100:.0f}%): "
-                    f"{critical_missing}. Fix data quality before training."
-                ),
-                sys,
-            )
-
-        if target_dist.get("is_severely_imbalanced"):
-            positive_ratio = target_dist.get("positive_ratio", 0)
-            col = target_dist.get("column", "unknown")
-            raise CustomerException(
-                ValueError(
-                    f"Cannot proceed with training: target column '{col}' has "
-                    f"abnormal distribution (positive ratio = "
-                    f"{positive_ratio*100:.4f}%, threshold = "
-                    f"{TARGET_IMBALANCE_RATIO_THRESHOLD*100:.1f}%). "
-                    f"Review target column data."
-                ),
-                sys,
-            )
+        summary = "\n".join(error_messages)
+        raise CustomerException(
+            ValueError(
+                f"Cannot proceed with training: {len(critical_issues)} critical "
+                f"data quality issue(s) detected. Review the quality report and "
+                f"fix data before training.\n{summary}"
+            ),
+            sys,
+        )

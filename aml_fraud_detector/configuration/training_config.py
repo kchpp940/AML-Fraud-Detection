@@ -125,6 +125,26 @@ class ModelsConfig:
 
 
 @dataclass
+class ValidationThresholds:
+    missing_value_critical_ratio: float
+    missing_value_warning_ratio: float
+    unknown_category_critical_ratio: float
+    unknown_category_warning_ratio: float
+    duplicate_row_warning_ratio: float
+    target_missing_critical_ratio: float
+    target_expected_classes: int
+    target_imbalance_critical_ratio: float
+    target_imbalance_warning_ratio: float
+
+
+@dataclass
+class ValidationConfig:
+    categorical_whitelist: Dict[str, List[str]]
+    categorical_columns: List[str]
+    thresholds: ValidationThresholds
+
+
+@dataclass
 class OutputConfig:
     artifacts_dir: str
 
@@ -182,6 +202,26 @@ class TrainingConfig:
         self.output: OutputConfig = OutputConfig(
             artifacts_dir=raw["output"]["artifacts_dir"],
         )
+        raw_validation = raw.get("validation", {})
+        raw_thresholds = raw_validation.get("thresholds", {})
+        self.validation: ValidationConfig = ValidationConfig(
+            categorical_whitelist={
+                str(k): [str(v) for v in (vs or [])]
+                for k, vs in (raw_validation.get("categorical_whitelist", {}) or {}).items()
+            },
+            categorical_columns=list(raw_validation.get("categorical_columns", []) or []),
+            thresholds=ValidationThresholds(
+                missing_value_critical_ratio=float(raw_thresholds.get("missing_value_critical_ratio", 0.3)),
+                missing_value_warning_ratio=float(raw_thresholds.get("missing_value_warning_ratio", 0.1)),
+                unknown_category_critical_ratio=float(raw_thresholds.get("unknown_category_critical_ratio", 0.05)),
+                unknown_category_warning_ratio=float(raw_thresholds.get("unknown_category_warning_ratio", 0.01)),
+                duplicate_row_warning_ratio=float(raw_thresholds.get("duplicate_row_warning_ratio", 0.1)),
+                target_missing_critical_ratio=float(raw_thresholds.get("target_missing_critical_ratio", 0.0)),
+                target_expected_classes=int(raw_thresholds.get("target_expected_classes", 2)),
+                target_imbalance_critical_ratio=float(raw_thresholds.get("target_imbalance_critical_ratio", 0.01)),
+                target_imbalance_warning_ratio=float(raw_thresholds.get("target_imbalance_warning_ratio", 0.05)),
+            ),
+        )
         self._validate()
         self._resolved_cache: Optional[Dict[str, Any]] = None
         logging.info("Training config loaded and validated successfully")
@@ -219,6 +259,14 @@ class TrainingConfig:
 
     @staticmethod
     def _load_yaml(path: str) -> Tuple[Dict[str, Any], bool]:
+        def _deep_merge(base: Dict, overlay: Dict) -> Dict:
+            for k, v in overlay.items():
+                if isinstance(v, dict) and isinstance(base.get(k), dict):
+                    _deep_merge(base[k], v)
+                else:
+                    base[k] = v
+            return base
+
         defaults: Dict[str, Any] = {
             "data": {
                 "source_path": "notebook/data/HI-Small_Trans.csv",
@@ -244,8 +292,58 @@ class TrainingConfig:
                 },
                 "param_grid": {},
             },
+            "validation": {
+                "categorical_columns": [
+                    "payment_format", "payment_currency", "receiving_currency",
+                    "from_bank", "to_bank", "day",
+                ],
+                "categorical_whitelist": {
+                    "payment_format": ["ACH", "Credit Card", "Bitcoin", "Reinvestment", "Cash"],
+                    "payment_currency": [
+                        "US Dollar", "Euro", "Yuan", "Yen", "Australian Dollar",
+                        "Mexican Peso", "UK Pound", "Ruble", "Canadian Dollar",
+                        "Swiss Franc", "Brazil Real", "Saudi Riyal", "Indian Rupee",
+                        "Shekel", "Bitcoin",
+                    ],
+                    "receiving_currency": [
+                        "US Dollar", "Euro", "Yuan", "Yen", "Australian Dollar",
+                        "Mexican Peso", "UK Pound", "Ruble", "Canadian Dollar",
+                        "Swiss Franc", "Brazil Real", "Saudi Riyal", "Indian Rupee",
+                        "Shekel", "Bitcoin",
+                    ],
+                    "day": [
+                        "Monday", "Tuesday", "Wednesday", "Thursday",
+                        "Friday", "Saturday", "Sunday",
+                    ],
+                },
+                "thresholds": {
+                    "missing_value_critical_ratio": 0.3,
+                    "missing_value_warning_ratio": 0.1,
+                    "unknown_category_critical_ratio": 0.05,
+                    "unknown_category_warning_ratio": 0.01,
+                    "duplicate_row_warning_ratio": 0.1,
+                    "target_missing_critical_ratio": 0.0,
+                    "target_expected_classes": 2,
+                    "target_imbalance_critical_ratio": 0.01,
+                    "target_imbalance_warning_ratio": 0.05,
+                },
+            },
             "output": {"artifacts_dir": "artifacts"},
         }
+        schema_path = os.path.join(os.path.dirname(path), "schema.yaml")
+        if os.path.isfile(schema_path):
+            try:
+                with open(schema_path, "r", encoding="utf-8") as f:
+                    schema = yaml.safe_load(f) or {}
+                if "validation" in schema:
+                    _deep_merge(defaults, {"validation": schema["validation"]})
+                    logging.info(
+                        f"Merged validation config from schema: {schema_path}"
+                    )
+            except Exception as e:
+                logging.warning(
+                    f"Failed to parse schema file '{schema_path}': {e}, skipping"
+                )
         if not os.path.isfile(path):
             return defaults, False
         try:
@@ -255,14 +353,6 @@ class TrainingConfig:
             raise CustomerException(
                 RuntimeError(f"Failed to parse YAML config '{path}': {e}"), sys
             )
-
-        def _deep_merge(base: Dict, overlay: Dict) -> Dict:
-            for k, v in overlay.items():
-                if isinstance(v, dict) and isinstance(base.get(k), dict):
-                    _deep_merge(base[k], v)
-                else:
-                    base[k] = v
-            return base
 
         return _deep_merge(defaults, loaded), True
 
@@ -359,6 +449,14 @@ class TrainingConfig:
                 "preprocessor_pkl": os.path.abspath(self.artifacts_subpath("preprocessor.pkl")),
                 "model_pkl": os.path.abspath(self.artifacts_subpath("model.pkl")),
                 "summary_json": os.path.abspath(self.artifacts_subpath("training_summary.json")),
+                "data_quality_report_json": os.path.abspath(self.artifacts_subpath("data_quality_report.json")),
+            },
+            "validation": {
+                "categorical_columns": list(self.validation.categorical_columns),
+                "categorical_whitelist": {
+                    k: list(v) for k, v in self.validation.categorical_whitelist.items()
+                },
+                "thresholds": asdict(self.validation.thresholds),
             },
         }
         self._resolved_cache = snapshot
