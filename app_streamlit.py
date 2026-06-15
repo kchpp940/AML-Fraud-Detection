@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 def main():
     logging.info(f"Starting Streamlit App")
 
-    predict_pipeline = PredictionPipeline()
-
+    # App Title and Description
     st.title("Anti-Money Laundering (AML) Fraud Detection")
     st.markdown(
         """
@@ -20,6 +19,7 @@ def main():
     )
     st.write("---")
 
+    # Sidebar for Input Features
     st.sidebar.header("Specify Input Features")
 
     def user_input_features():
@@ -32,8 +32,7 @@ def main():
         receiving_currency = st.sidebar.text_input("Receiving Currency", help="The currency in which the amount is received.")
         payment_currency = st.sidebar.text_input("Payment Currency", help="The currency used for the payment.")
         payment_format = st.sidebar.text_input("Payment Format", help="The format of the payment (e.g., wire transfer, check).")
-        day_options = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        day = st.sidebar.selectbox("Day", day_options, help="The day of the week the transaction occurred.")
+        day = st.sidebar.text_input("Day", help="The day of the transaction.")
 
         data = CustomData(
             from_bank=from_bank,
@@ -46,21 +45,26 @@ def main():
             payment_format=payment_format,
             day=day
         )
-        aligned_df = data.get_aligned_DataFrame()
-        return aligned_df
+        features_df = data.get_data_as_DataFrame()
+        return features_df
 
-    aligned_df = user_input_features()
+    df = user_input_features()
 
+    # Display Input Parameters
     st.header("Specified Input Parameters")
-    st.dataframe(aligned_df)
+    st.dataframe(df)
     st.write("---")
 
+    # Prediction Section
     st.header("Prediction Results")
+    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        prediction = predict_pipeline.predict(aligned_df)
-        prediction_proba = predict_pipeline.predict_proba(aligned_df)
+        # Make Prediction
+        prediction = predict_pipeline.predict(df)
+        prediction_proba = predict_pipeline.predict_proba(df)
 
+        # Display Prediction
         st.subheader("Fraud Detector Class Labels")
         class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
         class_labels_df.index = ["Class Labels"]
@@ -76,6 +80,7 @@ def main():
         proba_df = pd.DataFrame(prediction_proba, columns=["Not Fraud", "Fraud"])
         st.dataframe(proba_df)
 
+        # Visualize Prediction Probabilities
         st.subheader("Prediction Probability Distribution")
         fig, ax = plt.subplots()
         ax.bar(proba_df.columns, proba_df.iloc[0], color=["green", "red"])
