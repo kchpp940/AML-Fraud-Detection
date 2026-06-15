@@ -1,0 +1,53 @@
+[ 2026-06-15 16:54:14,791] 163 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 16:54:14,793] 100 root - INFO - Env override: data.source_path = 'notebook/data/HI-Small_Trans.csv' -> '/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv' (from AML_TRAIN_DATA_SOURCE_PATH='/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv')
+[ 2026-06-15 16:54:14,793] 100 root - INFO - Env override: data.sample_size = 50000 -> 4000 (from AML_TRAIN_DATA_SAMPLE_SIZE='4000')
+[ 2026-06-15 16:54:14,793] 100 root - INFO - Env override: output.artifacts_dir = 'artifacts' -> 'artifacts_test' (from AML_TRAIN_OUTPUT_DIR='artifacts_test')
+[ 2026-06-15 16:54:14,793] 190 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 16:54:14,793] 191 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts_test
+[ 2026-06-15 16:54:14,793] 31 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=4000, test_size=0.2
+[ 2026-06-15 16:54:14,793] 39 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-15 16:54:14,793] 42 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 16:54:14,793] 45 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 16:54:14,811] 52 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-15 16:54:14,811] 63 root - INFO - Using full dataset (no sampling applied)
+[ 2026-06-15 16:54:14,818] 71 root - INFO - Train Test split initiated
+[ 2026-06-15 16:54:14,827] 79 root - INFO - Ingestion completed: train=3200, test=800
+[ 2026-06-15 16:54:14,828] 52 root - INFO - DataValidation initialized: report_out=artifacts_test/data_quality_report.json, critical_features=['amount_received']
+[ 2026-06-15 16:54:14,828] 415 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-15 16:54:14,828] 424 root - INFO - Normalized columns: ['timestamp', 'from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'amount_paid', 'payment_currency', 'payment_format', 'is_laundering']
+[ 2026-06-15 16:54:14,828] 425 root - INFO - Validating dataset with shape=(4000, 11)
+[ 2026-06-15 16:54:14,828] 429 root - INFO - Resolved critical feature columns for validation: ['account', 'account_1', 'amount_received', 'payment_format']
+[ 2026-06-15 16:54:14,836] 402 root - INFO - Data quality report saved to: artifacts_test/data_quality_report.json
+[ 2026-06-15 16:54:14,836] 489 root - INFO - Data validation complete: is_valid=True, critical_issues=0, warning_issues=1
+[ 2026-06-15 16:54:14,836] 39 root - WARNING - Data quality check completed: 0 critical, 1 warnings
+[ 2026-06-15 16:54:14,836] 49 root - WARNING - [DATA QUALITY WARNING] [target__target_mild_imbalance] Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.00%
+[ 2026-06-15 16:54:14,836] 55 root - INFO - Target column distribution: {'0': 3816, '1': 184}, positive_ratio=0.046, severity=WARNING
+[ 2026-06-15 16:54:14,836] 125 root - INFO - Data quality gate PASSED: proceeding to data transformation
+[ 2026-06-15 16:54:14,837] 415 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-15 16:54:14,837] 424 root - INFO - Normalized columns: ['timestamp', 'from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'amount_paid', 'payment_currency', 'payment_format', 'is_laundering']
+[ 2026-06-15 16:54:14,837] 425 root - INFO - Validating dataset with shape=(4000, 11)
+[ 2026-06-15 16:54:14,837] 429 root - INFO - Resolved critical feature columns for validation: ['account', 'account_1', 'amount_received', 'payment_format']
+[ 2026-06-15 16:54:14,840] 402 root - INFO - Data quality report saved to: artifacts_test/data_quality_report.json
+[ 2026-06-15 16:54:14,840] 489 root - INFO - Data validation complete: is_valid=False, critical_issues=2, warning_issues=1
+[ 2026-06-15 16:54:14,840] 39 root - WARNING - Data quality check completed: 2 critical, 1 warnings
+[ 2026-06-15 16:54:14,840] 45 root - ERROR - [DATA QUALITY CRITICAL] [missing__account] Column 'account' has 4000 missing values (100.00%)
+[ 2026-06-15 16:54:14,840] 45 root - ERROR - [DATA QUALITY CRITICAL] [missing__amount_received] Column 'amount_received' has 4000 missing values (100.00%)
+[ 2026-06-15 16:54:14,840] 49 root - WARNING - [DATA QUALITY WARNING] [target__target_mild_imbalance] Target column is mildly imbalanced: minority ratio = 4.6000%, warning threshold = 5.00%
+[ 2026-06-15 16:54:14,840] 55 root - INFO - Target column distribution: {'0': 3816, '1': 184}, positive_ratio=0.046, severity=WARNING
+[ 2026-06-15 16:54:14,840] 122 root - ERROR - Data quality gate FAILED. Training aborted before data transformation. Fix the following issues or adjust validation thresholds:
+  - Critical feature column 'account' has 4000 missing values (100.00%), exceeding critical threshold 30.00%. Training cannot proceed reliably.
+  - Critical feature column 'amount_received' has 4000 missing values (100.00%), exceeding critical threshold 30.00%. Training cannot proceed reliably.
+[ 2026-06-15 16:54:14,840] 415 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-15 16:54:14,840] 424 root - INFO - Normalized columns: ['timestamp', 'from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'amount_paid', 'payment_currency', 'payment_format', 'is_laundering']
+[ 2026-06-15 16:54:14,840] 425 root - INFO - Validating dataset with shape=(4000, 11)
+[ 2026-06-15 16:54:14,840] 429 root - INFO - Resolved critical feature columns for validation: ['account', 'account_1', 'amount_received', 'payment_format']
+[ 2026-06-15 16:54:14,844] 402 root - INFO - Data quality report saved to: artifacts_test/data_quality_report.json
+[ 2026-06-15 16:54:14,844] 489 root - INFO - Data validation complete: is_valid=False, critical_issues=2, warning_issues=1
+[ 2026-06-15 16:54:14,844] 39 root - WARNING - Data quality check completed: 2 critical, 1 warnings
+[ 2026-06-15 16:54:14,844] 45 root - ERROR - [DATA QUALITY CRITICAL] [missing__is_laundering] Column 'is_laundering' has 4000 missing values (100.00%)
+[ 2026-06-15 16:54:14,844] 45 root - ERROR - [DATA QUALITY CRITICAL] [target__target_class_count_mismatch] Target column has 0 unique classes, expected 2
+[ 2026-06-15 16:54:14,844] 49 root - WARNING - [DATA QUALITY WARNING] [target__target_has_missing] Target column has 4000 missing values
+[ 2026-06-15 16:54:14,844] 55 root - INFO - Target column distribution: {}, positive_ratio=0.0, severity=CRITICAL
+[ 2026-06-15 16:54:14,844] 122 root - ERROR - Data quality gate FAILED. Training aborted before data transformation. Fix the following issues or adjust validation thresholds:
+  - Target column 'is_laundering' [target_class_count_mismatch]: Target column has 0 unique classes, expected 2
+  - Target column 'is_laundering' has 4000 missing values (100.00%), exceeding critical threshold 30.00%. Training cannot proceed.

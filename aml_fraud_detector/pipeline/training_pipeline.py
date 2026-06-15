@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
@@ -67,10 +67,22 @@ def _validate_before_training(
 
     critical_missing = report.get("critical_missing_columns", [])
     if critical_missing:
-        errors.append(
-            f"Critical feature columns have excessive missing values (>30%): "
-            f"{critical_missing}. Training cannot proceed reliably."
-        )
+        for cm in critical_missing:
+            if isinstance(cm, dict):
+                col = cm.get("column", "unknown")
+                count = cm.get("missing_count", 0)
+                ratio = cm.get("missing_ratio", 0)
+                threshold = cm.get("threshold_critical", 0.3)
+                errors.append(
+                    f"Critical feature column '{col}' has {count} missing values "
+                    f"({ratio:.2%}), exceeding critical threshold {threshold:.2%}. "
+                    "Training cannot proceed reliably."
+                )
+            else:
+                errors.append(
+                    f"Critical feature column '{cm}' has excessive missing values "
+                    "(>30%). Training cannot proceed reliably."
+                )
 
     target_dist = report.get("target_distribution", {})
     target_severity = target_dist.get("overall_severity", "NONE")
@@ -78,17 +90,27 @@ def _validate_before_training(
         target_issues = target_dist.get("issues", [])
         for issue in target_issues:
             if issue.get("severity") == "CRITICAL":
+                code = issue.get("code", "unknown")
+                ratio = issue.get("ratio")
+                threshold = issue.get("threshold")
+                base_msg = issue.get("message", "Unknown issue")
+                extra = ""
+                if ratio is not None and threshold is not None:
+                    extra = f" (ratio={ratio:.4%}, threshold={threshold:.2%})"
                 errors.append(
-                    f"Target column '{target_col}' critical issue: {issue.get('message')}"
+                    f"Target column '{target_col}' [{code}]: {base_msg}{extra}"
                 )
 
     missing_values = report.get("missing_values", [])
     for mv in missing_values:
         if mv.get("column") == target_col and mv.get("severity") == "CRITICAL":
+            count = mv.get("missing_count", 0)
+            ratio = mv.get("missing_ratio", 0)
+            threshold = mv.get("threshold_critical", 0.3)
             errors.append(
-                f"Target column '{target_col}' has "
-                f"{mv.get('missing_count')} missing values "
-                f"({mv.get('missing_ratio'):.2%}). Training cannot proceed."
+                f"Target column '{target_col}' has {count} missing values "
+                f"({ratio:.2%}), exceeding critical threshold {threshold:.2%}. "
+                "Training cannot proceed."
             )
 
     if errors:
@@ -146,6 +168,11 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"Data validation done: report_path={validation_artifact.report_path}, "
             f"is_valid={validation_artifact.is_valid}"
         )
+
+        summary.quality_report_path = os.path.abspath(validation_artifact.report_path)
+        summary.data_quality_valid = validation_artifact.is_valid
+        summary.data_quality_critical_issues = list(validation_artifact.critical_issues)
+        summary.data_quality_warning_issues = list(validation_artifact.warning_issues)
 
         quality_report = _load_data_quality_report(validation_artifact.report_path)
         _log_data_quality_risks(quality_report)
@@ -227,6 +254,16 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Artifacts dir      : {summary.artifacts_dir}")
         print(f"Preprocessor saved : {summary.preprocessor_path}")
         print(f"Model saved        : {summary.model_path}")
+        print(f"Quality report     : {summary.quality_report_path}")
+        print(f"Data quality valid : {summary.data_quality_valid}")
+        if summary.data_quality_critical_issues:
+            print(f"  - Critical issues ({len(summary.data_quality_critical_issues)}):")
+            for issue in summary.data_quality_critical_issues:
+                print(f"    * {issue}")
+        if summary.data_quality_warning_issues:
+            print(f"  - Warning issues ({len(summary.data_quality_warning_issues)}):")
+            for issue in summary.data_quality_warning_issues:
+                print(f"    * {issue}")
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")
 

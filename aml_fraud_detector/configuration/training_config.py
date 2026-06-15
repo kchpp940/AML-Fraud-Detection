@@ -147,6 +147,10 @@ class TrainingSummary:
     all_model_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
     preprocessor_path: str = ""
     model_path: str = ""
+    quality_report_path: str = ""
+    data_quality_valid: bool = True
+    data_quality_critical_issues: List[str] = field(default_factory=list)
+    data_quality_warning_issues: List[str] = field(default_factory=list)
     artifacts_dir: str = ""
     summary_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)

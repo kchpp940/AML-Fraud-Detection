@@ -67,13 +67,13 @@ class DataValidation:
 
     def _check_missing_values(
         self, df: pd.DataFrame
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         cfg = self.validation_config
         results: List[Dict[str, Any]] = []
-        critical_cols: List[str] = []
+        critical_cols_detail: List[Dict[str, Any]] = []
         total = len(df)
         if total == 0:
-            return results, critical_cols
+            return results, critical_cols_detail
 
         for col in df.columns:
             missing = int(df[col].isna().sum())
@@ -93,9 +93,9 @@ class DataValidation:
             }
             results.append(entry)
             if severity == "CRITICAL" and col in self.critical_feature_columns:
-                critical_cols.append(col)
+                critical_cols_detail.append(entry)
 
-        return results, critical_cols
+        return results, critical_cols_detail
 
     def _check_duplicates(self, df: pd.DataFrame) -> Dict[str, Any]:
         cfg = self.validation_config
@@ -419,8 +419,9 @@ class DataValidation:
                     data_path = self.training_config.artifacts_subpath("data.csv")
                 logging.info(f"Loading data from path for validation: {data_path}")
                 df = pd.read_csv(data_path)
-                df.columns = df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
 
+            df.columns = df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
+            logging.info(f"Normalized columns: {list(df.columns)}")
             logging.info(f"Validating dataset with shape={df.shape}")
 
             self.critical_feature_columns = self._resolve_critical_feature_columns(df)
