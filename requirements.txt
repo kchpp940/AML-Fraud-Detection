@@ -16,5 +16,4 @@ lxml
 streamlit
 mlflow==2.16.0
 pymongo[tls,srv]
-PyYAML
 -e .
