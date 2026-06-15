@@ -2,34 +2,46 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
+from aml_fraud_detector.pipeline.prediction_pipeline import CustomData
 from aml_fraud_detector.presentation.response_builder import ResponseBuilder
 from aml_fraud_detector.logger import logging
 
 
-_pipeline = PredictionPipeline()
-_builder = ResponseBuilder(_pipeline)
+_builder = ResponseBuilder()
 
 
-def _render_model_info(display: dict):
+def _render_model(display: dict):
     st.subheader("Model Version Info")
     col1, col2 = st.columns(2)
-    col1.metric("Model Version", display["model_version_number"])
+    col1.metric("Model Version", display["model_version"])
     col1.metric("Model Name", display["model_name"])
     col2.metric("Trained At", display["training_time"])
     col2.metric(f"{display['selection_metric']} Score", f"{display['best_metric_value']:.4f}")
+    st.caption(f"Feature Contract: v{display['feature_contract_version']}")
 
 
-def _render_validation_alerts(display: dict):
-    if display.get("has_alerts"):
-        st.subheader("Validation Alerts")
-        for err in display.get("validation_errors", []):
-            st.error(f"❌ {err}")
-        for warn in display.get("validation_warnings", []):
-            st.warning(f"⚠️ {warn}")
+def _render_validation(display: dict):
+    st.subheader("Artifact Validation")
+    if display["validation_valid"]:
+        st.success("All required artifacts present & digest verified.")
+    for err in display["validation_errors"]:
+        st.error(err)
+    for warn in display["validation_warnings"]:
+        st.warning(warn)
+    details = display["validation_details"]
+    with st.expander("Validation Details"):
+        st.write({
+            "artifacts_dir": details["artifacts_dir"],
+            "manifest_present": details["manifest_present"],
+            "manifest_artifacts": details["manifest_artifacts"],
+            "digest_model_pkl": details.get("digest_model_pkl", "")[:16] + "..." if details.get("digest_model_pkl") else "",
+            "digest_preprocessor_pkl": details.get("digest_preprocessor_pkl", "")[:16] + "..." if details.get("digest_preprocessor_pkl") else "",
+            "numerical_features": details["numerical_features"],
+            "categorical_features": details["categorical_features"],
+        })
 
 
-def _render_single_prediction(display: dict):
+def _render_single(display: dict):
     if display.get("is_error"):
         st.subheader("Prediction Error")
         st.error(display["error_reason"])
@@ -44,13 +56,13 @@ def _render_single_prediction(display: dict):
     col1, col2, col3 = st.columns(3)
     col1.metric("Fraud Probability", f"{display['fraud_probability']:.4f}")
     col2.metric("Legit Probability", f"{display['legit_probability']:.4f}")
-    risk = display["risk_level"]
-    col3.metric("Risk Level", risk)
+    col3.metric("Risk Level", display["risk_level"])
 
     st.subheader("Prediction Probabilities")
-    proba_df = pd.DataFrame(
-        {"Not Fraud": [display["legit_probability"]], "Fraud": [display["fraud_probability"]]}
-    )
+    proba_df = pd.DataFrame({
+        "Not Fraud": [display["legit_probability"]],
+        "Fraud": [display["fraud_probability"]],
+    })
     st.dataframe(proba_df)
 
     fig, ax = plt.subplots()
@@ -59,29 +71,58 @@ def _render_single_prediction(display: dict):
     ax.set_title("Fraud vs. Not Fraud Probability")
     st.pyplot(fig)
 
-    if display.get("transaction_id"):
-        st.caption(f"Transaction ID: {display['transaction_id']}")
+    st.subheader("Risk Explanation")
+    st.info(display["risk_summary"])
+
+    contribs = display.get("risk_contributors") or []
+    if contribs:
+        st.markdown("**Top Contributors**")
+        cdf = pd.DataFrame(contribs)
+        st.dataframe(cdf.style.format({"contribution": "{:.5f}"}))
+
+    st.caption(f"Transaction ID: {display['transaction_id']}")
 
 
-def _render_batch_prediction(display: dict, response):
-    batch = response.batch_prediction
-    if batch is None:
-        return
-
+def _render_batch(display: dict, vm):
     st.subheader("Batch Prediction Summary")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total", display["batch_total"])
-    col2.metric("Fraud Count", display["batch_fraud_count"])
-    col3.metric("Fraud Rate", f"{display['batch_fraud_rate']:.2%}")
+    col2.metric("Fraud Count", display["batch_fraud"])
+    col3.metric("Legit Count", display["batch_legit"])
+    col4.metric("Fraud Rate", f"{display['batch_fraud_rate']:.2%}")
 
     if display.get("batch_is_error"):
         st.error(f"Batch Error: {display['batch_error_reason']}")
         return
 
-    flat_df = _builder.to_flat_dataframe(response)
+    flat_df = ResponseBuilder.batch_to_dataframe(vm)
     if not flat_df.empty:
         st.subheader("Batch Detail Table")
         st.dataframe(flat_df)
+
+
+def _collect_inputs() -> dict:
+    st.sidebar.subheader("Transaction Details")
+    from_bank = st.sidebar.number_input("From Bank", min_value=0, help="The bank ID from which the transaction originates.")
+    account = st.sidebar.text_input("Account (Sender)", help="The account number of the sender.")
+    to_bank = st.sidebar.number_input("To Bank", min_value=0, help="The bank ID to which the transaction is sent.")
+    account_1 = st.sidebar.text_input("Account (Receiver)", help="The account number of the receiver.")
+    amount_received = st.sidebar.number_input("Amount Received", min_value=0.0, help="The amount received in the transaction.")
+    receiving_currency = st.sidebar.text_input("Receiving Currency", help="The currency in which the amount is received.")
+    payment_currency = st.sidebar.text_input("Payment Currency", help="The currency used for the payment.")
+    payment_format = st.sidebar.text_input("Payment Format", help="The format of the payment (e.g., wire transfer, check).")
+    day = st.sidebar.text_input("Day", help="The day of the transaction.")
+    data = CustomData(
+        from_bank=from_bank, account=account, to_bank=to_bank, account_1=account_1,
+        amount_received=amount_received, receiving_currency=receiving_currency,
+        payment_currency=payment_currency, payment_format=payment_format, day=day,
+    )
+    return {
+        "from_bank": data.from_bank, "account": data.account, "to_bank": data.to_bank,
+        "account_1": data.account_1, "amount_received": data.amount_received,
+        "receiving_currency": data.receiving_currency, "payment_currency": data.payment_currency,
+        "payment_format": data.payment_format, "day": data.day,
+    }, data.get_data_as_DataFrame()
 
 
 def main():
@@ -97,48 +138,24 @@ def main():
     st.write("---")
 
     st.sidebar.header("Specify Input Features")
-
-    def user_input_features():
-        st.sidebar.subheader("Transaction Details")
-        from_bank = st.sidebar.number_input("From Bank", min_value=0, help="The bank ID from which the transaction originates.")
-        account = st.sidebar.text_input("Account (Sender)", help="The account number of the sender.")
-        to_bank = st.sidebar.number_input("To Bank", min_value=0, help="The bank ID to which the transaction is sent.")
-        account_1 = st.sidebar.text_input("Account (Receiver)", help="The account number of the receiver.")
-        amount_received = st.sidebar.number_input("Amount Received", min_value=0.0, help="The amount received in the transaction.")
-        receiving_currency = st.sidebar.text_input("Receiving Currency", help="The currency in which the amount is received.")
-        payment_currency = st.sidebar.text_input("Payment Currency", help="The currency used for the payment.")
-        payment_format = st.sidebar.text_input("Payment Format", help="The format of the payment (e.g., wire transfer, check).")
-        day = st.sidebar.text_input("Day", help="The day of the transaction.")
-
-        data = CustomData(
-            from_bank=from_bank,
-            account=account,
-            to_bank=to_bank,
-            account_1=account_1,
-            amount_received=amount_received,
-            receiving_currency=receiving_currency,
-            payment_currency=payment_currency,
-            payment_format=payment_format,
-            day=day,
-        )
-        return data
-
-    custom_data = user_input_features()
-    df = custom_data.get_data_as_DataFrame()
+    input_dict, input_df = _collect_inputs()
 
     st.header("Specified Input Parameters")
-    st.dataframe(df)
+    st.dataframe(input_df)
+    st.write("---")
+
+    # 先展示模型与校验信息（无需点击预测也可见）
+    vm_val = _builder.build_validation_only()
+    display_val = ResponseBuilder.flatten_for_display(vm_val)
+    _render_model(display_val)
+    _render_validation(display_val)
     st.write("---")
 
     st.header("Prediction Results")
-
     if st.button("Predict"):
-        response = _builder.build_single_response(custom_data.to_dict())
-        display = ResponseBuilder.extract_display_fields(response)
-
-        _render_model_info(display)
-        _render_validation_alerts(display)
-        _render_single_prediction(display)
+        vm = _builder.build_single(input_dict)
+        display = ResponseBuilder.flatten_for_display(vm)
+        _render_single(display)
 
     st.write("---")
     st.markdown(
