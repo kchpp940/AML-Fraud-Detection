@@ -47,9 +47,16 @@ class ModelTrainerArtifact:
 class ModelTrainer:
     def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
+        self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.model_trainer_config = ModelTrainerConfig(
             trained_model_file_path=tc.artifacts_subpath("model.pkl")
+        )
+        logging.info(
+            f"ModelTrainer initialized with resolved config: "
+            f"enabled={self._resolved['models']['enabled_display_names']}, "
+            f"metric={self._resolved['models']['selection_metric']}, "
+            f"model_out={self._resolved['output']['model_pkl']}"
         )
 
     def _build_candidate_models(self) -> Dict[str, Dict[str, Any]]:

@@ -21,11 +21,18 @@ class DataIngestionConfig:
 class DataIngestion:
     def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
+        self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.ingestion_config = DataIngestionConfig(
             train_data_path=tc.artifacts_subpath("train.csv"),
             test_data_path=tc.artifacts_subpath("test.csv"),
             raw_data_path=tc.artifacts_subpath("data.csv"),
+        )
+        logging.info(
+            f"DataIngestion initialized with resolved config: "
+            f"source={self._resolved['data']['source_path']}, "
+            f"sample_size={self._resolved['data']['sample_size']}, "
+            f"test_size={self._resolved['data']['test_size']}"
         )
 
     def initiate_data_ingestion(self) -> Tuple[str, str, pd.DataFrame]:

@@ -1,0 +1,12 @@
+[ 2026-06-15 13:13:40,285] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-15 13:13:44,291] 19 root - INFO - ========================================================================
+[ 2026-06-15 13:13:44,291] 20 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-15 13:13:44,291] 21 root - INFO - ========================================================================
+[ 2026-06-15 13:13:44,291] 159 root - INFO - Loading training config (source=explicit): /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-15 13:13:44,293] 100 root - INFO - Env override: data.test_size = 0.25 -> 0.33 (from AML_TRAIN_DATA_TEST_SIZE='0.33')
+[ 2026-06-15 13:13:44,293] 100 root - INFO - Env override: models.selection_metric = 'Recall' -> 'F1' (from AML_TRAIN_MODEL_METRIC='F1')
+[ 2026-06-15 13:13:44,293] 100 root - INFO - Env override: models.enabled.AdaBoost = True -> False (from AML_TRAIN_MODEL_AB_ENABLED='false')
+[ 2026-06-15 13:13:44,293] 100 root - INFO - Env override: models.enabled.GradientBoosting = False -> True (from AML_TRAIN_MODEL_GB_ENABLED='true')
+[ 2026-06-15 13:13:44,293] 100 root - INFO - Env override: output.artifacts_dir = 'artifacts_smoketest' -> 'artifacts_smoketest' (from AML_TRAIN_OUTPUT_DIR='artifacts_smoketest')
+[ 2026-06-15 13:13:44,293] 186 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 13:13:44,293] 187 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=F1 score, output=artifacts_smoketest

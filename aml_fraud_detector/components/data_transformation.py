@@ -37,9 +37,16 @@ class DataTransformationArtifact:
 class DataTransformation:
     def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
+        self._resolved = self.training_config.to_resolved_dict()
         tc = self.training_config
         self.data_transformation_config = DataTransformationConfig(
             preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl")
+        )
+        logging.info(
+            f"DataTransformation initialized with resolved config: "
+            f"target={self._resolved['features']['target_column']}, "
+            f"drop={self._resolved['features']['drop_columns']}, "
+            f"preprocessor_out={self._resolved['output']['preprocessor_pkl']}"
         )
 
     def get_data_transformer_object(self, numerical_columns, categorical_columns):

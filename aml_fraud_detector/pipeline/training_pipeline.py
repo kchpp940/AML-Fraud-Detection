@@ -21,13 +21,23 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
     logging.info("=" * 72)
 
     training_config = TrainingConfig(config_path=config_path)
-    logging.info(f"Training config loaded from: {training_config.config_path}")
+    resolved = training_config.to_resolved_dict()
+    logging.info(
+        f"Training config loaded (source={resolved['run_info']['config_path_source']}): "
+        f"{resolved['run_info']['config_path']}"
+    )
+    if resolved["env_overrides"]:
+        logging.info(
+            f"Environment variable overrides applied: "
+            f"{[e['path'] for e in resolved['env_overrides']]}"
+        )
 
     summary = TrainingSummary(
-        data_source=training_config.resolve_source_path(),
-        target_column=training_config.features.target_column,
-        selection_metric=training_config.models.selection_metric,
-        artifacts_dir=os.path.abspath(training_config.output.artifacts_dir),
+        data_source=resolved["data"]["source_path"],
+        target_column=resolved["features"]["target_column"],
+        selection_metric=resolved["models"]["selection_metric"],
+        artifacts_dir=resolved["output"]["artifacts_dir"],
+        resolved_config=resolved,
     )
 
     try:
@@ -93,17 +103,29 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print("\n" + "=" * 72)
         print("TRAINING SUMMARY")
         print("=" * 72)
+        print(f"Config file        : {resolved['run_info']['config_path']}")
+        print(f"Config source      : {resolved['run_info']['config_path_source']}")
+        print(f"YAML loaded        : {resolved['run_info']['config_path_source'] != 'defaults_only'}")
+        if resolved['env_overrides']:
+            print(f"Env overrides ({len(resolved['env_overrides'])}):")
+            for ov in resolved['env_overrides']:
+                print(f"  - {ov['env_name']} -> {ov['path']}: "
+                      f"{ov['original_value']!r} -> {ov['resolved_value']!r}")
+        else:
+            print("Env overrides      : (none)")
         print(f"Data source        : {summary.data_source}")
         print(f"Total rows         : {summary.data_rows}")
         print(f"Train / Test rows  : {summary.train_rows} / {summary.test_rows}")
         print(f"Target column      : {summary.target_column}")
+        print(f"Drop columns       : {resolved['features']['drop_columns']}")
         print(f"Feature columns    : {len(summary.feature_columns)}")
         print(f"  - Numerical      : {summary.numerical_features}")
         print(f"  - Categorical    : {summary.categorical_features}")
-        print(f"Candidate models   : {', '.join(summary.candidate_models)}")
+        print(f"Enabled models     : {resolved['models']['enabled_display_names']}")
         print(f"Selection metric   : {summary.selection_metric}")
         print(f"Best model         : {summary.best_model_name}")
         print(f"Best metric value  : {summary.best_metric_value:.6f}")
+        print(f"Artifacts dir      : {summary.artifacts_dir}")
         print(f"Preprocessor saved : {summary.preprocessor_path}")
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
