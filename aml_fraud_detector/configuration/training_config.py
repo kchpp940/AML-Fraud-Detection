@@ -149,6 +149,7 @@ class TrainingSummary:
     model_path: str = ""
     feature_metadata_path: str = ""
     training_signature: str = ""
+    artifact_manifest: Dict[str, Any] = field(default_factory=dict)
     artifacts_dir: str = ""
     summary_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)

@@ -69,6 +69,102 @@ DEFAULT_HIGH = "{label} 取值 {value}，增加了风险",
 DEFAULT_LOW = "{label} 取值 {value}，风险较低",
 
 INFERENCE_CONTRACT_VERSION = "1.0"
+ARTIFACT_HASH_ALGORITHM = "sha256"
+
+
+def compute_file_hash(file_path: str, algorithm: str = "sha256") -> str:
+    try:
+        h = hashlib.new(algorithm)
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception as e:
+        raise CustomerException(e, sys)
+
+
+def build_artifact_manifest(
+    model_path: str,
+    preprocessor_path: str,
+    feature_metadata_path: str,
+    training_signature: str,
+) -> Dict[str, Any]:
+    try:
+        manifest: Dict[str, Any] = {
+            "manifest_version": "1.0",
+            "hash_algorithm": ARTIFACT_HASH_ALGORITHM,
+            "generated_at": datetime.now().isoformat(),
+            "training_signature": training_signature,
+            "artifacts": {
+                "model": {
+                    "path": os.path.abspath(model_path),
+                    "sha256": compute_file_hash(model_path),
+                },
+                "preprocessor": {
+                    "path": os.path.abspath(preprocessor_path),
+                    "sha256": compute_file_hash(preprocessor_path),
+                },
+                "feature_metadata": {
+                    "path": os.path.abspath(feature_metadata_path),
+                    "sha256": compute_file_hash(feature_metadata_path),
+                },
+            },
+        }
+        logging.info(
+            f"Built artifact manifest: model={manifest['artifacts']['model']['sha256'][:12]}..., "
+            f"preprocessor={manifest['artifacts']['preprocessor']['sha256'][:12]}..., "
+            f"feature_metadata={manifest['artifacts']['feature_metadata']['sha256'][:12]}..."
+        )
+        return manifest
+    except Exception as e:
+        raise CustomerException(e, sys)
+
+
+def validate_artifact_manifest(
+    manifest: Dict[str, Any],
+    actual_model_path: str,
+    actual_preprocessor_path: str,
+    actual_feature_metadata_path: str,
+) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    if not manifest or "artifacts" not in manifest:
+        errors.append("产物清单缺失或格式不正确")
+        return False, errors
+
+    artifacts = manifest["artifacts"]
+
+    def _check_one(name: str, expected_entry: Optional[Dict[str, Any]], actual_path: str):
+        if not expected_entry:
+            errors.append(f"产物清单中缺少 {name} 条目")
+            return
+        expected_hash = expected_entry.get("sha256", "")
+        if not expected_hash:
+            errors.append(f"产物清单中 {name} 的哈希缺失")
+            return
+        if not os.path.exists(actual_path):
+            errors.append(f"产物文件不存在: {name}")
+            return
+        try:
+            actual_hash = compute_file_hash(actual_path)
+            if actual_hash != expected_hash:
+                errors.append(
+                    f"{name} 哈希不匹配：expected={expected_hash[:12]}... "
+                    f"actual={actual_hash[:12]}..."
+                )
+        except Exception as e:
+            errors.append(f"计算 {name} 哈希失败: {str(e)}")
+
+    _check_one("model", artifacts.get("model"), actual_model_path)
+    _check_one("preprocessor", artifacts.get("preprocessor"), actual_preprocessor_path)
+    _check_one(
+        "feature_metadata",
+        artifacts.get("feature_metadata"),
+        actual_feature_metadata_path,
+    )
+
+    if errors:
+        return False, errors
+    return True, ["三类产物校验通过，与同一次训练产物一致"]
 
 
 def _format_value(val: Any) -> str:

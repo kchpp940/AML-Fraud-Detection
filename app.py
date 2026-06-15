@@ -49,6 +49,9 @@ def predict_datapoint():
             result=single_result,
             signature_valid=full_result.get("signature_valid", True),
             signature_message=full_result.get("signature_message", ""),
+            artifact_valid=full_result.get("artifact_valid", True),
+            artifact_messages=full_result.get("artifact_messages", []),
+            overall_validation=full_result.get("overall_validation", "passed"),
             contract_version=full_result.get("contract_version", "1.0"),
             training_signature=full_result.get("training_signature", ""),
         )
@@ -128,6 +131,13 @@ def batch_predict():
             rows=rows,
             top_n=5,
             csv_download=csv_content,
+            signature_valid=full_result.get("signature_valid", True),
+            signature_message=full_result.get("signature_message", ""),
+            artifact_valid=full_result.get("artifact_valid", True),
+            artifact_messages=full_result.get("artifact_messages", []),
+            overall_validation=full_result.get("overall_validation", "passed"),
+            contract_version=full_result.get("contract_version", "1.0"),
+            training_signature=full_result.get("training_signature", ""),
         )
 
 

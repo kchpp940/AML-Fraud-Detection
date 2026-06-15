@@ -12,6 +12,7 @@ from aml_fraud_detector.utils.risk_explainer import (
     load_feature_metadata,
     load_training_summary,
     validate_training_signature,
+    validate_artifact_manifest,
     INFERENCE_CONTRACT_VERSION,
 )
 
@@ -27,8 +28,11 @@ class PredictionPipeline:
         self._preprocessor = None
         self._feature_metadata = None
         self._training_summary = None
+        self._validation_done = False
         self._signature_valid = False
         self._signature_msg = ""
+        self._artifact_valid = False
+        self._artifact_messages: list = []
 
     def _load_artifacts(self):
         if self._model is None or self._preprocessor is None:
@@ -36,26 +40,72 @@ class PredictionPipeline:
             self._preprocessor = load_object(file_path=self.preprocessor_path)
         return self._model, self._preprocessor
 
-    def _validate_signatures(self) -> Tuple[bool, str]:
-        if self._signature_valid and self._signature_msg:
-            return self._signature_valid, self._signature_msg
+    def _load_training_summary(self) -> Optional[Dict[str, Any]]:
+        if self._training_summary is not None:
+            return self._training_summary
+        if os.path.exists(self.training_summary_path):
+            try:
+                self._training_summary = load_training_summary(self.training_summary_path)
+            except Exception as e:
+                logging.warning(f"Failed to load training_summary.json: {e}")
+                self._training_summary = None
+        return self._training_summary
+
+    def _validate_all(self) -> Tuple[bool, str, bool, list]:
+        if self._validation_done:
+            return (
+                self._signature_valid,
+                self._signature_msg,
+                self._artifact_valid,
+                self._artifact_messages,
+            )
 
         metadata = self._load_feature_metadata()
-        summary = load_training_summary(self.training_summary_path)
+        summary = self._load_training_summary()
+
+        metadata_sig = metadata.get("training_signature", "") if metadata else ""
+        summary_sig = summary.get("training_signature", "") if summary else ""
 
         if metadata is None or summary is None:
             self._signature_valid = False
             self._signature_msg = "缺失特征元数据或训练摘要，无法验证产物一致性"
-            return self._signature_valid, self._signature_msg
+            self._artifact_valid = False
+            self._artifact_messages = ["缺少必要产物，无法进行完整性校验"]
+        else:
+            sig_valid, sig_msg = validate_training_signature(metadata_sig, summary_sig)
+            self._signature_valid = sig_valid
+            self._signature_msg = sig_msg
 
-        metadata_sig = metadata.get("training_signature", "")
-        summary_sig = summary.get("training_signature", "")
+            manifest = summary.get("artifact_manifest", {}) if summary else {}
+            if not manifest:
+                self._artifact_valid = False
+                self._artifact_messages = ["训练摘要中缺少 artifact_manifest，建议重新训练模型"]
+            else:
+                art_valid, art_msgs = validate_artifact_manifest(
+                    manifest=manifest,
+                    actual_model_path=self.model_path,
+                    actual_preprocessor_path=self.preprocessor_path,
+                    actual_feature_metadata_path=self.feature_metadata_path,
+                )
+                self._artifact_valid = art_valid
+                self._artifact_messages = art_msgs
 
-        valid, msg = validate_training_signature(metadata_sig, summary_sig)
-        self._signature_valid = valid
-        self._signature_msg = msg
-        logging.info(msg)
-        return valid, msg
+        self._validation_done = True
+        logging.info(
+            f"Unified validation: signature_valid={self._signature_valid}, "
+            f"artifact_valid={self._artifact_valid}, "
+            f"artifact_messages={self._artifact_messages}"
+        )
+        return (
+            self._signature_valid,
+            self._signature_msg,
+            self._artifact_valid,
+            list(self._artifact_messages),
+        )
+
+    def _validate_signatures(self) -> Tuple[bool, str]:
+        sig_valid, sig_msg, _, _ = self._validate_all()
+        return sig_valid, sig_msg
 
     def _load_feature_metadata(self) -> Optional[Dict[str, Any]]:
         if self._feature_metadata is not None:
@@ -91,7 +141,16 @@ class PredictionPipeline:
             model, preprocessor = self._load_artifacts()
 
             feature_metadata = self._load_feature_metadata()
-            sig_valid, sig_msg = self._validate_signatures()
+            sig_valid, sig_msg, art_valid, art_msgs = self._validate_all()
+            overall_valid = sig_valid and art_valid
+
+            def _inject_validation(output: Dict[str, Any]) -> Dict[str, Any]:
+                output["signature_valid"] = sig_valid
+                output["signature_message"] = sig_msg
+                output["artifact_valid"] = art_valid
+                output["artifact_messages"] = art_msgs
+                output["overall_validation"] = "passed" if overall_valid else "failed"
+                return output
 
             if feature_metadata is None:
                 data_scaled = preprocessor.transform(features)
@@ -128,8 +187,6 @@ class PredictionPipeline:
                 output = {
                     "contract_version": INFERENCE_CONTRACT_VERSION,
                     "training_signature": "",
-                    "signature_valid": False,
-                    "signature_message": "feature_metadata.json 缺失，请重新训练模型以生成风险解释所需的元数据",
                     "is_batch": n_rows > 1,
                     "count": n_rows,
                     "fraud_count": fraud_count,
@@ -139,6 +196,10 @@ class PredictionPipeline:
                 }
                 if n_rows == 1:
                     output["row"] = rows[0]
+                _inject_validation(output)
+                output["signature_message"] = (
+                    "feature_metadata.json 缺失，请重新训练模型以生成风险解释所需的元数据"
+                )
                 return output
 
             explanation = explain_risk(
@@ -148,13 +209,12 @@ class PredictionPipeline:
                 feature_metadata=feature_metadata,
                 top_n=top_n,
             )
+            _inject_validation(explanation)
 
-            explanation["signature_valid"] = sig_valid
-            explanation["signature_message"] = sig_msg
-
-            if not sig_valid:
+            if not overall_valid:
                 logging.warning(
-                    f"Training signature validation failed: {sig_msg}. "
+                    f"Unified validation failed: signature={sig_valid}, artifact={art_valid}. "
+                    f"signature_msg={sig_msg}, artifact_msgs={art_msgs}. "
                     "Risk explanation may be inconsistent with model predictions."
                 )
 

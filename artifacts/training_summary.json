@@ -72,9 +72,9 @@
   "best_metric_value": 0.94375,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.9116414141414143,
-      "Recall": 0.905,
-      "F1 score": 0.9082878627205244
+      "Precision": 0.9092762445887445,
+      "Recall": 0.90375,
+      "F1 score": 0.9064904774007038
     },
     "AdaBoost": {
       "Precision": 0.6793195346320345,
@@ -91,11 +91,31 @@
   "model_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
   "feature_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
   "training_signature": "65b45a9020b5e84e",
+  "artifact_manifest": {
+    "manifest_version": "1.0",
+    "hash_algorithm": "sha256",
+    "generated_at": "2026-06-15T15:16:40.559516",
+    "training_signature": "65b45a9020b5e84e",
+    "artifacts": {
+      "model": {
+        "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
+        "sha256": "159bbc4426a0e1ba82f069cace413e6fc1a037f05977f996e4c6b5859b352e53"
+      },
+      "preprocessor": {
+        "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
+        "sha256": "5b76bb9d2c7416a8fb0429e865cbc0949f8fcbb6e0d33e1aac179bf5f926c038"
+      },
+      "feature_metadata": {
+        "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
+        "sha256": "cfda24031e26bc6cf86653ae33bcb1b587953d7f3fe10ee28b76e79f1527a28c"
+      }
+    }
+  },
   "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
   "summary_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json",
   "resolved_config": {
     "run_info": {
-      "created_at": "2026-06-15T14:45:50.561510",
+      "created_at": "2026-06-15T15:16:03.761379",
       "config_path": "/Users/pkcha/AML-Fraud-Detection/config/training_config.yaml",
       "config_path_source": "default_file",
       "yaml_config_used": true
@@ -195,5 +215,5 @@
       "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json"
     }
   },
-  "generated_at": "2026-06-15T14:46:47.180403"
+  "generated_at": "2026-06-15T15:16:41.121399"
 }

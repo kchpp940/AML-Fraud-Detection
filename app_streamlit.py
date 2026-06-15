@@ -13,7 +13,31 @@ BATCH_COLUMNS = [
 ]
 
 
-def _render_single_explanation(result: dict, sig_valid: bool, sig_msg: str, contract_version: str, training_sig: str):
+def _render_validation_banner(overall_validation: str, sig_valid: bool, sig_msg: str,
+                               art_valid: bool, art_messages: list):
+    if overall_validation == "passed":
+        st.success(
+            "✅ **产物一致性校验通过**\n\n"
+            f"- 训练签名验证: {sig_msg}\n"
+            + "".join([f"- 三类产物哈希校验: {m}\n" for m in art_messages])
+        )
+    else:
+        if art_valid is False or sig_valid is False:
+            err_lines = [
+                "❌ **产物一致性校验失败：风险解释可能与当前模型不一致**\n",
+                f"- 训练签名验证 ({'通过' if sig_valid else '未通过'}): {sig_msg}",
+            ]
+            if art_messages:
+                for m in art_messages:
+                    err_lines.append(f"- 三类产物哈希校验: {m}")
+            else:
+                err_lines.append("- 三类产物哈希校验: 缺少 manifest（建议重新训练模型）")
+            st.error("\n".join(err_lines))
+        elif not sig_valid:
+            st.warning(f"⚠️ {sig_msg}")
+
+
+def _render_single_explanation(result: dict, contract_version: str, training_sig: str):
     prediction = result["prediction"]
     prediction_label = result["prediction_label"]
     fraud_probability = result["fraud_probability"]
@@ -213,14 +237,16 @@ def main():
             full_result = predict_pipeline.predict_with_explanation(df, top_n=5)
             sig_valid = full_result.get("signature_valid", True)
             sig_msg = full_result.get("signature_message", "")
+            art_valid = full_result.get("artifact_valid", True)
+            art_messages = full_result.get("artifact_messages", [])
+            overall_validation = full_result.get("overall_validation", "passed")
             contract_version = full_result.get("contract_version", "1.0")
             training_sig = full_result.get("training_signature", "")
 
-            if not sig_valid:
-                st.warning(f"⚠️ {sig_msg}")
+            _render_validation_banner(overall_validation, sig_valid, sig_msg, art_valid, art_messages)
 
             single_result = full_result.get("row", {})
-            _render_single_explanation(single_result, sig_valid, sig_msg, contract_version, training_sig)
+            _render_single_explanation(single_result, contract_version, training_sig)
 
             if training_sig:
                 st.caption(f"契约版本: v{contract_version} | 训练签名: {training_sig}")
@@ -255,9 +281,11 @@ def main():
 
                 sig_valid = full_result.get("signature_valid", True)
                 sig_msg = full_result.get("signature_message", "")
+                art_valid = full_result.get("artifact_valid", True)
+                art_messages = full_result.get("artifact_messages", [])
+                overall_validation = full_result.get("overall_validation", "passed")
 
-                if not sig_valid:
-                    st.warning(f"⚠️ {sig_msg}")
+                _render_validation_banner(overall_validation, sig_valid, sig_msg, art_valid, art_messages)
 
                 _render_batch_explanation(full_result, df, sig_valid, sig_msg)
 

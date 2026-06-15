@@ -13,6 +13,7 @@ from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 from aml_fraud_detector.utils.main_utils import save_training_summary
+from aml_fraud_detector.utils.risk_explainer import build_artifact_manifest
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
@@ -91,6 +92,21 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"{summary.selection_metric}={summary.best_metric_value:.4f}"
         )
 
+        logging.info("Building artifact manifest (model / preprocessor / feature_metadata)")
+        summary.artifact_manifest = build_artifact_manifest(
+            model_path=summary.model_path,
+            preprocessor_path=summary.preprocessor_path,
+            feature_metadata_path=summary.feature_metadata_path,
+            training_signature=summary.training_signature,
+        )
+        manifest_artifacts = summary.artifact_manifest["artifacts"]
+        logging.info(
+            f"Artifact manifest built: "
+            f"model={manifest_artifacts['model']['sha256'][:12]}..., "
+            f"preprocessor={manifest_artifacts['preprocessor']['sha256'][:12]}..., "
+            f"feature_metadata={manifest_artifacts['feature_metadata']['sha256'][:12]}..."
+        )
+
         summary.summary_path = os.path.abspath(
             training_config.artifacts_subpath("training_summary.json")
         )
@@ -133,6 +149,10 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Model saved        : {summary.model_path}")
         print(f"Feature metadata   : {summary.feature_metadata_path}")
         print(f"Training signature : {summary.training_signature}")
+        if summary.artifact_manifest:
+            print(f"Artifact manifest  :")
+            for name, info in summary.artifact_manifest.get("artifacts", {}).items():
+                print(f"  - {name:18s}: {info.get('sha256', '?')[:16]}...  ({info.get('path', '')})")
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")
 
