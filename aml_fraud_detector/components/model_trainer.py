@@ -1,6 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass
+from typing import Dict, Any
 
 from xgboost import XGBClassifier
 from sklearn.ensemble import (
@@ -11,7 +12,13 @@ from sklearn.ensemble import (
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import save_object, upsampling_train_data, evaluate_models, model_metrics
+from aml_fraud_detector.utils.main_utils import (
+    save_object, 
+    upsampling_train_data, 
+    evaluate_models, 
+    model_metrics,
+    ModelMetrics
+)
 
 
 @dataclass
@@ -22,9 +29,17 @@ class ModelTrainerConfig:
 @dataclass
 class ModelTrainerResult:
     best_model_name: str
-    best_params: dict
-    test_metrics: dict
+    best_params: Dict[str, Any]
+    test_metrics: ModelMetrics
     model_path: str
+
+    def to_log_dict(self) -> Dict[str, Any]:
+        return {
+            "best_model_name": self.best_model_name,
+            "best_params": self.best_params,
+            "test_metrics": self.test_metrics.to_log_dict(),
+            "model_path": self.model_path
+        }
 
 
 class ModelTrainer:
@@ -72,7 +87,7 @@ class ModelTrainer:
                 models=models,
                 params=params)
             
-            models_recall_score = {model: metrics[0]["Recall"] for model, metrics in test_report.items()}
+            models_recall_score = {model: metrics.recall for model, metrics in test_report.items()}
             logging.info(f"The models and their corresponding Recall score: \n{models_recall_score}")
 
             best_model_name, best_recall = max(models_recall_score.items(), key=lambda item: item[1])
@@ -88,21 +103,15 @@ class ModelTrainer:
             )
         
             y_test_pred = best_model.predict(X_test)
-            precision, recall, f1, cm = model_metrics(y_test, y_test_pred)
-            test_metrics = {
-                "Precision": precision,
-                "Recall": recall,
-                "F1 score": f1,
-                "Confusion Matrix": cm
-            }
+            test_metrics = model_metrics(y_test, y_test_pred)
 
             logging.info(f"Model Training completed")
-            logging.info(f"Final test metrics for {best_model_name}: {test_metrics}")
+            logging.info(f"Final test metrics for {best_model_name}: {test_metrics.to_log_dict()}")
             print(f"Final test metrics for the best model i.e. {best_model_name}:")
-            print(f"  Precision: {precision}")
-            print(f"  Recall: {recall}")
-            print(f"  F1 score: {f1}")
-            print(f"  Confusion Matrix:\n{cm}")
+            print(f"  Precision: {test_metrics.precision}")
+            print(f"  Recall: {test_metrics.recall}")
+            print(f"  F1 score: {test_metrics.f1_score}")
+            print(f"  Confusion Matrix:\n{test_metrics.confusion_matrix}")
 
             result = ModelTrainerResult(
                 best_model_name=best_model_name,
