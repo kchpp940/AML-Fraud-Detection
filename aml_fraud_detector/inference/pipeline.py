@@ -90,28 +90,36 @@ class PredictionPipeline:
         if isinstance(data, TransactionInput):
             return data.to_dataframe()
         if isinstance(data, dict):
-            for field in REQUIRED_INPUT_FIELDS:
-                if field not in data:
-                    raise CustomerException(
-                        ValueError(f"Input dict missing required field: '{field}'"),
-                        sys,
-                    )
-            return pd.DataFrame([data])
+            try:
+                for field in REQUIRED_INPUT_FIELDS:
+                    if field not in data:
+                        raise ValueError(
+                            f"Input dict missing required field: '{field}'"
+                        )
+                return pd.DataFrame([data])
+            except ValueError as ve:
+                raise CustomerException(ve, sys)
         if isinstance(data, list):
-            if not data:
-                raise CustomerException(ValueError("Input list is empty"), sys)
-            return pd.DataFrame(data)
+            try:
+                if not data:
+                    raise ValueError("Input list is empty")
+                return pd.DataFrame(data)
+            except ValueError as ve:
+                raise CustomerException(ve, sys)
         if isinstance(data, pd.DataFrame):
-            if data.empty:
-                raise CustomerException(ValueError("Input DataFrame is empty"), sys)
-            return data.copy()
-        raise CustomerException(
-            TypeError(
+            try:
+                if data.empty:
+                    raise ValueError("Input DataFrame is empty")
+                return data.copy()
+            except ValueError as ve:
+                raise CustomerException(ve, sys)
+        try:
+            raise TypeError(
                 f"Unsupported input type: {type(data).__name__}. "
                 f"Expected TransactionInput, dict, list[dict], or DataFrame."
-            ),
-            sys,
-        )
+            )
+        except TypeError as te:
+            raise CustomerException(te, sys)
 
     def predict_single(
         self,
@@ -123,19 +131,18 @@ class PredictionPipeline:
             artifacts = self._ensure_services_ready()
             raw_df = self._normalize_input_to_dataframe(data)
             if len(raw_df) != 1:
-                raise CustomerException(
-                    ValueError(
+                try:
+                    raise ValueError(
                         f"predict_single expects exactly 1 row, got {len(raw_df)}. "
                         f"Use predict_batch for multiple transactions."
-                    ),
-                    sys,
-                )
+                    )
+                except ValueError as ve:
+                    raise CustomerException(ve, sys)
             aligned_df = self._schema_aligner.align_dataframe(raw_df)
             predictions, probabilities = self._predictor.predict_with_proba(aligned_df)
             explanation: Optional[RiskExplanation] = None
             if explain:
-                explanation = self._risk_explainer.explain_from_row(
-                    aligned_df.iloc[0],
+                explanation = self._risk_explainer.explain_from_prob(
                     float(probabilities[0, 1]),
                     int(predictions[0]),
                 )
@@ -148,13 +155,34 @@ class PredictionPipeline:
             )
             logging.info(
                 f"PredictionPipeline.predict_single: label={result.class_label}, "
-                f"fraud_prob={result.fraud_probability:.4f}"
+                f"fraud_prob={result.fraud_probability:.4f}, "
+                f"status={result.process_status}"
             )
             return result
-        except CustomerException:
-            raise
+        except CustomerException as e:
+            logging.error(f"PredictionPipeline.predict_single failed: {e.error_message}")
+            version = (
+                self._predictor.model_version
+                if self._predictor is not None
+                else "unknown"
+            )
+            return self._batch_assembler.assemble_single_error(
+                error_reason=str(e.error_message),
+                model_version=version,
+                transaction_id=transaction_id,
+            )
         except Exception as e:
-            raise CustomerException(e, sys)
+            logging.error(f"PredictionPipeline.predict_single failed: {e}")
+            version = (
+                self._predictor.model_version
+                if self._predictor is not None
+                else "unknown"
+            )
+            return self._batch_assembler.assemble_single_error(
+                error_reason=str(e),
+                model_version=version,
+                transaction_id=transaction_id,
+            )
 
     def predict_batch(
         self,

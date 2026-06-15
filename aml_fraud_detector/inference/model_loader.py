@@ -11,11 +11,10 @@ from aml_fraud_detector.inference.contracts import ModelArtifacts, ValidationRep
 from aml_fraud_detector.inference.artifact_validator import (
     ArtifactValidator,
     DEFAULT_ARTIFACTS_DIR,
-    MANIFEST_FILENAME,
-    MODEL_METADATA_FILENAME,
-    FEATURE_METADATA_FILENAME,
     MODEL_FILENAME,
     PREPROCESSOR_FILENAME,
+    MODEL_METADATA_FILENAME,
+    FEATURE_METADATA_FILENAME,
 )
 
 
@@ -72,7 +71,6 @@ class ModelLoader:
         preprocessor_path = os.path.join(self.artifacts_dir, PREPROCESSOR_FILENAME)
         model_meta_path = os.path.join(self.artifacts_dir, MODEL_METADATA_FILENAME)
         feature_meta_path = os.path.join(self.artifacts_dir, FEATURE_METADATA_FILENAME)
-        manifest_path = os.path.join(self.artifacts_dir, MANIFEST_FILENAME)
 
         try:
             model = load_object(file_path=model_path)
@@ -85,14 +83,12 @@ class ModelLoader:
 
         model_metadata = self._read_json_safe(model_meta_path)
         feature_metadata = self._read_json_safe(feature_meta_path)
-        manifest = self._read_json_safe(manifest_path)
 
         artifacts = ModelArtifacts(
             model=model,
             preprocessor=preprocessor,
             model_metadata=model_metadata,
             feature_metadata=feature_metadata,
-            manifest=manifest,
         )
         logging.info(
             "Artifacts loaded successfully: "

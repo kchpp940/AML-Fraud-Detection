@@ -1,0 +1,35 @@
+[ 2026-06-15 19:11:09,577] 80 root - INFO - Validating artifacts (4 required files) in: artifacts
+[ 2026-06-15 19:11:09,641] 100 root - INFO - Artifact validation passed (4 files checked)
+[ 2026-06-15 19:11:09,642] 64 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 19:11:09,642] 80 root - INFO - Validating artifacts (4 required files) in: artifacts
+[ 2026-06-15 19:11:09,643] 100 root - INFO - Artifact validation passed (4 files checked)
+[ 2026-06-15 19:11:10,373] 93 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 19:11:10,373] 34 root - INFO - SchemaAligner bound: numerical=['amount_received'], categorical=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 19:11:10,405] 73 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['from_bank', 'account', 'to_bank', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], shape=(1, 8)
+[ 2026-06-15 19:11:10,407] 36 root - INFO - RiskExplainer bound to artifacts
+[ 2026-06-15 19:11:10,408] 125 root - INFO - BatchAssembler: assembled 3 predictions, fraud=1, legit=2, fraud_rate=0.3333
+[ 2026-06-15 19:11:10,410] 56 root - INFO - PredictionPipeline created (artifacts_dir=artifacts, validate=True)
+[ 2026-06-15 19:11:10,410] 63 root - INFO - PredictionPipeline: initializing inference services
+[ 2026-06-15 19:11:10,410] 64 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 19:11:10,410] 80 root - INFO - Validating artifacts (4 required files) in: artifacts
+[ 2026-06-15 19:11:10,411] 100 root - INFO - Artifact validation passed (4 files checked)
+[ 2026-06-15 19:11:10,422] 93 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 19:11:10,423] 34 root - INFO - SchemaAligner bound: numerical=['amount_received'], categorical=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 19:11:10,423] 33 root - INFO - Predictor bound: model=XGBClassifier, preprocessor=ColumnTransformer, version=10001
+[ 2026-06-15 19:11:10,423] 36 root - INFO - RiskExplainer bound to artifacts
+[ 2026-06-15 19:11:10,423] 74 root - INFO - PredictionPipeline: all services ready, model_version=10001
+[ 2026-06-15 19:11:10,424] 73 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], shape=(1, 9)
+[ 2026-06-15 19:11:10,458] 57 root - INFO - Preprocessor transform: input_shape=(1, 9), output_shape=(1, 11)
+[ 2026-06-15 19:11:10,470] 113 root - INFO - Prediction complete: n=1, fraud_count=0
+[ 2026-06-15 19:11:10,470] 125 root - INFO - BatchAssembler: assembled 1 predictions, fraud=0, legit=1, fraud_rate=0.0000
+[ 2026-06-15 19:11:10,470] 213 root - INFO - PredictionPipeline.predict_batch: n=1, fraud_rate=0.0000
+[ 2026-06-15 19:11:10,471] 73 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], shape=(1, 9)
+[ 2026-06-15 19:11:10,503] 57 root - INFO - Preprocessor transform: input_shape=(1, 9), output_shape=(1, 11)
+[ 2026-06-15 19:11:10,505] 88 root - INFO - Probability produced shape=(1, 2)
+[ 2026-06-15 19:11:10,505] 163 root - ERROR - PredictionPipeline.predict_single failed: Input dict missing required field: 'account'
+[ 2026-06-15 19:11:10,508] 73 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], shape=(3, 9)
+[ 2026-06-15 19:11:10,527] 57 root - INFO - Preprocessor transform: input_shape=(3, 9), output_shape=(3, 11)
+[ 2026-06-15 19:11:10,535] 113 root - INFO - Prediction complete: n=3, fraud_count=0
+[ 2026-06-15 19:11:10,535] 96 root - INFO - RiskExplainer generated 3 explanation(s)
+[ 2026-06-15 19:11:10,536] 125 root - INFO - BatchAssembler: assembled 3 predictions, fraud=0, legit=3, fraud_rate=0.0000
+[ 2026-06-15 19:11:10,536] 213 root - INFO - PredictionPipeline.predict_batch: n=3, fraud_rate=0.0000

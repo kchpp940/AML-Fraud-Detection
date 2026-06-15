@@ -54,10 +54,11 @@ def main():
     st.write("---")
 
     st.header("Prediction Results")
-    pipeline = PredictionPipeline()
+    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        result = pipeline.predict_single(transaction_data, explain=True)
+        prediction = predict_pipeline.predict(df)
+        prediction_proba = predict_pipeline.predict_proba(df)
 
         st.subheader("Fraud Detector Class Labels")
         class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
@@ -65,16 +66,13 @@ def main():
         st.dataframe(class_labels_df.T)
 
         st.subheader("Prediction of the Given Transaction")
-        if result.prediction == 1:
+        if prediction[0] == 1:
             st.error("**Fraudulent Transaction**")
         else:
             st.success("**Non-Fraudulent Transaction**")
 
         st.subheader("Prediction Probabilities")
-        proba_df = pd.DataFrame(
-            [[result.legit_probability, result.fraud_probability]],
-            columns=["Not Fraud", "Fraud"],
-        )
+        proba_df = pd.DataFrame(prediction_proba, columns=["Not Fraud", "Fraud"])
         st.dataframe(proba_df)
 
         st.subheader("Prediction Probability Distribution")
@@ -84,33 +82,10 @@ def main():
         ax.set_title("Fraud vs. Not Fraud Probability")
         st.pyplot(fig)
 
-        if result.explanation is not None:
-            st.subheader("Risk Explanation")
-            st.info(f"**Risk Level**: {result.explanation.risk_level}")
-            st.write(result.explanation.summary_text)
-            if result.explanation.top_contributors:
-                st.write("**Top Risk Contributors**:")
-                contrib_rows = []
-                for c in result.explanation.top_contributors:
-                    contrib_rows.append(
-                        {
-                            "Feature": c["display_name"],
-                            "Value": c.get("value"),
-                            "Impact": c.get("impact"),
-                            "Contribution %": f"{c.get('contribution_pct', 0):.1f}%",
-                            "Reason": c.get("reason"),
-                        }
-                    )
-                st.table(pd.DataFrame(contrib_rows))
-
-        st.caption(f"Model version: {result.model_version}")
-
     st.write("---")
     st.markdown(
         """
         **Note:** This app is for demonstration purposes only. The predictions are based on a machine learning model.
-        All inference is routed through the unified :class:`PredictionPipeline` entry point; the UI layer never
-        directly loads the model, manipulates the preprocessor, or fabricates explanations.
         """
     )
     logging.info("Streamlit app execution completed")

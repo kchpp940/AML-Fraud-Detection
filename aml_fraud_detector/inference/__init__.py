@@ -7,6 +7,8 @@ from aml_fraud_detector.inference.contracts import (
     ValidationReport,
     FRAUD_LABEL,
     LEGIT_LABEL,
+    PROCESS_STATUS_SUCCESS,
+    PROCESS_STATUS_ERROR,
 )
 from aml_fraud_detector.inference.artifact_validator import ArtifactValidator
 from aml_fraud_detector.inference.model_loader import ModelLoader
@@ -25,6 +27,8 @@ __all__ = [
     "ValidationReport",
     "FRAUD_LABEL",
     "LEGIT_LABEL",
+    "PROCESS_STATUS_SUCCESS",
+    "PROCESS_STATUS_ERROR",
     "ArtifactValidator",
     "ModelLoader",
     "SchemaAligner",

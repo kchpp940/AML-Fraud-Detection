@@ -1,0 +1,10 @@
+[ 2026-06-15 19:03:18,798] 80 root - INFO - Validating artifacts (4 required files) in: artifacts
+[ 2026-06-15 19:03:18,799] 100 root - INFO - Artifact validation passed (4 files checked)
+[ 2026-06-15 19:03:18,800] 64 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 19:03:18,800] 80 root - INFO - Validating artifacts (4 required files) in: artifacts
+[ 2026-06-15 19:03:18,800] 100 root - INFO - Artifact validation passed (4 files checked)
+[ 2026-06-15 19:03:18,972] 93 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 19:03:18,972] 34 root - INFO - SchemaAligner bound: numerical=['amount_received'], categorical=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 19:03:18,977] 73 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['from_bank', 'account', 'to_bank', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], shape=(1, 8)
+[ 2026-06-15 19:03:18,978] 36 root - INFO - RiskExplainer bound to artifacts
+[ 2026-06-15 19:03:18,978] 125 root - INFO - BatchAssembler: assembled 3 predictions, fraud=1, legit=2, fraud_rate=0.3333

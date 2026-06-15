@@ -1,0 +1,11 @@
+[ 2026-06-15 19:09:01,842] 56 root - INFO - PredictionPipeline created (artifacts_dir=artifacts, validate=True)
+[ 2026-06-15 19:09:01,842] 63 root - INFO - PredictionPipeline: initializing inference services
+[ 2026-06-15 19:09:01,842] 64 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 19:09:01,842] 80 root - INFO - Validating artifacts (4 required files) in: artifacts
+[ 2026-06-15 19:09:01,843] 100 root - INFO - Artifact validation passed (4 files checked)
+[ 2026-06-15 19:09:01,923] 93 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 19:09:01,923] 34 root - INFO - SchemaAligner bound: numerical=['amount_received'], categorical=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 19:09:01,923] 33 root - INFO - Predictor bound: model=XGBClassifier, preprocessor=ColumnTransformer, version=10001
+[ 2026-06-15 19:09:01,923] 36 root - INFO - RiskExplainer bound to artifacts
+[ 2026-06-15 19:09:01,923] 74 root - INFO - PredictionPipeline: all services ready, model_version=10001
+[ 2026-06-15 19:09:01,923] 163 root - ERROR - PredictionPipeline.predict_single failed: Input dict missing required field: 'account'

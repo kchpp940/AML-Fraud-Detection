@@ -9,6 +9,8 @@ from aml_fraud_detector.logger import logging
 from aml_fraud_detector.inference.contracts import (
     FRAUD_LABEL,
     LEGIT_LABEL,
+    PROCESS_STATUS_ERROR,
+    PROCESS_STATUS_SUCCESS,
     BatchPredictionResult,
     PredictionResult,
     RiskExplanation,
@@ -40,7 +42,9 @@ class BatchAssembler:
                 fraud_probability=fraud_prob,
                 legit_probability=legit_prob,
                 class_label=self._label_for(pred_int),
-                explanation=explanation,
+                process_status=PROCESS_STATUS_SUCCESS,
+                error_reason=None,
+                risk_explanation=explanation,
                 transaction_id=transaction_id,
                 model_version=str(model_version),
             )
@@ -48,6 +52,24 @@ class BatchAssembler:
             raise
         except Exception as e:
             raise CustomerException(e, sys)
+
+    def assemble_single_error(
+        self,
+        error_reason: str,
+        model_version: str = "unknown",
+        transaction_id: Optional[str] = None,
+    ) -> PredictionResult:
+        return PredictionResult(
+            prediction=-1,
+            fraud_probability=0.0,
+            legit_probability=0.0,
+            class_label="Error",
+            process_status=PROCESS_STATUS_ERROR,
+            error_reason=error_reason,
+            risk_explanation=None,
+            transaction_id=transaction_id,
+            model_version=str(model_version),
+        )
 
     def assemble_batch(
         self,
@@ -82,7 +104,9 @@ class BatchAssembler:
                         fraud_probability=fraud_prob,
                         legit_probability=legit_prob,
                         class_label=self._label_for(pred_int),
-                        explanation=expl,
+                        process_status=PROCESS_STATUS_SUCCESS,
+                        error_reason=None,
+                        risk_explanation=expl,
                         transaction_id=tx_id,
                         model_version=str(model_version),
                     )

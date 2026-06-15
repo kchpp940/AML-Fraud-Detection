@@ -27,20 +27,10 @@ def predict_datapoint():
             day=request.form.get("day") or "",
         )
         pipeline = PredictionPipeline()
-        result = pipeline.predict_single(data, explain=True)
+        result = pipeline.predict_single(data, explain=False)
 
-        context = {
-            "result": result,
-            "results": result.prediction,
-            "class_label": result.class_label,
-            "fraud_probability": f"{result.fraud_probability * 100:.2f}%",
-            "legit_probability": f"{result.legit_probability * 100:.2f}%",
-        }
-        if result.explanation is not None:
-            context["risk_level"] = result.explanation.risk_level
-            context["summary_text"] = result.explanation.summary_text
-            context["top_contributors"] = result.explanation.top_contributors
-        return render_template("home.html", **context)
+        results = [result.prediction]
+        return render_template("home.html", results=results[0])
 
 
 def _safe_int(value, default):
