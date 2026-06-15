@@ -1,0 +1,55 @@
+[ 2026-06-15 12:48:54,025] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-15 12:48:57,834] 19 root - INFO - ========================================================================
+[ 2026-06-15 12:48:57,834] 20 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-15 12:48:57,834] 21 root - INFO - ========================================================================
+[ 2026-06-15 12:48:57,834] 145 root - INFO - Loading training config from: /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-15 12:48:57,836] 169 root - INFO - Training config loaded and validated successfully
+[ 2026-06-15 12:48:57,837] 24 root - INFO - Training config loaded from: /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-15 12:48:57,837] 32 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-15 12:48:57,837] 35 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 12:48:57,837] 38 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-15 12:48:57,855] 45 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-15 12:48:57,856] 53 root - INFO - Sampled 2000 rows from dataset of 4000 rows
+[ 2026-06-15 12:48:57,863] 64 root - INFO - Train Test split initiated
+[ 2026-06-15 12:48:57,875] 72 root - INFO - Ingestion completed: train=1500, test=500
+[ 2026-06-15 12:48:57,875] 40 root - INFO - Data ingestion done: total=2000, train≈1500, test≈500
+[ 2026-06-15 12:48:57,875] 82 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-15 12:48:57,878] 86 root - INFO - Reading train and test data completed
+[ 2026-06-15 12:48:57,879] 90 root - INFO - Train and Test dataframe columns name renamed
+[ 2026-06-15 12:48:57,881] 92 root - INFO - Train Dataframe Head : 
+             timestamp  from_bank    account  to_bank   account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering
+0  2022-01-03 00:47:00         49  ACC_00190       32  ACC2_00051           990.12               Yuan      1874.18             Euro   Reinvestment              0
+1  2022-01-01 14:53:00         17  ACC_00108       49  ACC2_00082           772.62               Euro      1604.26             Euro    Credit Card              0
+2  2022-01-03 17:57:00         47  ACC_00047       26  ACC2_00015          1557.83          US Dollar       497.84             Yuan           Wire              0
+3  2022-01-02 16:07:00         15  ACC_00079       14  ACC2_00094           114.88               Euro      1209.57             Yuan         Cheque              0
+4  2022-01-03 13:54:00         28  ACC_00156       37  ACC2_00098          1018.97          US Dollar      1702.91        US Dollar    Credit Card              0
+[ 2026-06-15 12:48:57,882] 93 root - INFO - Test Dataframe Head : 
+             timestamp  from_bank    account  to_bank   account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering
+0  2022-01-01 09:44:00         12  ACC_00144       43  ACC2_00081          1005.64          US Dollar       105.05             Yuan   Reinvestment              0
+1  2022-01-01 02:14:00         45  ACC_00036       42  ACC2_00158          1728.51          US Dollar       452.29             Euro            ACH              0
+2  2022-01-01 07:15:00         42  ACC_00008       45  ACC2_00033           208.12          US Dollar      1251.77        US Dollar           Wire              0
+3  2022-01-02 23:47:00         17  ACC_00115       29  ACC2_00157          1716.02               Euro       867.95             Yuan         Cheque              0
+4  2022-01-02 11:38:00         21  ACC_00089       46  ACC2_00053           204.90               Yuan      1419.39        US Dollar    Credit Card              0
+[ 2026-06-15 12:48:57,892] 131 root - INFO - Columns name of numerical features: ['amount_received']
+[ 2026-06-15 12:48:57,893] 133 root - INFO - Columns name of categorical features: ['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 12:48:57,893] 136 root - INFO - Obtaining preprocessing object
+[ 2026-06-15 12:48:57,893] 73 root - INFO - Preprocessed both numerical and categorical columns
+[ 2026-06-15 12:48:57,893] 141 root - INFO - Applying preprocessing object on training and testing datasets.
+[ 2026-06-15 12:48:57,906] 113 root - ERROR - Training pipeline failed
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 143, in initiate_data_transformation
+    input_feature_train_arr = input_feature_train_arr.toarray()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'numpy.ndarray' object has no attribute 'toarray'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/training_pipeline.py", line 46, in run_training_pipeline
+    transform_artifact = data_transformation.initiate_data_transformation(
+        train_data_path, test_data_path
+    )
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 169, in initiate_data_transformation
+    raise CustomerException(e, sys)
+aml_fraud_detector.exception.CustomerException: Error occured in python script name [/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py] line number [143] error message ['numpy.ndarray' object has no attribute 'toarray']

@@ -78,11 +78,13 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"{summary.selection_metric}={summary.best_metric_value:.4f}"
         )
 
-        summary_path = save_training_summary(
-            file_path=training_config.artifacts_subpath("training_summary.json"),
+        summary.summary_path = os.path.abspath(
+            training_config.artifacts_subpath("training_summary.json")
+        )
+        save_training_summary(
+            file_path=summary.summary_path,
             summary_obj=summary,
         )
-        summary.summary_path = summary_path
 
         logging.info("=" * 72)
         logging.info("Training pipeline completed successfully")

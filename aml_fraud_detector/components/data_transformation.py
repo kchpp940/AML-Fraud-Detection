@@ -58,17 +58,24 @@ class DataTransformation:
             high_card_cols = [c for c in ['account', 'account_1'] if c in categorical_columns]
             low_card_cols = [c for c in ['payment_format', 'day'] if c in categorical_columns]
 
-            cat_transformer = make_column_transformer(
-                (freq_encoder, high_card_cols) if high_card_cols else ("drop", []),
-                (one_hot_encoder, low_card_cols) if low_card_cols else ("drop", []),
-                remainder="drop"
-            )
+            cat_tf_steps = []
+            if high_card_cols:
+                cat_tf_steps.append((freq_encoder, high_card_cols))
+            if low_card_cols:
+                cat_tf_steps.append((one_hot_encoder, low_card_cols))
 
-            preprocessor = make_column_transformer(
-                (num_transformer, numerical_columns),
-                (cat_transformer, categorical_columns),
-                remainder="drop"
-            )
+            if cat_tf_steps:
+                cat_transformer = make_column_transformer(*cat_tf_steps, remainder="drop")
+                preprocessor = make_column_transformer(
+                    (num_transformer, numerical_columns),
+                    (cat_transformer, categorical_columns),
+                    remainder="drop"
+                )
+            else:
+                preprocessor = make_column_transformer(
+                    (num_transformer, numerical_columns),
+                    remainder="drop"
+                )
 
             logging.info("Preprocessed both numerical and categorical columns")
             return preprocessor
@@ -140,9 +147,15 @@ class DataTransformation:
 
             logging.info("Applying preprocessing object on training and testing datasets.")
             input_feature_train_arr = preprocessing_obj.fit_transform(input_features_train_df)
-            input_feature_train_arr = input_feature_train_arr.toarray()
+            if hasattr(input_feature_train_arr, "toarray"):
+                input_feature_train_arr = input_feature_train_arr.toarray()
+            else:
+                input_feature_train_arr = np.asarray(input_feature_train_arr)
             input_feature_test_arr = preprocessing_obj.transform(input_features_test_df)
-            input_feature_test_arr = input_feature_test_arr.toarray()
+            if hasattr(input_feature_test_arr, "toarray"):
+                input_feature_test_arr = input_feature_test_arr.toarray()
+            else:
+                input_feature_test_arr = np.asarray(input_feature_test_arr)
 
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
