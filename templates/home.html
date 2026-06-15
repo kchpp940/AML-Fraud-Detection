@@ -1,145 +1,50 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anti Money Laundering Detection</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            max-width: 820px;
-            margin: 30px auto;
-            padding: 20px;
-            background: #f5f7fa;
-            color: #2c3e50;
-        }
-        h1 { text-align: center; color: #1a5276; margin-bottom: 8px; }
-        h2 { color: #2980b9; border-bottom: 2px solid #e74c3c; padding-bottom: 6px; }
-        .login { background: #ffffff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
-        .form-group { margin-bottom: 16px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; color: #34495e; }
-        input[type=text], input[type=number], input[type=date], select {
-            width: 100%;
-            padding: 9px 12px;
-            border: 1px solid #bdc3c7;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-        input:focus, select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.15); }
-        .hint { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
-        .btn {
-            width: 100%;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #2980b9, #1a5276);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .btn:hover { background: linear-gradient(135deg, #1a5276, #0e3b58); }
-        .btn:active { transform: translateY(1px); }
-        .error-box {
-            background: #ffe8e8;
-            border-left: 4px solid #e74c3c;
-            padding: 14px 18px;
-            margin-bottom: 22px;
-            border-radius: 5px;
-            color: #a93226;
-            white-space: pre-wrap;
-        }
-        .error-title { font-weight: bold; margin-bottom: 6px; }
-        .result-box {
-            background: #eafaf1;
-            border-left: 4px solid #27ae60;
-            padding: 16px 20px;
-            margin-top: 22px;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        .result-fraud { background: #fdecea; border-left-color: #e74c3c; color: #a93226; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .full-width { grid-column: 1 / -1; }
-        .required::after { content: " *"; color: #e74c3c; }
-    </style>
-</head>
+<html>
 <body>
     <div class="login">
-        <h1>Money Laundering Detector</h1>
-
-        {% if error %}
-        <div class="error-box">
-            <div class="error-title">⚠️ 输入错误，请检查以下字段：</div>
-            {{ error }}
+       <h1>Money Laundary Detector</h1>
+   
+       <form action="{{ url_for('predict_datapoint')}}" method="post">
+        <h2>
+            <legend>Anti Money Laundering Detection</legend>
+        </h2>
+        <div class="form-group">
+            <label for="from_bank">Bank where transaction originates:</label>
+            <input type="text" id="from_bank" name="from_bank" placeholder="Enter Numeric code (int)">
         </div>
-        {% endif %}
-
-        <form action="{{ url_for('predict_datapoint')}}" method="post">
-            <h2>
-                <legend>Anti Money Laundering Detection</legend>
-            </h2>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="account" class="required">Code for account where transaction originates (发起账户)</label>
-                    <input type="text" id="account" name="account"
-                        placeholder="例如: 100428660"
-                        value="{{ form_data.account if form_data else '' }}">
-                    <div class="hint">字符串，例如: 100428660, 80CF063F0</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="account_1" class="required">Code for account where transaction ends (接收账户)</label>
-                    <input type="text" id="account_1" name="account_1"
-                        placeholder="例如: 812191060"
-                        value="{{ form_data.account_1 if form_data else '' }}">
-                    <div class="hint">字符串，例如: 812191060, 80BFEBFF0</div>
-                </div>
-
-                <div class="form-group full-width">
-                    <label for="amount_received" class="required">Monetary amount received (交易金额)</label>
-                    <input type="text" id="amount_received" name="amount_received"
-                        placeholder="例如: 46480.59 或 1,234,567.89"
-                        value="{{ form_data.amount_received if form_data else '' }}">
-                    <div class="hint">支持千分位逗号、货币符号等，例如: 46480.59 / 1,234,567.89 / $1000.50</div>
-                </div>
-
-                <div class="form-group full-width">
-                    <label for="payment_format" class="required">How transaction was conducted (支付方式)</label>
-                    <input type="text" id="payment_format" name="payment_format"
-                        placeholder="例如: Cheque / Credit Card / Wire"
-                        value="{{ form_data.payment_format if form_data else '' }}">
-                    <div class="hint">例如: Cheque, Credit Card, Wire, ACH, Reinvestment</div>
-                </div>
-
-                <div class="form-group full-width">
-                    <label for="day" class="required">Day of Transaction (交易日期/星期)</label>
-                    <input type="text" id="day" name="day"
-                        placeholder="例如: 2022-09-07 / Wednesday / 周一 / 0-6"
-                        value="{{ form_data.day if form_data else '' }}">
-                    <div class="hint">支持多种格式：日期(2022-09-07) / 星期名(Monday, 周一) / 星期数字(0=周一 ... 6=周日)</div>
-                </div>
-            </div>
-
-            <div style="clear:both;"></div>
-            <input class="btn" type="submit" value="Predict whether the transaction is Fraud or not">
-        </form>
-
-        {% if results is defined %}
-        <div class="result-box {% if results == 1 %}result-fraud{% endif %}">
-            <strong>预测结果：</strong>
-            {% if results == 1 %}
-            🚨 <span style="color:#a93226; font-size:18px;">Fraudulent Transaction（可疑欺诈交易）</span>
-            {% else %}
-            ✅ <span style="color:#1e8449; font-size:18px;">Non-Fraudulent Transaction（正常交易）</span>
-            {% endif %}
-            <div style="margin-top:6px; font-size:13px; color:#7f8c8d;">Class Label: {{ results }}</div>
+        <div class="form-group">
+            <label for="account"> Code for account where transaction originates:</label>
+            <input type="text" id="account" name="account" placeholder="Enter code (str)">
         </div>
-        {% endif %}
-    </div>
-</body>
+        <div class="form-group">
+            <label for="to_bank">Bank where transaction ends:</label>
+            <input type="text" id="to_bank" name="to_bank" placeholder="Enter Numeric code (int)">
+        </div>
+        <div class="form-group">
+            <label for="account_1"> Code for account where transaction ends:</label>
+            <input type="text" id="account_1" name="account_1" placeholder="Enter code (str)">
+        </div>
+        <div class="form-group">
+            <label for="amount_received"> Monetary amount received:</label>
+            <input type="text" id="amount_received" name="amount_received" placeholder="Enter the amount (float)">
+        </div>
+        <div class="form-group">
+            <label for="receiving_currency"> Currency such as dollars, euros etc.:</label>
+            <input type="text" id="receiving_currency" name="receiving_currency" placeholder="Enter currency (str)">
+        </div>
+        <div class="form-group">
+            <label for="payment_currency"> Currency such as dollars, euros etc.:</label>
+            <input type="text" id="payment_currency" name="payment_currency" placeholder="Enter currency (str)">
+        </div>
+        <div class="form-group">
+            <label for="payment_format"> How transaction was conducted:</label>
+            <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
+        </div>
+        <div style="clear:both;"></div>
+            <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
+    </form>
+    <h2>
+       The prediction is {{results}}
+    </h2>
+   <body>
 </html>
+

@@ -53,13 +53,12 @@ def upsampling_train_data(X, y):
         raise CustomerException(e, sys)
 
 
-def model_metrics(y_pred, y_test):
+def model_metrics(y_true, y_pred):
     try:     
-        precision = precision_score(y_pred, y_test, average='weighted')
-        recall = recall_score(y_pred, y_test, average='weighted')
-        f1 = f1_score(y_pred, y_test, average='weighted')
-        # Compute confusion matrix
-        cm = confusion_matrix(y_pred, y_test) 
+        precision = precision_score(y_true, y_pred, average='weighted')
+        recall = recall_score(y_true, y_pred, average='weighted')
+        f1 = f1_score(y_true, y_pred, average='weighted')
+        cm = confusion_matrix(y_true, y_pred) 
         return precision, recall, f1, cm
     except Exception as e:
         logging.info(f"Exception occured during metrics calculation")
@@ -69,34 +68,29 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
     try:
         train_report = {}
         test_report = {}
+        best_params_report = {}
         for i in range(len(models)):
             model = list(models.values())[i]
             param = params[list(models.keys())[i]]
+            model_name = list(models.keys())[i]
 
-            # Initialize StratifiedKFold with 5 folds
-            # Stratified K-Fold ensures that each fold has the same proportion of classes as the entire dataset. 
             skf = StratifiedKFold(n_splits=3)
 
-            # Grid Search
             logging.info(f"Grid Search started for {model}")
-            # 
             gs = GridSearchCV(model, param, cv=skf, n_jobs=-1)
             gs.fit(X_train, y_train)
             logging.info(f"Grid Search completed for {model}")
 
-            # Setting model with best hyperparameters
             logging.info(f"Best parameters: {gs.best_params_} for {model}")
+            best_params_report[model_name] = gs.best_params_
             model.set_params(**gs.best_params_)
             model.fit(X_train, y_train)
             
-            # Predict on Train data
             y_train_pred = model.predict(X_train)
-            # Predict Test data
             y_test_pred = model.predict(X_test)
 
-            # Get evaluation metrics for train and test data
             logging.info(f"Obtaining evaluation metrics for {model} by using best hyperparameters")
-            precision_train, recall_train, f1_train, cm_train = model_metrics(y_train_pred, y_train)
+            precision_train, recall_train, f1_train, cm_train = model_metrics(y_train, y_train_pred)
             train_model_score = []
             train_model_score.append({
                 "Precision" : precision_train,
@@ -104,9 +98,9 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
                 "F1 score": f1_train,
                 "Confusion Matrix": cm_train
             })
-            train_report[list(models.keys())[i]] = train_model_score
+            train_report[model_name] = train_model_score
             
-            precision_test, recall_test, f1_test, cm_test = model_metrics(y_test_pred, y_test)
+            precision_test, recall_test, f1_test, cm_test = model_metrics(y_test, y_test_pred)
             test_model_score = []
             test_model_score.append({
                 "Precision" : precision_test,
@@ -114,12 +108,12 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
                 "F1 score": f1_test,
                 "Confusion Matrix": cm_test
             })
-            test_report[list(models.keys())[i]] = test_model_score
+            test_report[model_name] = test_model_score
 
         logging.info(f"\n Metrics calculation on Train Data: \n{train_report}")
-        
         logging.info(f"\n Metrics calculation on Test Data: \n{test_report}")
-        return train_report, test_report
+        logging.info(f"\n Best parameters for each model: \n{best_params_report}")
+        return train_report, test_report, best_params_report
 
     except Exception as e:
         logging.info(f"Exception occured during model training")
