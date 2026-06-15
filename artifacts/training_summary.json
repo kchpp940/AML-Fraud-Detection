@@ -20,19 +20,6 @@
     "day"
   ],
   "target_column": "is_laundering",
-  "drop_columns": [
-    "timestamp",
-    "date",
-    "time",
-    "amount_paid",
-    "receiving_currency",
-    "payment_currency",
-    "from_bank",
-    "to_bank"
-  ],
-  "derived_features": {
-    "day_from_timestamp": true
-  },
   "candidate_models": [
     "Random Forest",
     "AdaBoost",
@@ -85,9 +72,9 @@
   "best_metric_value": 0.94375,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.8951546717171718,
-      "Recall": 0.89625,
-      "F1 score": 0.8957014663999584
+      "Precision": 0.9092762445887445,
+      "Recall": 0.90375,
+      "F1 score": 0.9064904774007038
     },
     "AdaBoost": {
       "Precision": 0.6793195346320345,
@@ -103,6 +90,107 @@
   "preprocessor_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
   "model_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
   "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
-  "summary_path": "",
-  "generated_at": "2026-06-15T12:57:54.384416"
+  "summary_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json",
+  "resolved_config": {
+    "run_info": {
+      "created_at": "2026-06-15T14:28:06.332555",
+      "config_path": "/Users/pkcha/AML-Fraud-Detection/config/training_config.yaml",
+      "config_path_source": "default_file",
+      "yaml_config_used": true
+    },
+    "env_overrides": [],
+    "data": {
+      "source_path": "/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv",
+      "source_path_input": "notebook/data/HI-Small_Trans.csv",
+      "sample_size": 50000,
+      "test_size": 0.2,
+      "random_state": 42
+    },
+    "features": {
+      "target_column": "is_laundering",
+      "drop_columns": [
+        "timestamp",
+        "date",
+        "time",
+        "amount_paid",
+        "receiving_currency",
+        "payment_currency",
+        "from_bank",
+        "to_bank"
+      ]
+    },
+    "models": {
+      "selection_metric": "Recall",
+      "enabled": {
+        "RandomForest": true,
+        "AdaBoost": true,
+        "GradientBoosting": false,
+        "XGBoost": true
+      },
+      "enabled_display_names": [
+        "Random Forest",
+        "AdaBoost",
+        "XGBoost"
+      ],
+      "param_grid": {
+        "RandomForest": {
+          "n_estimators": [
+            50,
+            100,
+            200
+          ]
+        },
+        "AdaBoost": {
+          "n_estimators": [
+            50,
+            100,
+            200
+          ],
+          "learning_rate": [
+            0.01,
+            0.1,
+            0.5,
+            1.0
+          ]
+        },
+        "GradientBoosting": {
+          "n_estimators": [
+            50,
+            100,
+            200
+          ],
+          "learning_rate": [
+            0.01,
+            0.1,
+            0.05,
+            0.001
+          ]
+        },
+        "XGBoost": {
+          "n_estimators": [
+            50,
+            100,
+            200
+          ],
+          "learning_rate": [
+            0.01,
+            0.1,
+            0.05,
+            0.001
+          ]
+        }
+      }
+    },
+    "output": {
+      "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
+      "artifacts_dir_input": "artifacts",
+      "train_csv": "/Users/pkcha/AML-Fraud-Detection/artifacts/train.csv",
+      "test_csv": "/Users/pkcha/AML-Fraud-Detection/artifacts/test.csv",
+      "raw_csv": "/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv",
+      "preprocessor_pkl": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
+      "model_pkl": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
+      "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json"
+    }
+  },
+  "generated_at": "2026-06-15T14:29:31.786917"
 }

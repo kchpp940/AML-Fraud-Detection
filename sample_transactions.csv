@@ -1,9 +1,9 @@
-Timestamp,From Bank,Account,To Bank,Account.1,Amount Received,Receiving Currency,Amount Paid,Payment Currency,Payment Format,Is Laundering
-2022-01-01 00:00:00,48,ACC_00158,18,ACC2_00062,2974.67,US Dollar,1110.75,US Dollar,Cheque,0
-2022-01-03 12:30:00,38,ACC_00057,42,ACC2_00093,670.29,Yuan,596.26,US Dollar,Credit Card,0
-2022-01-04 09:15:00,12,ACC_00100,200,ACC2_00100,1500.50,US Dollar,1400.00,US Dollar,Wire,1
-2022-01-05 16:45:00,56,ACC_00200,50,ACC2_00200,2000.00,Euro,1800.00,Euro,Cheque,0
-2022-01-07 08:00:00,78,ACC_00400,60,ACC2_00400,3500.75,Yen,3100.00,Yen,Credit Card,0
-2022-01-08 14:20:00,100,ACC_00500,70,ACC2_00500,not_a_number,US Dollar,500.00,US Dollar,Wire,0
-2022-01-10 11:00:00,,ACC_00600,80,ACC2_00600,1800.25,Euro,1600.00,Euro,Cheque,0
-2022-01-11 22:30:00,50,,90,ACC2_00700,2200.00,US Dollar,2000.00,US Dollar,Credit Card,0
+from_bank,account,to_bank,account_1,amount_received,receiving_currency,payment_currency,payment_format,day,transaction_id
+48.0,ACC_00158,18,ACC2_00062,2974.67,US Dollar,US Dollar,Cheque,Saturday,1001
+38.0,ACC_00057,42,ACC2_00093,670.29,Yuan,US Dollar,Credit Card,Saturday,1002
+12.0,ACC_00100,200,ACC2_00100,1500.5,US Dollar,US Dollar,Wire,Monday,1003
+56.0,ACC_00200,50,ACC2_00200,2000.0,Euro,Euro,Cheque,Tuesday,1004
+78.0,ACC_00400,60,ACC2_00400,3500.75,Yen,Yen,Credit Card,Wednesday,1005
+100.0,ACC_00500,70,ACC2_00500,not_a_number,US Dollar,US Dollar,Wire,Thursday,1006
+,ACC_00600,80,ACC2_00600,1800.25,Euro,Euro,Cheque,Friday,1007
+50.0,,90,ACC2_00700,2200.0,US Dollar,US Dollar,Credit Card,Monday,1008

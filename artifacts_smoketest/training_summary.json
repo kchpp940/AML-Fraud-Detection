@@ -1,8 +1,8 @@
 {
   "data_source": "/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv",
   "data_rows": 2000,
-  "train_rows": 1339,
-  "test_rows": 660,
+  "train_rows": 1500,
+  "test_rows": 500,
   "feature_columns": [
     "amount_received",
     "account",
@@ -22,43 +22,42 @@
   "target_column": "is_laundering",
   "candidate_models": [
     "Random Forest",
-    "Gradient Boosting"
+    "AdaBoost"
   ],
-  "selection_metric": "F1 score",
-  "best_model_name": "GradientBoosting (Gradient Boosting)",
+  "selection_metric": "Recall",
+  "best_model_name": "RandomForest (Random Forest)",
   "best_model_params": {
+    "bootstrap": true,
     "ccp_alpha": 0.0,
-    "criterion": "friedman_mse",
-    "init": "None",
-    "learning_rate": 0.1,
-    "loss": "log_loss",
-    "max_depth": 3,
-    "max_features": "None",
+    "class_weight": "None",
+    "criterion": "gini",
+    "max_depth": "None",
+    "max_features": "sqrt",
     "max_leaf_nodes": "None",
+    "max_samples": "None",
     "min_impurity_decrease": 0.0,
     "min_samples_leaf": 1,
     "min_samples_split": 2,
     "min_weight_fraction_leaf": 0.0,
-    "n_estimators": 100,
-    "n_iter_no_change": "None",
+    "monotonic_cst": "None",
+    "n_estimators": 50,
+    "n_jobs": "None",
+    "oob_score": false,
     "random_state": "None",
-    "subsample": 1.0,
-    "tol": 0.0001,
-    "validation_fraction": 0.1,
     "verbose": 0,
     "warm_start": false
   },
-  "best_metric_value": 0.9656707924313558,
+  "best_metric_value": 0.904,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.961779185129199,
-      "Recall": 0.9212121212121213,
-      "F1 score": 0.9407673363439556
+      "Precision": 0.930107905982906,
+      "Recall": 0.904,
+      "F1 score": 0.9167326315789475
     },
-    "Gradient Boosting": {
-      "Precision": 0.996871787340285,
-      "Recall": 0.9363636363636364,
-      "F1 score": 0.9656707924313558
+    "AdaBoost": {
+      "Precision": 0.5705448717948718,
+      "Recall": 0.38,
+      "F1 score": 0.2652092844274195
     }
   },
   "preprocessor_path": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/preprocessor.pkl",
@@ -67,53 +66,17 @@
   "summary_path": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/training_summary.json",
   "resolved_config": {
     "run_info": {
-      "created_at": "2026-06-15T13:16:55.148874",
+      "created_at": "2026-06-15T14:27:23.768259",
       "config_path": "/Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml",
       "config_path_source": "explicit",
       "yaml_config_used": true
     },
-    "env_overrides": [
-      {
-        "path": "data.test_size",
-        "env_name": "AML_TRAIN_DATA_TEST_SIZE",
-        "env_value": "0.33",
-        "original_value": 0.25,
-        "resolved_value": 0.33
-      },
-      {
-        "path": "models.selection_metric",
-        "env_name": "AML_TRAIN_MODEL_METRIC",
-        "env_value": "F1",
-        "original_value": "Recall",
-        "resolved_value": "F1 score"
-      },
-      {
-        "path": "models.enabled.AdaBoost",
-        "env_name": "AML_TRAIN_MODEL_AB_ENABLED",
-        "env_value": "false",
-        "original_value": true,
-        "resolved_value": false
-      },
-      {
-        "path": "models.enabled.GradientBoosting",
-        "env_name": "AML_TRAIN_MODEL_GB_ENABLED",
-        "env_value": "true",
-        "original_value": false,
-        "resolved_value": true
-      },
-      {
-        "path": "output.artifacts_dir",
-        "env_name": "AML_TRAIN_OUTPUT_DIR",
-        "env_value": "artifacts_smoketest",
-        "original_value": "artifacts_smoketest",
-        "resolved_value": "artifacts_smoketest"
-      }
-    ],
+    "env_overrides": [],
     "data": {
       "source_path": "/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv",
       "source_path_input": "notebook/data/HI-Small_Trans.csv",
       "sample_size": 2000,
-      "test_size": 0.33,
+      "test_size": 0.25,
       "random_state": 42
     },
     "features": {
@@ -130,16 +93,16 @@
       ]
     },
     "models": {
-      "selection_metric": "F1 score",
+      "selection_metric": "Recall",
       "enabled": {
         "RandomForest": true,
-        "AdaBoost": false,
-        "GradientBoosting": true,
+        "AdaBoost": true,
+        "GradientBoosting": false,
         "XGBoost": false
       },
       "enabled_display_names": [
         "Random Forest",
-        "Gradient Boosting"
+        "AdaBoost"
       ],
       "param_grid": {
         "RandomForest": {
@@ -170,5 +133,5 @@
       "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/training_summary.json"
     }
   },
-  "generated_at": "2026-06-15T13:17:04.949615"
+  "generated_at": "2026-06-15T14:27:32.707488"
 }

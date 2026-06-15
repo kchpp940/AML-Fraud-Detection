@@ -1,8 +1,37 @@
 <html>
+<head>
+<style>
+  body { font-family: Arial, sans-serif; margin: 30px; background: #f5f7fa; }
+  .login { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  h1 { color: #2c3e50; }
+  h2 { color: #34495e; }
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; margin-bottom: 4px; font-weight: bold; color: #555; }
+  .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  .btn { padding: 10px 24px; background: #3498db; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+  .btn:hover { background: #2980b9; }
+  .result-box { margin-top: 20px; padding: 20px; border-radius: 6px; }
+  .result-fraud { background: #fdedec; border-left: 4px solid #e74c3c; }
+  .result-normal { background: #eafaf1; border-left: 4px solid #27ae60; }
+  .result-box h3 { margin-top: 0; }
+  .factor-list { list-style: none; padding: 0; }
+  .factor-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+  .factor-item:last-child { border-bottom: none; }
+  .factor-label { font-weight: bold; color: #2c3e50; }
+  .factor-value { color: #555; }
+  .factor-direction-high { color: #e74c3c; font-weight: bold; }
+  .factor-direction-low { color: #27ae60; font-weight: bold; }
+  .factor-bar { height: 8px; border-radius: 4px; margin-top: 4px; }
+  .factor-bar-high { background: #e74c3c; }
+  .factor-bar-low { background: #27ae60; }
+  .factor-desc { color: #666; font-size: 14px; margin-top: 2px; }
+  .prob-box { background: #f8f9fa; padding: 12px; border-radius: 4px; margin: 10px 0; }
+</style>
+</head>
 <body>
     <div class="login">
-       <h1>Money Laundary Detector</h1>
-   
+       <h1>Money Laundering Detector</h1>
+
        <form action="{{ url_for('predict_datapoint')}}" method="post">
         <h2>
             <legend>Anti Money Laundering Detection</legend>
@@ -39,12 +68,41 @@
             <label for="payment_format"> How transaction was conducted:</label>
             <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
         </div>
+        <div class="form-group">
+            <label for="day"> Day of the transaction:</label>
+            <input type="text" id="day" name="day" placeholder="Enter day of week (e.g. Monday)">
+        </div>
         <div style="clear:both;"></div>
-            <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
+            <input class="btn" type="submit" value="Predict whether the transactions is Fraud or not" required />
     </form>
-    <h2>
-       The prediction is {{results}}
-    </h2>
-   <body>
-</html>
 
+    {% if result %}
+    <div class="result-box {{ 'result-fraud' if result.prediction == 1 else 'result-normal' }}">
+        <h3>Prediction: {{ result.prediction_label }}</h3>
+        <div class="prob-box">
+            <strong>Fraud Probability:</strong> {{ "%.2f%%"|format(result.fraud_probability * 100) }}
+        </div>
+
+        {% if result.top_factors %}
+        <h3>Risk Factor Analysis</h3>
+        <ul class="factor-list">
+            {% for factor in result.top_factors %}
+            <li class="factor-item">
+                <span class="factor-label">{{ loop.index }}. {{ factor.label }}</span>
+                — Current value: <span class="factor-value">{{ factor.value }}</span><br>
+                <span class="{{ 'factor-direction-high' if factor.direction == 'high_risk' else 'factor-direction-low' }}">
+                    Contribution: {{ factor.contribution_pct }}% ({{ 'Increase Risk' if factor.direction == 'high_risk' else 'Decrease Risk' }})
+                </span>
+                <div class="factor-bar {{ 'factor-bar-high' if factor.direction == 'high_risk' else 'factor-bar-low' }}" style="width: {{ factor.contribution_pct }}%"></div>
+                <div class="factor-desc">{{ factor.description }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color:#888;">No risk explanation available (feature_metadata.json missing, please retrain the model).</p>
+        {% endif %}
+    </div>
+    {% endif %}
+   </div>
+</body>
+</html>

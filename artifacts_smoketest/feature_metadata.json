@@ -1,0 +1,112 @@
+{
+  "original_features": [
+    "amount_received",
+    "account",
+    "account_1",
+    "payment_format",
+    "day"
+  ],
+  "numerical_features": [
+    "amount_received"
+  ],
+  "categorical_features": [
+    "account",
+    "account_1",
+    "payment_format",
+    "day"
+  ],
+  "encoding_info": {
+    "amount_received": {
+      "type": "numerical"
+    },
+    "account": {
+      "type": "frequency"
+    },
+    "account_1": {
+      "type": "frequency"
+    },
+    "payment_format": {
+      "type": "onehot",
+      "categories": [
+        "ACH",
+        "Cheque",
+        "Credit Card",
+        "Reinvestment",
+        "Wire"
+      ]
+    },
+    "day": {
+      "type": "onehot",
+      "categories": [
+        "Monday",
+        "Saturday",
+        "Sunday"
+      ]
+    }
+  },
+  "feature_labels": {
+    "amount_received": "交易金额",
+    "account": "发起账户",
+    "account_1": "接收账户",
+    "payment_format": "支付方式",
+    "day": "交易星期"
+  },
+  "baseline_values": {
+    "amount_received": 719.19,
+    "account": "ACC_00151",
+    "account_1": "ACC2_00086",
+    "payment_format": "Wire",
+    "day": "Sunday"
+  },
+  "training_stats": {
+    "amount_received": {
+      "median": 719.19,
+      "mean": 1011.3593400000002,
+      "std": 1001.1339432789306,
+      "q25": 292.3875,
+      "q75": 1398.1625
+    },
+    "account": {
+      "mode": "ACC_00151",
+      "n_unique": 199,
+      "top5": {
+        "ACC_00151": 15,
+        "ACC_00040": 14,
+        "ACC_00112": 14,
+        "ACC_00164": 13,
+        "ACC_00188": 13
+      }
+    },
+    "account_1": {
+      "mode": "ACC2_00086",
+      "n_unique": 199,
+      "top5": {
+        "ACC2_00086": 15,
+        "ACC2_00077": 14,
+        "ACC2_00008": 14,
+        "ACC2_00060": 13,
+        "ACC2_00166": 13
+      }
+    },
+    "payment_format": {
+      "mode": "Wire",
+      "n_unique": 5,
+      "top5": {
+        "Wire": 312,
+        "ACH": 309,
+        "Credit Card": 303,
+        "Reinvestment": 302,
+        "Cheque": 274
+      }
+    },
+    "day": {
+      "mode": "Sunday",
+      "n_unique": 3,
+      "top5": {
+        "Sunday": 563,
+        "Saturday": 541,
+        "Monday": 396
+      }
+    }
+  }
+}

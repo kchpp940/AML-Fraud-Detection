@@ -139,8 +139,6 @@ class TrainingSummary:
     numerical_features: List[str] = field(default_factory=list)
     categorical_features: List[str] = field(default_factory=list)
     target_column: str = ""
-    drop_columns: List[str] = field(default_factory=list)
-    derived_features: Dict[str, Any] = field(default_factory=dict)
     candidate_models: List[str] = field(default_factory=list)
     selection_metric: str = ""
     best_model_name: str = ""

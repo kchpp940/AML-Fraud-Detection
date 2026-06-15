@@ -1,0 +1,112 @@
+{
+  "original_features": [
+    "amount_received",
+    "account",
+    "account_1",
+    "payment_format",
+    "day"
+  ],
+  "numerical_features": [
+    "amount_received"
+  ],
+  "categorical_features": [
+    "account",
+    "account_1",
+    "payment_format",
+    "day"
+  ],
+  "encoding_info": {
+    "amount_received": {
+      "type": "numerical"
+    },
+    "account": {
+      "type": "frequency"
+    },
+    "account_1": {
+      "type": "frequency"
+    },
+    "payment_format": {
+      "type": "onehot",
+      "categories": [
+        "ACH",
+        "Cheque",
+        "Credit Card",
+        "Reinvestment",
+        "Wire"
+      ]
+    },
+    "day": {
+      "type": "onehot",
+      "categories": [
+        "Monday",
+        "Saturday",
+        "Sunday"
+      ]
+    }
+  },
+  "feature_labels": {
+    "amount_received": "交易金额",
+    "account": "发起账户",
+    "account_1": "接收账户",
+    "payment_format": "支付方式",
+    "day": "交易星期"
+  },
+  "baseline_values": {
+    "amount_received": 711.315,
+    "account": "ACC_00182",
+    "account_1": "ACC2_00086",
+    "payment_format": "Reinvestment",
+    "day": "Sunday"
+  },
+  "training_stats": {
+    "amount_received": {
+      "median": 711.315,
+      "mean": 1003.183996875,
+      "std": 980.7613204702748,
+      "q25": 298.0525,
+      "q75": 1392.6750000000002
+    },
+    "account": {
+      "mode": "ACC_00182",
+      "n_unique": 199,
+      "top5": {
+        "ACC_00182": 28,
+        "ACC_00187": 26,
+        "ACC_00017": 26,
+        "ACC_00087": 26,
+        "ACC_00013": 25
+      }
+    },
+    "account_1": {
+      "mode": "ACC2_00086",
+      "n_unique": 199,
+      "top5": {
+        "ACC2_00086": 27,
+        "ACC2_00176": 27,
+        "ACC2_00078": 26,
+        "ACC2_00050": 24,
+        "ACC2_00172": 24
+      }
+    },
+    "payment_format": {
+      "mode": "Reinvestment",
+      "n_unique": 5,
+      "top5": {
+        "Reinvestment": 675,
+        "Credit Card": 649,
+        "Wire": 641,
+        "ACH": 620,
+        "Cheque": 615
+      }
+    },
+    "day": {
+      "mode": "Sunday",
+      "n_unique": 3,
+      "top5": {
+        "Sunday": 1150,
+        "Saturday": 1131,
+        "Monday": 919
+      }
+    }
+  }
+}
