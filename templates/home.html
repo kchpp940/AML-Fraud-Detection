@@ -39,6 +39,19 @@
             <label for="payment_format"> How transaction was conducted:</label>
             <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
         </div>
+        <div class="form-group">
+            <label for="day"> Day of the week:</label>
+            <select id="day" name="day" required>
+                <option value="">-- Select day --</option>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+            </select>
+        </div>
         <div style="clear:both;"></div>
             <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
     </form>

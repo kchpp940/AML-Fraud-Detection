@@ -1,7 +1,6 @@
 import os
 import sys
 from dataclasses import dataclass
-from typing import Dict, Any
 
 from xgboost import XGBClassifier
 from sklearn.ensemble import (
@@ -12,50 +11,18 @@ from sklearn.ensemble import (
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import (
-    save_object, 
-    upsampling_train_data, 
-    evaluate_models, 
-    model_metrics,
-    ModelMetrics,
-    _serialize_cm
-)
+from aml_fraud_detector.utils.main_utils import save_object, upsampling_train_data, evaluate_models
 
 
 @dataclass
 class ModelTrainerConfig:
     trained_model_file_path = os.path.join("artifacts", "model.pkl")
 
-
-@dataclass
-class ModelTrainerResult:
-    best_model_name: str
-    best_params: Dict[str, Any]
-    test_metrics: ModelMetrics
-    model_path: str
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "best_model_name": self.best_model_name,
-            "best_params": self.best_params,
-            "test_metrics": self.test_metrics.to_dict(),
-            "model_path": self.model_path
-        }
-
-    def to_log_dict(self) -> Dict[str, Any]:
-        return {
-            "best_model_name": self.best_model_name,
-            "best_params": self.best_params,
-            "test_metrics": self.test_metrics.to_log_dict(),
-            "model_path": self.model_path
-        }
-
-
 class ModelTrainer:
     def __init__(self):
         self.model_trainer_config = ModelTrainerConfig()
 
-    def initiate_model_trainer(self, train_array, test_array) -> ModelTrainerResult:
+    def initiate_model_trainer(self, train_array, test_array):
         try:
             logging.info(f"Get Independent features and Dependent feature from Train and Test datasets")
             X_train, y_train, X_test, y_test = (
@@ -68,27 +35,48 @@ class ModelTrainer:
             logging.info(f"Imbalance dataset - upsampling the train data")
             X_train_smp, y_train_smp = upsampling_train_data(X_train, y_train)
 
+            # Initialize the classifiers
             models = {
                 "Random Forest": RandomForestClassifier(),
                 "AdaBoost": AdaBoostClassifier(),
+                # "Gradient Boosting": GradientBoostingClassifier(),
                 "XGBoost": XGBClassifier()
             }
 
             params = {
                 "Random Forest": {
                     'n_estimators': [50, 100, 200],
+                    # 'criterion': ['gini', 'entropy'],
+                    # 'max_depth': [None, 10, 20, 30],
+                    # 'min_samples_split': [2, 5, 10],
+                    # 'min_samples_leaf': [1, 2, 4],
+                    # 'max_features': ['sqrt', 'log2', None]
                 },
                 "AdaBoost": {
                     'n_estimators': [50, 100, 200],
                     'learning_rate': [0.01, 0.1, 0.5, 1.0],
+                    # 'algorithm': ['SAMME', 'SAMME.R']
                 },
+                # "Gradient Boosting": {
+                #     # 'n_estimators': [50, 100, 200],
+                #     # 'learning_rate': [0.01, 0.1, 0.05, 0.001],
+                #     # 'subsample': [0.6, 0.7, 0.8, 0.9],
+                #     # 'max_depth': [3, 5, 7, 9],
+                #     # 'min_samples_split': [2, 5, 10],
+                #     # 'min_samples_leaf': [1, 2, 4]
+                # },
                 "XGBoost": {
                     'n_estimators': [50, 100, 200],
                     'learning_rate': [0.01, 0.1, 0.05, 0.001],
+                    # 'max_depth': [3, 5, 7, 9],
+                    # 'min_child_weight': [1, 3, 5],
+                    # 'gamma': [0, 0.1, 0.2],
+                    # 'subsample': [0.6, 0.7, 0.8, 0.9],
+                    # 'colsample_bytree': [0.6, 0.7, 0.8, 0.9]
                 }
             }
 
-            eval_result = evaluate_models(
+            model_report:dict = evaluate_models(
                 X_train=X_train_smp, 
                 y_train=y_train_smp, 
                 X_test=X_test,
@@ -96,41 +84,31 @@ class ModelTrainer:
                 models=models,
                 params=params)
             
-            models_recall_score = {
-                model_name: metrics.recall
-                for model_name, metrics in eval_result.test_metrics.items()
-            }
+            # Models and its corresponding Recall score from dict
+            models_recall_score = {model: recall_result[0]["Recall"] for model, recall_result in model_report[1].items()}
             logging.info(f"The models and their corresponding Recall score: \n{models_recall_score}")
 
-            best_model_name, best_recall = max(models_recall_score.items(), key=lambda item: item[1])
-            logging.info(f"Best Model: {best_model_name} with Recall score: {best_recall}")
-            print(f"Best Model: {best_model_name} with Recall score: {best_recall}")
+            # Finding the best model and its score
+            best_model_name, best_score = max(models_recall_score.items(), key=lambda item: item[1])
+            logging.info(f"Best Model: {best_model_name} with Recall score: {best_score}")
+            print(f"Best Model: {best_model_name} with Recall score: {best_score}")
             
             best_model = models[best_model_name]
-            best_params = eval_result.best_params[best_model_name]
 
             save_object(
                  file_path = self.model_trainer_config.trained_model_file_path,
                  obj = best_model
             )
         
-            y_test_pred = best_model.predict(X_test)
-            test_metrics = model_metrics(y_test, y_test_pred)
+            # Prediction on Test data
+            predicted = best_model.predict(X_test)
+            from sklearn.metrics import precision_score, recall_score, f1_score
+            recall_Score = recall_score(predicted, y_test, average='weighted')
 
             logging.info(f"Model Training completed")
-            logging.info(f"Final test metrics for {best_model_name}: {test_metrics.to_log_dict()}")
-            print(f"Final test metrics for the best model i.e. {best_model_name}:")
-            print(f"  Precision: {test_metrics.precision}")
-            print(f"  Recall: {test_metrics.recall}")
-            print(f"  F1 score: {test_metrics.f1_score}")
-            print(f"  Confusion Matrix:\n{_serialize_cm(test_metrics.confusion_matrix)}")
-
-            return ModelTrainerResult(
-                best_model_name=best_model_name,
-                best_params=best_params,
-                test_metrics=test_metrics,
-                model_path=self.model_trainer_config.trained_model_file_path
-            )
+            logging.info(f"Final Recall score for the {best_model}: {recall_Score}")
+            print(f"Final Recall score for the best model i.e. {best_model}: {recall_Score}")
+            return precision_score
 
         except Exception as e:
             logging.info("Exception occured at Model Training")

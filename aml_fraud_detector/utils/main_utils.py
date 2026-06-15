@@ -3,8 +3,6 @@ import sys
 import dill
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
-from typing import Dict, Any
 
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.exception import CustomerException
@@ -18,43 +16,6 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold, KFold
 from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report, confusion_matrix, auc, roc_curve
 from sklearn.metrics import ConfusionMatrixDisplay, RocCurveDisplay
-
-
-def _serialize_cm(cm: Any) -> Any:
-    if hasattr(cm, 'tolist'):
-        return cm.tolist()
-    return cm
-
-
-@dataclass(frozen=True)
-class ModelMetrics:
-    precision: float
-    recall: float
-    f1_score: float
-    confusion_matrix: Any
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "precision": self.precision,
-            "recall": self.recall,
-            "f1_score": self.f1_score,
-            "confusion_matrix": _serialize_cm(self.confusion_matrix)
-        }
-
-    def to_log_dict(self) -> Dict[str, Any]:
-        return {
-            "Precision": self.precision,
-            "Recall": self.recall,
-            "F1 score": self.f1_score,
-            "Confusion Matrix": _serialize_cm(self.confusion_matrix)
-        }
-
-
-@dataclass(frozen=True)
-class EvaluateResult:
-    train_metrics: Dict[str, ModelMetrics]
-    test_metrics: Dict[str, ModelMetrics]
-    best_params: Dict[str, Dict[str, Any]]
 
 
 def save_object(file_path, obj):
@@ -92,61 +53,73 @@ def upsampling_train_data(X, y):
         raise CustomerException(e, sys)
 
 
-def model_metrics(y_true, y_pred) -> ModelMetrics:
+def model_metrics(y_pred, y_test):
     try:     
-        precision = precision_score(y_true, y_pred, average='weighted')
-        recall = recall_score(y_true, y_pred, average='weighted')
-        f1 = f1_score(y_true, y_pred, average='weighted')
-        cm = confusion_matrix(y_true, y_pred) 
-        return ModelMetrics(
-            precision=precision,
-            recall=recall,
-            f1_score=f1,
-            confusion_matrix=cm
-        )
+        precision = precision_score(y_pred, y_test, average='weighted')
+        recall = recall_score(y_pred, y_test, average='weighted')
+        f1 = f1_score(y_pred, y_test, average='weighted')
+        # Compute confusion matrix
+        cm = confusion_matrix(y_pred, y_test) 
+        return precision, recall, f1, cm
     except Exception as e:
         logging.info(f"Exception occured during metrics calculation")
-        raise
 
 
-def evaluate_models(X_train, y_train, X_test, y_test, models, params) -> EvaluateResult:
+def evaluate_models(X_train, y_train, X_test, y_test, models, params):
     try:
-        train_metrics: Dict[str, ModelMetrics] = {}
-        test_metrics: Dict[str, ModelMetrics] = {}
-        best_params: Dict[str, Dict[str, Any]] = {}
+        train_report = {}
+        test_report = {}
         for i in range(len(models)):
             model = list(models.values())[i]
             param = params[list(models.keys())[i]]
-            model_name = list(models.keys())[i]
 
+            # Initialize StratifiedKFold with 5 folds
+            # Stratified K-Fold ensures that each fold has the same proportion of classes as the entire dataset. 
             skf = StratifiedKFold(n_splits=3)
 
+            # Grid Search
             logging.info(f"Grid Search started for {model}")
+            # 
             gs = GridSearchCV(model, param, cv=skf, n_jobs=-1)
             gs.fit(X_train, y_train)
             logging.info(f"Grid Search completed for {model}")
 
+            # Setting model with best hyperparameters
             logging.info(f"Best parameters: {gs.best_params_} for {model}")
-            best_params[model_name] = gs.best_params_
             model.set_params(**gs.best_params_)
             model.fit(X_train, y_train)
             
+            # Predict on Train data
             y_train_pred = model.predict(X_train)
+            # Predict Test data
             y_test_pred = model.predict(X_test)
 
+            # Get evaluation metrics for train and test data
             logging.info(f"Obtaining evaluation metrics for {model} by using best hyperparameters")
-            train_metrics[model_name] = model_metrics(y_train, y_train_pred)
-            test_metrics[model_name] = model_metrics(y_test, y_test_pred)
+            precision_train, recall_train, f1_train, cm_train = model_metrics(y_train_pred, y_train)
+            train_model_score = []
+            train_model_score.append({
+                "Precision" : precision_train,
+                "Recall" : recall_train,
+                "F1 score": f1_train,
+                "Confusion Matrix": cm_train
+            })
+            train_report[list(models.keys())[i]] = train_model_score
+            
+            precision_test, recall_test, f1_test, cm_test = model_metrics(y_test_pred, y_test)
+            test_model_score = []
+            test_model_score.append({
+                "Precision" : precision_test,
+                "Recall" : recall_test,
+                "F1 score": f1_test,
+                "Confusion Matrix": cm_test
+            })
+            test_report[list(models.keys())[i]] = test_model_score
 
-            logging.info(f"[{model_name}] Train metrics: {train_metrics[model_name].to_log_dict()}")
-            logging.info(f"[{model_name}] Test metrics: {test_metrics[model_name].to_log_dict()}")
-
-        logging.info(f"\n Best parameters for each model: \n{best_params}")
-        return EvaluateResult(
-            train_metrics=train_metrics,
-            test_metrics=test_metrics,
-            best_params=best_params
-        )
+        logging.info(f"\n Metrics calculation on Train Data: \n{train_report}")
+        
+        logging.info(f"\n Metrics calculation on Test Data: \n{test_report}")
+        return train_report, test_report
 
     except Exception as e:
         logging.info(f"Exception occured during model training")

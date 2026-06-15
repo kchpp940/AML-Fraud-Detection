@@ -1,0 +1,23 @@
+[ 2026-06-15 10:27:10,271] 100 root - INFO - CustomData input DataFrame columns: ['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+[ 2026-06-15 10:27:10,271] 27 root - INFO - Loading model, preprocessor, and feature schema...
+[ 2026-06-15 10:27:10,350] 32 root - INFO - Loaded feature schema with 5 input columns
+[ 2026-06-15 10:27:10,350] 33 root - INFO - Model input columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:27:10,350] 44 root - INFO - Input features columns: ['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+[ 2026-06-15 10:27:10,354] 46 root - INFO - Aligned features columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:27:10,355] 47 root - INFO - Aligned features dtypes:
+account             object
+account_1           object
+amount_received    float64
+payment_format      object
+day                 object
+dtype: object
+[ 2026-06-15 10:27:10,362] 100 root - INFO - CustomData input DataFrame columns: ['Timestamp', 'Account', 'Account_1', 'Amount_Received', 'Payment_Format']
+[ 2026-06-15 10:27:10,362] 44 root - INFO - Input features columns: ['Timestamp', 'Account', 'Account_1', 'Amount_Received', 'Payment_Format']
+[ 2026-06-15 10:27:10,366] 46 root - INFO - Aligned features columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:27:10,366] 47 root - INFO - Aligned features dtypes:
+account             object
+account_1           object
+amount_received    float64
+payment_format      object
+day                 object
+dtype: object
