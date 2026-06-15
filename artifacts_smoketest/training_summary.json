@@ -47,12 +47,12 @@
     "verbose": 0,
     "warm_start": false
   },
-  "best_metric_value": 0.904,
+  "best_metric_value": 0.91,
   "all_model_metrics": {
     "Random Forest": {
-      "Precision": 0.930107905982906,
-      "Recall": 0.904,
-      "F1 score": 0.9167326315789475
+      "Precision": 0.941920405982906,
+      "Recall": 0.91,
+      "F1 score": 0.9254738675180282
     },
     "AdaBoost": {
       "Precision": 0.5705448717948718,
@@ -64,9 +64,11 @@
   "model_path": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/model.pkl",
   "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest",
   "summary_path": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/training_summary.json",
+  "model_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/model_metadata.json",
+  "artifact_manifest_path": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/artifact_manifest.json",
   "resolved_config": {
     "run_info": {
-      "created_at": "2026-06-15T14:27:23.768259",
+      "created_at": "2026-06-15T22:14:56.975998",
       "config_path": "/Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml",
       "config_path_source": "explicit",
       "yaml_config_used": true
@@ -133,5 +135,5 @@
       "summary_json": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/training_summary.json"
     }
   },
-  "generated_at": "2026-06-15T14:27:32.707488"
+  "generated_at": "2026-06-15T22:15:02.602901"
 }

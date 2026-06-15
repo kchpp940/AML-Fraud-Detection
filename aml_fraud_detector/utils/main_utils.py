@@ -47,7 +47,7 @@ def save_object(file_path, obj):
     except Exception as e:
         logging.info(f'Exception Occured in save_object function utils')
         raise CustomerException(e, sys)
-    
+
 
 def load_object(file_path):
     try:

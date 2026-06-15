@@ -1,0 +1,61 @@
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_common-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_core-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_features-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_tabular-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+=== IMPORT OK ===
+VALIDATION: is_valid=True, errors=[], warnings=0
+  details keys: ['artifacts_dir', 'model_version', 'best_model_name', 'feature_contract_version', 'numerical_features', 'categorical_features', 'manifest_artifacts', 'digest_model_pkl', 'digest_preprocessor_pkl', 'digest_feature_metadata_json', 'digest_model_metadata_json', 'manifest_present']
+LOAD: model=XGBClassifier, preprocessor=ColumnTransformer
+  model_version=10001
+
+=== PREDICT_SINGLE ===
+  prediction=0, class_label=Not Fraud
+  fraud_prob=0.0017, legit_prob=0.9983
+  model_version=10001
+  risk_level=Minimal
+  summary=该笔交易欺诈风险极低（欺诈概率 0.2%），风险等级：Minimal。...
+  top_contributors count=0
+
+=== PREDICT_BATCH ===
+  total=3, fraud=0, legit=3, fraud_rate=0.0000
+  [0] prediction=0, fraud_prob=0.0017
+  [1] prediction=0, fraud_prob=0.0010
+  [2] prediction=0, fraud_prob=0.0027
+
+=== LEGACY API COMPAT ===
+  predict() shape=(1,), value=[0]
+  predict_proba() shape=(1, 2)
+
+=== ALL CHECKS PASSED ===

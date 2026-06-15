@@ -12,9 +12,10 @@ from sklearn.ensemble import (
 
 from sklearn.metrics import precision_score, recall_score, f1_score
 
+from aml_fraud_detector.artifact_registry import ArtifactRegistry
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import save_object, upsampling_train_data, evaluate_models
+from aml_fraud_detector.utils.main_utils import upsampling_train_data, evaluate_models
 from aml_fraud_detector.configuration import TrainingConfig
 
 
@@ -24,11 +25,6 @@ MODEL_REGISTRY: Dict[str, Any] = {
     "GradientBoosting": (GradientBoostingClassifier, "Gradient Boosting"),
     "XGBoost": (XGBClassifier, "XGBoost"),
 }
-
-
-@dataclass
-class ModelTrainerConfig:
-    trained_model_file_path: str
 
 
 @dataclass
@@ -45,18 +41,19 @@ class ModelTrainerArtifact:
 
 
 class ModelTrainer:
-    def __init__(self, training_config: Optional[TrainingConfig] = None):
+    def __init__(
+        self,
+        training_config: Optional[TrainingConfig] = None,
+        registry: Optional[ArtifactRegistry] = None,
+    ):
         self.training_config = training_config or TrainingConfig()
+        self.registry = registry
         self._resolved = self.training_config.to_resolved_dict()
-        tc = self.training_config
-        self.model_trainer_config = ModelTrainerConfig(
-            trained_model_file_path=tc.artifacts_subpath("model.pkl")
-        )
         logging.info(
             f"ModelTrainer initialized with resolved config: "
             f"enabled={self._resolved['models']['enabled_display_names']}, "
             f"metric={self._resolved['models']['selection_metric']}, "
-            f"model_out={self._resolved['output']['model_pkl']}"
+            f"model_out={self.registry.path('model_pkl') if self.registry else self._resolved['output']['model_pkl']}"
         )
 
     def _build_candidate_models(self) -> Dict[str, Dict[str, Any]]:
@@ -163,10 +160,7 @@ class ModelTrainer:
             except Exception:
                 pass
 
-            save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
-                obj=best_model
-            )
+            model_path = self._save_model(best_model)
 
             predicted = best_model.predict(X_test)
             recall_Score = recall_score(y_test, predicted, average='weighted')
@@ -189,11 +183,17 @@ class ModelTrainer:
                 selection_metric=selection_metric,
                 candidate_models=[display_map[k] for k in candidate_keys],
                 all_model_metrics=all_model_metrics,
-                model_path=os.path.abspath(
-                    self.model_trainer_config.trained_model_file_path
-                ),
+                model_path=model_path,
             )
 
         except Exception as e:
             logging.info("Exception occurred at Model Training")
             raise CustomerException(e, sys)
+
+    def _save_model(self, model) -> str:
+        if self.registry:
+            return self.registry.save_object("model_pkl", model)
+        from aml_fraud_detector.utils.main_utils import save_object
+        file_path = self.training_config.artifacts_subpath("model.pkl")
+        save_object(file_path=file_path, obj=model)
+        return os.path.abspath(file_path)

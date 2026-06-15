@@ -12,15 +12,10 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler, OneHotEncoder, OrdinalEncoder
 from category_encoders import TargetEncoder, CountEncoder
 
+from aml_fraud_detector.artifact_registry import ArtifactRegistry
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import save_object
 from aml_fraud_detector.configuration import TrainingConfig
-
-
-@dataclass
-class DataTransformationConfig:
-    preprocessor_obj_file_path: str
 
 
 @dataclass
@@ -35,24 +30,22 @@ class DataTransformationArtifact:
 
 
 class DataTransformation:
-    def __init__(self, training_config: Optional[TrainingConfig] = None):
+    def __init__(
+        self,
+        training_config: Optional[TrainingConfig] = None,
+        registry: Optional[ArtifactRegistry] = None,
+    ):
         self.training_config = training_config or TrainingConfig()
+        self.registry = registry
         self._resolved = self.training_config.to_resolved_dict()
-        tc = self.training_config
-        self.data_transformation_config = DataTransformationConfig(
-            preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl")
-        )
         logging.info(
             f"DataTransformation initialized with resolved config: "
             f"target={self._resolved['features']['target_column']}, "
             f"drop={self._resolved['features']['drop_columns']}, "
-            f"preprocessor_out={self._resolved['output']['preprocessor_pkl']}"
+            f"preprocessor_out={self.registry.path('preprocessor_pkl') if self.registry else self._resolved['output']['preprocessor_pkl']}"
         )
 
     def get_data_transformer_object(self, numerical_columns, categorical_columns):
-        """
-        This function is responsible for data transformation
-        """
         try:
             num_transformer = make_pipeline(
                 SimpleImputer(strategy='median'),
@@ -167,10 +160,7 @@ class DataTransformation:
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
 
-            save_object(
-                file_path=self.data_transformation_config.preprocessor_obj_file_path,
-                obj=preprocessing_obj
-            )
+            preprocessor_path = self._save_preprocessor(preprocessing_obj)
             logging.info("Saved data preprocessing object")
 
             return DataTransformationArtifact(
@@ -180,10 +170,16 @@ class DataTransformation:
                 numerical_features=numerical_features,
                 categorical_features=categorical_features,
                 target_column=target_column_name,
-                preprocessor_path=os.path.abspath(
-                    self.data_transformation_config.preprocessor_obj_file_path
-                ),
+                preprocessor_path=preprocessor_path,
             )
 
         except Exception as e:
             raise CustomerException(e, sys)
+
+    def _save_preprocessor(self, preprocessing_obj) -> str:
+        if self.registry:
+            return self.registry.save_object("preprocessor_pkl", preprocessing_obj)
+        from aml_fraud_detector.utils.main_utils import save_object
+        file_path = self.training_config.artifacts_subpath("preprocessor.pkl")
+        save_object(file_path=file_path, obj=preprocessing_obj)
+        return os.path.abspath(file_path)

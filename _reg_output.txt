@@ -1,0 +1,105 @@
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_common-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_core-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_features-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /Users/pkcha/.local/lib/python3.13/site-packages/autogluon_tabular-1.5.1b20260503-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 207, in addpackage
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 810, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+======================================================================
+STEP 1: Syntax & Import Checks
+======================================================================
+  [OK] All imports work, legacy aliases point to new classes
+  [OK] REQUIRED_INPUT_FIELDS = ['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+  [OK] FOUR_ARTIFACT_FILENAMES = ['model.pkl', 'preprocessor.pkl', 'feature_metadata.json', 'model_metadata.json']
+  [OK] PROCESS_STATUS_SUCCESS = success, PROCESS_STATUS_ERROR = error
+
+======================================================================
+STEP 2: ArtifactValidator — only 4-file check, no manifest digest
+======================================================================
+  is_valid=True, errors=[], warnings=[]
+  details.checked_artifacts = ['model.pkl', 'preprocessor.pkl', 'feature_metadata.json', 'model_metadata.json']
+  [OK] Only 4 files checked, no manifest digest logic present
+
+======================================================================
+STEP 3: SchemaAligner — no baseline backfill
+======================================================================
+  Input cols: ['from_bank', 'account', 'to_bank', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+  Output cols: ['from_bank', 'account', 'to_bank', 'account_1', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+  [OK] SchemaAligner does NOT backfill missing columns (no baseline injection)
+
+======================================================================
+STEP 4: RiskExplainer — no new heuristic rules
+======================================================================
+  exp.fraud_probability=0.82
+  exp.risk_level=Critical
+  exp.top_factors=[]
+  [OK] RiskExplainer uses top_factors, no heuristic rules, no summary_text
+
+======================================================================
+STEP 5: BatchAssembler — flat output with process_status/error_reason
+======================================================================
+  total=3, fraud=1, rate=0.3333
+  [0] prediction=0, class=Not Fraud, status=success, error=None
+  [1] prediction=1, class=Fraud, status=success, error=None
+  [2] prediction=0, class=Not Fraud, status=success, error=None
+  error_result: status=error, reason=test failure, prediction=-1
+  Flat DataFrame columns: ['prediction', 'fraud_probability', 'legit_probability', 'class_label', 'process_status', 'error_reason', 'model_version', 'transaction_id', 'risk_level', 'top_factors']
+  [OK] Flat output has process_status, error_reason, top_factors
+
+======================================================================
+STEP 6: PredictionResult — risk_explanation.top_factors path
+======================================================================
+  [OK] PredictionResult uses risk_explanation.top_factors
+
+======================================================================
+STEP 7: Legacy API backward compat — predict() / predict_proba()
+======================================================================
+  legacy predict() -> shape=(1,), value=[0]
+  legacy predict_proba() -> shape=(1, 2)
+  [OK] Legacy API returns np.ndarray with correct shapes
+
+======================================================================
+STEP 8: predict_single — error handling returns error_reason in result
+======================================================================
+  result.prediction=-1, status=error, error=Input dict missing required field: 'account'
+  [OK] predict_single catches errors and returns process_status=error with error_reason
+
+======================================================================
+STEP 9: Full predict_batch with explain — verify flat output shape
+======================================================================
+  Flat output shape: (3, 10)
+  Flat output columns: ['prediction', 'fraud_probability', 'legit_probability', 'class_label', 'process_status', 'error_reason', 'model_version', 'transaction_id', 'risk_level', 'top_factors']
+  [OK] Flat output preserves all required columns in order
+
+======================================================================
+ALL REGRESSION CHECKS PASSED
+======================================================================

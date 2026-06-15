@@ -1,0 +1,137 @@
+{
+  "dataset_shape": [
+    2000,
+    11
+  ],
+  "missing_values": [
+    {
+      "column": "Timestamp",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "From Bank",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Account",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "To Bank",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Account.1",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Amount Received",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Receiving Currency",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Amount Paid",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Payment Currency",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Payment Format",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "Is Laundering",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    }
+  ],
+  "critical_missing_columns": [],
+  "duplicates": {
+    "duplicate_row_count": 0,
+    "duplicate_row_ratio": 0.0,
+    "severity": "NONE",
+    "threshold_warning": 0.1
+  },
+  "abnormal_amounts": [],
+  "unknown_categories": [],
+  "time_parsing": [],
+  "target_distribution": {},
+  "risk_items": [],
+  "validation_config": {
+    "critical_feature_columns": [
+      "account",
+      "account_1",
+      "amount_received",
+      "payment_format"
+    ],
+    "categorical_columns": [],
+    "categorical_whitelist": {},
+    "amount_columns": [
+      "amount_received",
+      "amount_paid"
+    ],
+    "timestamp_columns": [
+      "timestamp"
+    ],
+    "thresholds": {
+      "missing_value_critical_ratio": 0.3,
+      "missing_value_warning_ratio": 0.1,
+      "unknown_category_critical_ratio": 0.05,
+      "unknown_category_warning_ratio": 0.01,
+      "duplicate_row_warning_ratio": 0.1,
+      "target_missing_critical_ratio": 0.0,
+      "target_expected_classes": 2,
+      "target_imbalance_critical_ratio": 0.01,
+      "target_imbalance_warning_ratio": 0.05
+    }
+  },
+  "generated_at": "2026-06-15T22:14:57.008001"
+}
