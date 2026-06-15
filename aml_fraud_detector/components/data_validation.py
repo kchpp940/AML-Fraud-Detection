@@ -106,6 +106,7 @@ class DataQualityReport:
     time_parsing: List[Dict[str, Any]] = field(default_factory=list)
     target_distribution: Dict[str, Any] = field(default_factory=dict)
     risk_items: List[Dict[str, str]] = field(default_factory=list)
+    validation_config: Dict[str, Any] = field(default_factory=dict)
 
 
 AMOUNT_COLUMNS = [
@@ -150,10 +151,15 @@ class DataValidation:
             col: set(vals)
             for col, vals in self.validation_cfg.categorical_whitelist.items()
         }
+        configured_columns = list(self.validation_cfg.categorical_columns) + list(
+            self.categorical_whitelist.keys()
+        )
+        self.categorical_check_columns: List[str] = list(dict.fromkeys(configured_columns))
         logging.info(
             f"DataValidation initialized: target={self.target_column}, "
             f"report_path={self.report_path}, "
-            f"whitelist_columns={list(self.categorical_whitelist.keys())}"
+            f"whitelist_columns={list(self.categorical_whitelist.keys())}, "
+            f"categorical_check_columns={self.categorical_check_columns}"
         )
 
     def _check_missing_values(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
@@ -224,23 +230,45 @@ class DataValidation:
         return results
 
     def _check_unknown_categories(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
-        logging.info("Checking unknown categories against whitelist...")
+        logging.info(
+            "Checking unknown categories against whitelist "
+            f"({len(self.categorical_check_columns)} configured column(s))..."
+        )
         results: List[Dict[str, Any]] = []
         total_rows = len(df)
-        for col in self.validation_cfg.categorical_columns:
+        for col in self.categorical_check_columns:
             if col not in df.columns:
+                results.append({
+                    "column": col,
+                    "skipped": True,
+                    "reason": "column_not_in_dataset",
+                    "whitelist_defined": col in self.categorical_whitelist,
+                    "whitelist_count": len(self.categorical_whitelist.get(col, set())),
+                    "unique_count": 0,
+                    "unknown_values": [],
+                    "total_unknown_count": 0,
+                    "total_unknown_ratio": 0.0,
+                    "severity": SEVERITY_NONE,
+                    "threshold_critical": self.thresholds.unknown_category_critical_ratio,
+                    "threshold_warning": self.thresholds.unknown_category_warning_ratio,
+                })
                 continue
+
             whitelist = self.categorical_whitelist.get(col, set())
             series = df[col].dropna()
             series_str = series.astype(str).str.strip()
             value_counts = series_str.value_counts()
+            unique_count = int(value_counts.shape[0])
 
             if not whitelist:
                 results.append({
                     "column": col,
+                    "skipped": True,
+                    "reason": "no_reference",
                     "whitelist_defined": False,
                     "whitelist_count": 0,
-                    "unique_count": int(value_counts.shape[0]),
+                    "unique_count": unique_count,
+                    "sample_values": value_counts.index.tolist()[:10],
                     "unknown_values": [],
                     "total_unknown_count": 0,
                     "total_unknown_ratio": 0.0,
@@ -269,9 +297,11 @@ class DataValidation:
             )
             results.append({
                 "column": col,
+                "skipped": False,
+                "reason": "checked_against_whitelist",
                 "whitelist_defined": True,
                 "whitelist_count": len(whitelist),
-                "unique_count": int(value_counts.shape[0]),
+                "unique_count": unique_count,
                 "unknown_values": unknown_counts,
                 "total_unknown_count": total_unknown,
                 "total_unknown_ratio": round(total_unknown_ratio, 6),
@@ -551,6 +581,7 @@ class DataValidation:
                 time_parsing=time_parsing,
                 target_distribution=target_distribution,
                 risk_items=risk_items,
+                validation_config=self._resolved.get("validation", {}),
             )
 
             logging.info(

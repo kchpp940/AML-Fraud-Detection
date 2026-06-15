@@ -293,29 +293,8 @@ class TrainingConfig:
                 "param_grid": {},
             },
             "validation": {
-                "categorical_columns": [
-                    "payment_format", "payment_currency", "receiving_currency",
-                    "from_bank", "to_bank", "day",
-                ],
-                "categorical_whitelist": {
-                    "payment_format": ["ACH", "Credit Card", "Bitcoin", "Reinvestment", "Cash"],
-                    "payment_currency": [
-                        "US Dollar", "Euro", "Yuan", "Yen", "Australian Dollar",
-                        "Mexican Peso", "UK Pound", "Ruble", "Canadian Dollar",
-                        "Swiss Franc", "Brazil Real", "Saudi Riyal", "Indian Rupee",
-                        "Shekel", "Bitcoin",
-                    ],
-                    "receiving_currency": [
-                        "US Dollar", "Euro", "Yuan", "Yen", "Australian Dollar",
-                        "Mexican Peso", "UK Pound", "Ruble", "Canadian Dollar",
-                        "Swiss Franc", "Brazil Real", "Saudi Riyal", "Indian Rupee",
-                        "Shekel", "Bitcoin",
-                    ],
-                    "day": [
-                        "Monday", "Tuesday", "Wednesday", "Thursday",
-                        "Friday", "Saturday", "Sunday",
-                    ],
-                },
+                "categorical_columns": [],
+                "categorical_whitelist": {},
                 "thresholds": {
                     "missing_value_critical_ratio": 0.3,
                     "missing_value_warning_ratio": 0.1,
@@ -335,8 +314,14 @@ class TrainingConfig:
             try:
                 with open(schema_path, "r", encoding="utf-8") as f:
                     schema = yaml.safe_load(f) or {}
-                if "validation" in schema:
-                    _deep_merge(defaults, {"validation": schema["validation"]})
+                schema_validation = schema.get("validation", {})
+                if schema_validation:
+                    if "allowed_values" in schema_validation:
+                        schema_validation = dict(schema_validation)
+                        schema_validation["categorical_whitelist"] = (
+                            schema_validation.pop("allowed_values")
+                        )
+                    _deep_merge(defaults, {"validation": schema_validation})
                     logging.info(
                         f"Merged validation config from schema: {schema_path}"
                     )
