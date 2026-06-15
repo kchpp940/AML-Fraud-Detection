@@ -32,8 +32,6 @@ class RiskExplainer:
         self._feature_labels: Dict[str, str] = {}
         self._baseline_values: Dict[str, Any] = {}
         self._all_features: List[str] = []
-        self._baseline_df: Optional[pd.DataFrame] = None
-        self._baseline_pred_proba: Optional[np.ndarray] = None
         self._initialized = False
         if artifacts is not None:
             self.bind(artifacts)
@@ -56,26 +54,15 @@ class RiskExplainer:
                 RuntimeError("feature_metadata.json missing 'baseline_values' section required for marginal contribution calculation"),
                 sys,
             )
-
-        baseline_row = {f: self._baseline_values[f] for f in self._all_features}
-        self._baseline_df = pd.DataFrame([baseline_row])
-
-        try:
-            baseline_x = self._preprocessor.transform(self._baseline_df)
-            if hasattr(baseline_x, "toarray"):
-                baseline_x = baseline_x.toarray()
-            self._baseline_pred_proba = self._model.predict_proba(baseline_x)[0]
-        except Exception as e:
+        if not self._all_features:
             raise CustomerException(
-                RuntimeError(f"Failed to compute baseline prediction for RiskExplainer: {e}"),
+                RuntimeError("feature_metadata.json missing 'original_features' section required for marginal contribution calculation"),
                 sys,
             )
 
         self._initialized = True
         logging.info(
-            f"RiskExplainer bound: baseline_fraud_prob={self._baseline_pred_proba[self.FRAUD_CLASS_INDEX]:.4f}, "
-            f"features={self._all_features}"
-        )
+            f"RiskExplainer bound: baseline_values={self._baseline_values}, features={self._all_features}")
 
     def _ensure_initialized(self) -> None:
         if not self._initialized:
@@ -112,23 +99,22 @@ class RiskExplainer:
         return self._model.predict_proba(x)[0]
 
     def _compute_marginal_contributions(
-        self, row: pd.Series
-    ) -> List[Dict[str, Any]]:
-        baseline_fraud_prob = float(self._baseline_pred_proba[self.FRAUD_CLASS_INDEX])
+        self, row: pd.Series, full_fraud_prob: float) -> List[Dict[str, Any]]:
         contributions: List[Dict[str, Any]] = []
 
         for feature in self._all_features:
-            single_change_row = self._baseline_df.copy()
-            single_change_row.at[0, feature] = row[feature]
+            single_baseline_row = row.copy()
+            single_baseline_row[feature] = self._baseline_values[feature]
+            single_baseline_df = pd.DataFrame([single_baseline_row.to_dict()])
 
             try:
-                pred_proba = self._predict_row(single_change_row)
-                fraud_prob = float(pred_proba[self.FRAUD_CLASS_INDEX])
-                marginal_contribution = fraud_prob - baseline_fraud_prob
+                pred_proba = self._predict_row(single_baseline_df)
+                single_baseline_fraud_prob = float(pred_proba[self.FRAUD_CLASS_INDEX])
             except Exception as e:
-                logging.warning(f"Failed to compute marginal contribution for {feature}: {e}")
-                marginal_contribution = 0.0
-                fraud_prob = baseline_fraud_prob
+                logging.warning(f"Failed to compute baseline prediction when replacing '{feature}' with baseline: {e}")
+                single_baseline_fraud_prob = full_fraud_prob
+
+            marginal_contribution = full_fraud_prob - single_baseline_fraud_prob
 
             impact = self._impact_label(abs(marginal_contribution))
             contribution_pct = round(abs(marginal_contribution) * 100, 2)
@@ -139,8 +125,8 @@ class RiskExplainer:
                     "display_name": self._feature_display_name(feature),
                     "value": row[feature],
                     "baseline_value": self._baseline_values[feature],
-                    "fraud_prob_with_feature": fraud_prob,
-                    "baseline_fraud_prob": baseline_fraud_prob,
+                    "original_fraud_prob": full_fraud_prob,
+                    "baseline_fraud_prob": single_baseline_fraud_prob,
                     "marginal_contribution": marginal_contribution,
                     "contribution_pct": contribution_pct,
                     "impact": impact,
@@ -152,12 +138,11 @@ class RiskExplainer:
         return contributions
 
     def explain_from_row(
-        self, row: pd.Series, fraud_probability: float, prediction: int
-    ) -> RiskExplanation:
+        self, row: pd.Series, fraud_probability: float, prediction: int) -> RiskExplanation:
         self._ensure_initialized()
         try:
             risk_level = self._risk_level(fraud_probability)
-            all_contributions = self._compute_marginal_contributions(row)
+            all_contributions = self._compute_marginal_contributions(row, fraud_probability)
 
             top_factors = []
             total_abs = sum(abs(c["marginal_contribution"]) for c in all_contributions)
@@ -203,8 +188,7 @@ class RiskExplainer:
             if proba.ndim != 2 or proba.shape[0] != n:
                 raise CustomerException(
                     ValueError(
-                        f"Shape mismatch: predictions={preds.shape}, proba={proba.shape}"
-                    ),
+                        f"Shape mismatch: predictions={preds.shape}, proba={proba.shape}"),
                     sys,
                 )
             explanations: List[RiskExplanation] = []
@@ -214,7 +198,7 @@ class RiskExplainer:
                 explanations.append(
                     self.explain_from_row(row, fraud_prob, int(preds[i]))
                 )
-            logging.info(f"RiskExplainer generated {n} explanation(s) using marginal contributions")
+            logging.info(f"RiskExplainer generated {n} explanation(s) using full-baseline marginal contributions")
             return explanations
         except CustomerException:
             raise

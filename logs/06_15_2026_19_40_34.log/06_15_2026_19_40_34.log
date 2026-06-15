@@ -1,0 +1,5 @@
+[ 2026-06-15 19:40:36,204] 64 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 19:40:36,204] 156 root - INFO - Validating artifacts in: artifacts
+[ 2026-06-15 19:40:36,211] 193 root - INFO - Artifact validation passed
+[ 2026-06-15 19:40:36,439] 93 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 19:40:36,440] 64 root - INFO - RiskExplainer bound: baseline_values={'amount_received': 711.315, 'account': 'ACC_00182', 'account_1': 'ACC2_00086', 'payment_format': 'Reinvestment', 'day': 'Sunday'}, features=['amount_received', 'account', 'account_1', 'payment_format', 'day']
