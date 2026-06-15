@@ -5,17 +5,33 @@ import pandas as pd
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import load_object, load_model_metadata
+from aml_fraud_detector.utils.main_utils import load_object, validate_artifacts
 
 
 class PredictionPipeline:
-    def __init__(self):
-        self.model_metadata = load_model_metadata()
+    def __init__(self, artifacts_dir: str = "artifacts"):
+        self.artifacts_dir = artifacts_dir
+        validation = validate_artifacts(artifacts_dir)
+        self.validation_ok: bool = validation["ok"]
+        self.validation_warnings = validation["warnings"]
+        self.validation_errors = validation["errors"]
+        self.model_metadata = validation["metadata"]
+        self.artifact_manifest = validation["manifest"]
+        if not self.validation_ok:
+            logging.warning(
+                f"PredictionPipeline artifact validation FAILED: "
+                f"errors={self.validation_errors}, warnings={self.validation_warnings}"
+            )
+        else:
+            logging.info(
+                "PredictionPipeline artifact validation passed, "
+                f"model version={self.model_metadata.get('model_version')}"
+            )
 
     def predict(self, features):
         try: 
-            model_path = os.path.join("artifacts", "model.pkl")
-            preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
+            model_path = os.path.join(self.artifacts_dir, "model.pkl")
+            preprocessor_path = os.path.join(self.artifacts_dir, "preprocessor.pkl")
             model = load_object(file_path=model_path)
             preprocessor = load_object(file_path=preprocessor_path)
             data_scaled = preprocessor.transform(features)
@@ -26,8 +42,8 @@ class PredictionPipeline:
         
     def predict_proba(self, features):
         try: 
-            model_path = os.path.join("artifacts", "model.pkl")
-            preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
+            model_path = os.path.join(self.artifacts_dir, "model.pkl")
+            preprocessor_path = os.path.join(self.artifacts_dir, "preprocessor.pkl")
             model = load_object(file_path=model_path)
             preprocessor = load_object(file_path=preprocessor_path)
             data_scaled = preprocessor.transform(features)

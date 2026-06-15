@@ -1,0 +1,7 @@
+[ 2026-06-15 18:24:23,600] 111 root - INFO - Model metadata saved to: artifacts/model_metadata.json (version=2)
+[ 2026-06-15 18:24:23,602] 186 root - INFO - Artifact manifest saved to: artifacts/artifact_manifest.json
+[ 2026-06-15 18:24:23,609] 26 root - INFO - PredictionPipeline artifact validation passed, model version=2
+[ 2026-06-15 18:24:23,617] 316 root - ERROR - Artifact validation error: model_metadata.json digest mismatch: manifest=sha256:87c1656fc1c20daa4b27b0c47e124ab445ff8f376a2c5f405ad40a875952faf0 actual=sha256:128b1e740d9975f8311729124909794c483002c5ce000c85648b153b3331c19c
+[ 2026-06-15 18:24:23,617] 318 root - WARNING - Artifact validation warning: model_metadata.json size differs from manifest: manifest=860 actual=739
+[ 2026-06-15 18:24:23,619] 111 root - INFO - Model metadata saved to: artifacts/model_metadata.json (version=10000)
+[ 2026-06-15 18:24:23,623] 186 root - INFO - Artifact manifest saved to: artifacts/artifact_manifest.json

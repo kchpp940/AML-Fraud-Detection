@@ -1,9 +1,20 @@
 from flask import Flask, request, render_template, jsonify
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
-from aml_fraud_detector.utils.main_utils import load_model_metadata
 
 application = Flask(__name__)
 app = application
+
+_PREDICTION_PIPELINE = PredictionPipeline()
+
+
+def _model_context():
+    return {
+        "model_metadata": _PREDICTION_PIPELINE.model_metadata,
+        "validation_ok": _PREDICTION_PIPELINE.validation_ok,
+        "validation_warnings": _PREDICTION_PIPELINE.validation_warnings,
+        "validation_errors": _PREDICTION_PIPELINE.validation_errors,
+    }
+
 
 @app.route("/")
 def index():
@@ -11,14 +22,19 @@ def index():
 
 @app.route("/model-info")
 def model_info():
-    metadata = load_model_metadata()
-    return jsonify(metadata)
+    ctx = _model_context()
+    return jsonify({
+        "validation_ok": ctx["validation_ok"],
+        "validation_warnings": ctx["validation_warnings"],
+        "validation_errors": ctx["validation_errors"],
+        "metadata": ctx["model_metadata"],
+    })
 
 @app.route("/predictdata", methods=["GET", "POST"])
 def predict_datapoint():
+    ctx = _model_context()
     if request.method == "GET":
-        metadata = load_model_metadata()
-        return render_template("home.html", model_metadata=metadata)
+        return render_template("home.html", results=None, **ctx)
     else:
         data = CustomData(
             from_bank = request.form.get("from_bank"),
@@ -33,9 +49,8 @@ def predict_datapoint():
         pred_df = data.get_data_as_DataFrame()
         print(pred_df)
 
-        predict_pipeline = PredictionPipeline()
-        results = predict_pipeline.predict(pred_df)
-        return render_template("home.html", results=results[0], model_metadata=predict_pipeline.model_metadata)
+        results = _PREDICTION_PIPELINE.predict(pred_df)
+        return render_template("home.html", results=results[0], **ctx)
     
     
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from dataclasses import asdict
 from datetime import datetime
+from typing import List, Optional
 
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.exception import CustomerException
@@ -130,6 +131,199 @@ def load_model_metadata(artifacts_dir: str = "artifacts") -> dict:
     except Exception as e:
         logging.warning(f"Failed to load model_metadata.json: {e}")
         return {}
+
+
+ARTIFACT_MANIFEST_FILENAME = "artifact_manifest.json"
+
+MANIFEST_ARTIFACT_KEYS = (
+    "model_pkl",
+    "preprocessor_pkl",
+    "feature_metadata_json",
+    "model_metadata_json",
+)
+
+
+def _artifact_stat(file_path: str) -> Optional[dict]:
+    if not os.path.isfile(file_path):
+        return None
+    try:
+        st = os.stat(file_path)
+        return {
+            "path": os.path.abspath(file_path),
+            "size": st.st_size,
+            "mtime_iso": datetime.fromtimestamp(st.st_mtime).isoformat(),
+            "digest": _compute_file_digest(file_path),
+        }
+    except Exception:
+        return None
+
+
+def save_artifact_manifest(artifacts_dir: str) -> str:
+    try:
+        os.makedirs(artifacts_dir, exist_ok=True)
+        manifest = {
+            "generated_at": datetime.now().isoformat(),
+            "artifacts_dir": os.path.abspath(artifacts_dir),
+            "artifacts": {},
+        }
+        key_to_filename = {
+            "model_pkl": "model.pkl",
+            "preprocessor_pkl": "preprocessor.pkl",
+            "feature_metadata_json": "feature_metadata.json",
+            "model_metadata_json": "model_metadata.json",
+        }
+        for key, fname in key_to_filename.items():
+            fpath = os.path.join(artifacts_dir, fname)
+            stat = _artifact_stat(fpath)
+            if stat is None:
+                logging.warning(f"Artifact missing for manifest: {fpath}")
+                manifest["artifacts"][key] = {"path": os.path.abspath(fpath), "missing": True}
+            else:
+                manifest["artifacts"][key] = stat
+        out_path = os.path.join(artifacts_dir, ARTIFACT_MANIFEST_FILENAME)
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2, ensure_ascii=False, default=str)
+        logging.info(f"Artifact manifest saved to: {out_path}")
+        return os.path.abspath(out_path)
+    except Exception as e:
+        logging.info("Exception occurred in save_artifact_manifest")
+        raise CustomerException(e, sys)
+
+
+def load_artifact_manifest(artifacts_dir: str = "artifacts") -> dict:
+    try:
+        mpath = os.path.join(artifacts_dir, ARTIFACT_MANIFEST_FILENAME)
+        if not os.path.isfile(mpath):
+            return {}
+        with open(mpath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logging.warning(f"Failed to load artifact_manifest.json: {e}")
+        return {}
+
+
+def validate_artifacts(artifacts_dir: str = "artifacts") -> dict:
+    """
+    Validate the four core artifacts (model, preprocessor, feature_metadata,
+    model_metadata) against the manifest and against each other.
+
+    Returns a dict with:
+      - ok: bool
+      - warnings: list[str]
+      - errors: list[str]
+      - metadata: dict (model_metadata.json, only if fully valid; otherwise {})
+      - manifest: dict
+    """
+    warnings: List[str] = []
+    errors: List[str] = []
+    metadata: dict = {}
+    manifest = load_artifact_manifest(artifacts_dir)
+
+    if not manifest:
+        errors.append("artifact_manifest.json missing or unreadable in artifacts dir")
+        return {
+            "ok": False,
+            "warnings": warnings,
+            "errors": errors,
+            "metadata": {},
+            "manifest": {},
+        }
+
+    manifest_artifacts = manifest.get("artifacts", {})
+    key_to_filename = {
+        "model_pkl": "model.pkl",
+        "preprocessor_pkl": "preprocessor.pkl",
+        "feature_metadata_json": "feature_metadata.json",
+        "model_metadata_json": "model_metadata.json",
+    }
+
+    for key, fname in key_to_filename.items():
+        expected = manifest_artifacts.get(key)
+        fpath = os.path.join(artifacts_dir, fname)
+        actual = _artifact_stat(fpath)
+        if expected is None:
+            errors.append(f"manifest has no entry for {key}")
+            continue
+        if expected.get("missing"):
+            errors.append(f"manifest recorded {key} as missing at generation time")
+            continue
+        if actual is None:
+            errors.append(f"{fname} is missing on disk (expected at {expected.get('path')})")
+            continue
+        if actual["digest"] != expected.get("digest"):
+            errors.append(
+                f"{fname} digest mismatch: manifest={expected.get('digest')} "
+                f"actual={actual['digest']}"
+            )
+        if actual["size"] != expected.get("size"):
+            warnings.append(
+                f"{fname} size differs from manifest: "
+                f"manifest={expected.get('size')} actual={actual['size']}"
+            )
+
+    metadata_path = os.path.join(artifacts_dir, "model_metadata.json")
+    if os.path.isfile(metadata_path):
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+        except Exception as e:
+            errors.append(f"Failed to parse model_metadata.json: {e}")
+            metadata = {}
+    else:
+        errors.append("model_metadata.json missing on disk")
+        metadata = {}
+
+    if metadata:
+        model_pkl_path = os.path.abspath(os.path.join(artifacts_dir, "model.pkl"))
+        meta_artifact_path = metadata.get("artifact_path")
+        if meta_artifact_path and os.path.abspath(meta_artifact_path) != model_pkl_path:
+            errors.append(
+                f"model_metadata artifact_path mismatch: metadata says "
+                f"{meta_artifact_path}, disk has {model_pkl_path}"
+            )
+
+        data_file = metadata.get("data_file")
+        data_digest_meta = metadata.get("data_file_digest", "")
+        if data_file and os.path.isfile(data_file) and data_digest_meta:
+            actual_digest = _compute_file_digest(data_file)
+            if actual_digest != data_digest_meta:
+                warnings.append(
+                    f"Training data digest mismatch: metadata={data_digest_meta} "
+                    f"actual={actual_digest} (data_file={data_file})"
+                )
+
+        schema_version_meta = metadata.get("feature_schema_version", "")
+        feature_meta_path = os.path.join(artifacts_dir, "feature_metadata.json")
+        if os.path.isfile(feature_meta_path):
+            try:
+                with open(feature_meta_path, "r", encoding="utf-8") as f:
+                    feat_meta = json.load(f)
+                actual_schema = feat_meta.get("contract_version", "unknown")
+                if schema_version_meta and actual_schema != schema_version_meta:
+                    errors.append(
+                        f"Feature schema version mismatch: "
+                        f"model_metadata={schema_version_meta}, "
+                        f"feature_metadata={actual_schema}"
+                    )
+            except Exception as e:
+                warnings.append(f"Could not read feature_metadata.json for schema check: {e}")
+        else:
+            warnings.append("feature_metadata.json missing on disk; cannot verify schema version")
+
+    ok = len(errors) == 0
+    if not ok:
+        for err in errors:
+            logging.error(f"Artifact validation error: {err}")
+    for w in warnings:
+        logging.warning(f"Artifact validation warning: {w}")
+
+    return {
+        "ok": ok,
+        "warnings": warnings,
+        "errors": errors,
+        "metadata": metadata if ok else {},
+        "manifest": manifest,
+    }
 
 
 def save_object(file_path, obj):

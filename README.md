@@ -162,9 +162,11 @@ open up your local host and port
 
 ## Model Version Management
 
-Each training run automatically generates a `model_metadata.json` file in the artifacts directory, providing full traceability from training to deployment.
+Each training run automatically generates a `model_metadata.json` file and an `artifact_manifest.json` in the artifacts directory, providing full traceability and integrity validation from training to deployment.
 
-### Generated File: `artifacts/model_metadata.json`
+### Generated Files
+
+#### `artifacts/model_metadata.json`
 
 | Field | Description |
 |---|---|
@@ -172,7 +174,7 @@ Each training run automatically generates a `model_metadata.json` file in the ar
 | `training_time` | ISO 8601 timestamp of when training completed |
 | `data_file` | Absolute path of the source data file |
 | `data_file_digest` | SHA-256 hash of the source data file |
-| `feature_schema_version` | Version string from `feature_metadata.json` |
+| `feature_schema_version` | Version string from `feature_metadata.json` (`contract_version`) |
 | `best_model_name` | Name of the best-performing model |
 | `best_model_params` | Hyperparameters of the best model |
 | `selection_metric` | Metric used for model selection (e.g., Recall) |
@@ -180,19 +182,51 @@ Each training run automatically generates a `model_metadata.json` file in the ar
 | `all_model_metrics` | Precision / Recall / F1 for every candidate model |
 | `artifact_path` | Absolute path to the saved model artifact (`model.pkl`) |
 
+#### `artifacts/artifact_manifest.json`
+
+This manifest is the source of truth for artifact integrity. It records the path, size, mtime and SHA-256 digest of four core artifacts:
+
+| Key | File |
+|---|---|
+| `model_pkl` | `artifacts/model.pkl` |
+| `preprocessor_pkl` | `artifacts/preprocessor.pkl` |
+| `feature_metadata_json` | `artifacts/feature_metadata.json` |
+| `model_metadata_json` | `artifacts/model_metadata.json` (self-included) |
+
 ### How It Works
 
-1. **Training**: After the training pipeline finishes, `save_model_metadata()` is called. It computes a SHA-256 digest of the source data, reads the feature schema version, and auto-increments the model version.
-2. **Prediction**: `PredictionPipeline` loads `model_metadata.json` at startup and stores it as `self.model_metadata`.
-3. **Web UI**: Both Flask (`/model-info` API and prediction page) and Streamlit display the current model version, best model name, selection metric, and all model metrics.
+1. **Training**: After the training pipeline finishes, `save_model_metadata()` writes `model_metadata.json`, then `save_artifact_manifest()` captures digests for all four core artifacts into `artifact_manifest.json`. Both paths are recorded in the `TrainingSummary` and the resolved config output.
+2. **Prediction Startup**: `PredictionPipeline.__init__()` calls `validate_artifacts()`, which runs the following checks:
+   - Each of the four artifacts exists on disk and its SHA-256 digest matches the manifest
+   - `model_metadata.artifact_path` resolves to the same file as `artifacts/model.pkl`
+   - `model_metadata.data_file_digest` matches a fresh digest of the training data (data file still accessible)
+   - `model_metadata.feature_schema_version` matches `feature_metadata.json.contract_version`
+   - On any **error**, `validation_ok = False`, `model_metadata` is cleared (the old metadata is never silently shown) and all errors/warnings are exposed on the pipeline
+3. **Web UI**: Flask and Streamlit only display model version info when `validation_ok` is true. Otherwise a prominent red banner lists every validation failure, instructing the operator to re-run training. Flask additionally exposes `GET /model-info` returning `{validation_ok, validation_errors, validation_warnings, metadata}`.
 
-### Deployment
+### Deployment Checklist
 
-When deploying, ensure the `artifacts/` directory (including `model_metadata.json`) is copied alongside `model.pkl` and `preprocessor.pkl`. The web services read this file at startup to show which model is currently loaded.
+Before going live, make sure the `artifacts/` directory ships with **all** of:
+
+```
+artifacts/
+├── artifact_manifest.json   ← integrity source of truth
+├── model_metadata.json      ← version & metrics
+├── model.pkl                ← trained model
+├── preprocessor.pkl         ← feature preprocessor
+└── feature_metadata.json    ← feature schema
+```
+
+If any of these files is missing, replaced by an older version, or modified on disk, `PredictionPipeline` will reject the metadata and surface the mismatch on the web UI.
 
 ### Troubleshooting
 
-- **"model_metadata.json not found"** warning: The prediction service can still run without it, but model version info will not be displayed. Re-run the training pipeline to generate the file.
+- **"MODEL ARTIFACT VALIDATION FAILED" on web UI**: Inspect the error list shown. The most common causes are:
+  - `artifact_manifest.json missing or unreadable` — the manifest was not shipped with the model. Re-run training or copy the file from the training artifacts.
+  - `<file> digest mismatch` — the file on disk differs from what was recorded at training time (wrong version, partial copy, corruption). Re-deploy the exact artifact set produced by the latest training run.
+  - `model_metadata artifact_path mismatch` — `model_metadata.json` points to a different `model.pkl` than the one on disk.
+  - `Feature schema version mismatch` — `feature_metadata.json.contract_version` no longer matches the value recorded in `model_metadata.json`.
+- **Warnings instead of errors**: These are non-blocking (e.g., training data no longer accessible so digest can't be re-verified, or size-only drift) but should still be investigated.
 - **Version not incrementing**: Delete `artifacts/model_metadata.json` and retrain. The version starts from 1 if the file does not exist.
 - **Data digest mismatch**: Compare the `data_file_digest` field with a fresh hash of the data file to verify the deployed model was trained on the expected dataset:
   ```bash
@@ -201,6 +235,16 @@ When deploying, ensure the `artifacts/` directory (including `model_metadata.jso
   h = hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()
   print(f'sha256:{h}')
   " <path_to_csv>
+  ```
+- **Programmatic validation check**:
+  ```bash
+  python -c "
+  from aml_fraud_detector.pipeline.prediction_pipeline import PredictionPipeline
+  p = PredictionPipeline()
+  print('OK' if p.validation_ok else 'FAILED')
+  print('errors:', p.validation_errors)
+  print('warnings:', p.validation_warnings)
+  "
   ```
 
 ## Web Interfaces

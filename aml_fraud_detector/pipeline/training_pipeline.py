@@ -12,7 +12,7 @@ from aml_fraud_detector.components.model_trainer import ModelTrainer
 from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
-from aml_fraud_detector.utils.main_utils import save_training_summary, save_model_metadata
+from aml_fraud_detector.utils.main_utils import save_training_summary, save_model_metadata, save_artifact_manifest
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
@@ -108,6 +108,10 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         )
         summary.model_metadata_path = metadata_path
 
+        summary.artifact_manifest_path = save_artifact_manifest(
+            artifacts_dir=summary.artifacts_dir,
+        )
+
         logging.info("=" * 72)
         logging.info("Training pipeline completed successfully")
         logging.info("=" * 72)
@@ -142,6 +146,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
         print(f"Metadata saved     : {summary.model_metadata_path}")
+        print(f"Manifest saved     : {summary.artifact_manifest_path}")
         print("=" * 72 + "\n")
 
         return summary

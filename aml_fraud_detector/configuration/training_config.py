@@ -150,6 +150,7 @@ class TrainingSummary:
     artifacts_dir: str = ""
     summary_path: str = ""
     model_metadata_path: str = ""
+    artifact_manifest_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -360,6 +361,7 @@ class TrainingConfig:
                 "model_pkl": os.path.abspath(self.artifacts_subpath("model.pkl")),
                 "summary_json": os.path.abspath(self.artifacts_subpath("training_summary.json")),
                 "model_metadata_json": os.path.abspath(self.artifacts_subpath("model_metadata.json")),
+                "artifact_manifest_json": os.path.abspath(self.artifacts_subpath("artifact_manifest.json")),
             },
         }
         self._resolved_cache = snapshot

@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-06-15T18:24:23.619781",
+  "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
+  "artifacts": {
+    "model_pkl": {
+      "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
+      "size": 475535,
+      "mtime_iso": "2026-06-15T16:05:44.702586",
+      "digest": "sha256:159bbc4426a0e1ba82f069cace413e6fc1a037f05977f996e4c6b5859b352e53"
+    },
+    "preprocessor_pkl": {
+      "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
+      "size": 22506,
+      "mtime_iso": "2026-06-15T16:05:36.575298",
+      "digest": "sha256:c0028daad5739e944138f1704185efc34d0adecf652b510ce4d5f3282651063e"
+    },
+    "feature_metadata_json": {
+      "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
+      "size": 2294,
+      "mtime_iso": "2026-06-15T15:16:08.677893",
+      "digest": "sha256:cfda24031e26bc6cf86653ae33bcb1b587953d7f3fe10ee28b76e79f1527a28c"
+    },
+    "model_metadata_json": {
+      "path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model_metadata.json",
+      "size": 665,
+      "mtime_iso": "2026-06-15T18:24:23.619329",
+      "digest": "sha256:9c7a9a238124917e9431dd127994690ffb87be93e7bb7ebaee7117b5c62bc36a"
+    }
+  }
+}

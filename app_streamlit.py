@@ -1,7 +1,6 @@
 import streamlit as st
 import dill
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
-from aml_fraud_detector.utils.main_utils import load_model_metadata
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 import pandas as pd
@@ -19,8 +18,35 @@ def main():
     )
     st.write("---")
 
-    model_metadata = load_model_metadata()
-    if model_metadata:
+    predict_pipeline = PredictionPipeline()
+    validation_ok = predict_pipeline.validation_ok
+    validation_errors = predict_pipeline.validation_errors
+    validation_warnings = predict_pipeline.validation_warnings
+    model_metadata = predict_pipeline.model_metadata
+
+    if not validation_ok:
+        st.error(
+            "**MODEL ARTIFACT VALIDATION FAILED**\n\n"
+            "Model version info cannot be trusted because the deployed artifacts "
+            "failed integrity checks. Do not rely on predictions until this is resolved. "
+            "Re-run the training pipeline to regenerate artifacts and manifest."
+        )
+        if validation_errors:
+            with st.expander("Validation Errors", expanded=True):
+                for err in validation_errors:
+                    st.write(f"- {err}")
+        if validation_warnings:
+            with st.expander("Validation Warnings"):
+                for w in validation_warnings:
+                    st.write(f"- {w}")
+        st.write("---")
+    elif validation_warnings:
+        st.warning("**Model Artifact Validation Warnings:**")
+        for w in validation_warnings:
+            st.write(f"- {w}")
+        st.write("---")
+
+    if validation_ok and model_metadata:
         st.subheader(f"Model Version: v{model_metadata.get('model_version', 'N/A')}")
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -73,21 +99,16 @@ def main():
 
     df = user_input_features()
 
-    # Display Input Parameters
     st.header("Specified Input Parameters")
     st.dataframe(df)
     st.write("---")
 
-    # Prediction Section
     st.header("Prediction Results")
-    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        # Make Prediction
         prediction = predict_pipeline.predict(df)
         prediction_proba = predict_pipeline.predict_proba(df)
 
-        # Display Prediction
         st.subheader("Fraud Detector Class Labels")
         class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
         class_labels_df.index = ["Class Labels"]
@@ -103,7 +124,6 @@ def main():
         proba_df = pd.DataFrame(prediction_proba, columns=["Not Fraud", "Fraud"])
         st.dataframe(proba_df)
 
-        # Visualize Prediction Probabilities
         st.subheader("Prediction Probability Distribution")
         fig, ax = plt.subplots()
         ax.bar(proba_df.columns, proba_df.iloc[0], color=["green", "red"])

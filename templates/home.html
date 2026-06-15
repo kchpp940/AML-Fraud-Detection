@@ -14,13 +14,65 @@
         .model-info table { border-collapse: collapse; }
         .model-info td { padding: 2px 10px 2px 0; }
         .model-info td:first-child { font-weight: bold; color: #34495e; }
+        .alert {
+            border-radius: 6px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .alert-error {
+            background: #fdecea;
+            border: 1px solid #e74c3c;
+            color: #922b21;
+        }
+        .alert-warning {
+            background: #fef9e7;
+            border: 1px solid #f39c12;
+            color: #7d6608;
+        }
+        .alert h3 { margin: 0 0 8px 0; font-size: 15px; }
+        .alert ul { margin: 4px 0 0 20px; padding: 0; }
     </style>
 </head>
 <body>
     <div class="login">
        <h1>Money Laundary Detector</h1>
 
-       {% if model_metadata %}
+       {% if not validation_ok %}
+       <div class="alert alert-error">
+           <h3>&#9888; MODEL ARTIFACT VALIDATION FAILED</h3>
+           <p>Model version info cannot be trusted because the deployed artifacts failed integrity checks. Do not rely on predictions until this is resolved.</p>
+           {% if validation_errors %}
+           <b>Errors:</b>
+           <ul>
+               {% for err in validation_errors %}
+               <li>{{ err }}</li>
+               {% endfor %}
+           </ul>
+           {% endif %}
+           {% if validation_warnings %}
+           <b>Warnings:</b>
+           <ul>
+               {% for w in validation_warnings %}
+               <li>{{ w }}</li>
+               {% endfor %}
+           </ul>
+           {% endif %}
+           <p><i>Resolution: re-run the training pipeline to regenerate artifacts and manifest.</i></p>
+       </div>
+       {% elif validation_warnings %}
+       <div class="alert alert-warning">
+           <h3>&#9888; Model Artifact Validation Warnings</h3>
+           <ul>
+               {% for w in validation_warnings %}
+               <li>{{ w }}</li>
+               {% endfor %}
+           </ul>
+       </div>
+       {% endif %}
+
+       {% if validation_ok and model_metadata %}
        <div class="model-info">
            <h3>Model Version: v{{ model_metadata.get('model_version', 'N/A') }}</h3>
            <table>
@@ -87,8 +139,10 @@
         <div style="clear:both;"></div>
             <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
     </form>
+    {% if results is not none %}
     <h2>
        The prediction is {{results}}
     </h2>
+    {% endif %}
    <body>
 </html>
