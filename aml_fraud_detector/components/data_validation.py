@@ -62,6 +62,11 @@ class TargetDistributionDetail:
 
 
 @dataclass
+class DataValidationArtifact:
+    quality_report_path: str
+
+
+@dataclass
 class DataQualityReport:
     generated_at: str = ""
     dataset_shape: List[int] = field(default_factory=list)
@@ -366,12 +371,39 @@ class DataValidation:
         except Exception as e:
             raise CustomerException(e, sys)
 
-    def initiate_data_validation(self, df: pd.DataFrame) -> DataQualityReport:
+    def initiate_data_validation(
+        self, data_path: Optional[str] = None
+    ) -> DataValidationArtifact:
         logging.info("Entered the 'data validation' method or component")
-        report = self.generate_report(df)
-        self.save_report(report)
-        self._log_risk_summary(report)
-        return report
+        try:
+            resolved_path = data_path or self.training_config.resolve_source_path()
+            if not os.path.isfile(resolved_path):
+                raise CustomerException(
+                    FileNotFoundError(
+                        f"Data file not found for validation: {resolved_path}"
+                    ),
+                    sys,
+                )
+            logging.info(
+                f"Reading full dataset for validation from: {resolved_path}"
+            )
+            df = pd.read_csv(resolved_path)
+            logging.info(
+                f"Loaded full dataset for quality validation: shape={df.shape}"
+            )
+
+            report = self.generate_report(df)
+            abs_report_path = self.save_report(report)
+            self._log_risk_summary(report)
+
+            artifact = DataValidationArtifact(quality_report_path=abs_report_path)
+            logging.info(
+                f"Data validation artifact created: {artifact.quality_report_path}"
+            )
+            return artifact
+
+        except Exception as e:
+            raise CustomerException(e, sys)
 
     def _log_risk_summary(self, report: DataQualityReport) -> None:
         if not report.risk_items:

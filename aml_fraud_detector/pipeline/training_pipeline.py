@@ -1,6 +1,5 @@
 import os
 import sys
-from dataclasses import asdict
 from typing import Optional
 
 from aml_fraud_detector.exception import CustomerException
@@ -57,11 +56,17 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         logging.info("Step: Data Validation")
         logging.info("-" * 72)
         data_validation = DataValidation(training_config=training_config)
-        quality_report = data_validation.initiate_data_validation(df_sample)
-        report_path = os.path.abspath(data_validation.report_path)
+        validation_artifact = data_validation.initiate_data_validation()
+        report_path = validation_artifact.quality_report_path
+        summary.quality_report_path = report_path
 
-        report_data = asdict(quality_report)
+        report_data = DataValidation.load_report(report_path)
         risk_items = report_data.get("risk_items", [])
+        dataset_shape = report_data.get("dataset_shape", [])
+        if dataset_shape:
+            logging.info(
+                f"Quality validation dataset shape: {dataset_shape[0]} rows x {dataset_shape[1]} cols"
+            )
         if risk_items:
             logging.warning(
                 f"Data quality report contains {len(risk_items)} risk item(s):"
@@ -154,7 +159,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Best metric value  : {summary.best_metric_value:.6f}")
         print(f"Artifacts dir      : {summary.artifacts_dir}")
         print(f"Preprocessor saved : {summary.preprocessor_path}")
-        print(f"Quality report     : {report_path}")
+        print(f"Quality report     : {summary.quality_report_path}")
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")

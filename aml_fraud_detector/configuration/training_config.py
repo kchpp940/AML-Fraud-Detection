@@ -149,6 +149,7 @@ class TrainingSummary:
     model_path: str = ""
     artifacts_dir: str = ""
     summary_path: str = ""
+    quality_report_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
 
 
