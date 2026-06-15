@@ -65,14 +65,21 @@ The final model was containerized using Docker and deployed on AWS. Continuous I
 **Notes**: 
 Finally run the following command to test in local after building prediction pipeline for web interface.
 
+All run modes are unified through the `start.sh` entry script, which is the same one used inside the Docker container.
+
 **Default: Streamlit (port 8080)**
 ```bash
-streamlit run app_streamlit.py --server.port=8080
+./start.sh
 ```
 
 **Flask mode (port 8080)**
 ```bash
-python app.py
+APP_MODE=flask ./start.sh
+```
+
+**Custom port (e.g. 5000)**
+```bash
+PORT=5000 ./start.sh
 ```
 
 Then open your browser and navigate to:
@@ -259,10 +266,10 @@ Note: -e . at the end in requirements.txt file -> This is for `setup.py` file
 ```
 ```bash
 # Default: Streamlit (port 8080)
-streamlit run app_streamlit.py --server.port=8080
+./start.sh
 
 # Or Flask mode (port 8080)
-python app.py
+APP_MODE=flask ./start.sh
 ```
 ```bash
 # Open your browser and navigate to

@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apt update -y && apt install awscli -y
+RUN apt update -y && apt install awscli -y && chmod +x /app/start.sh
 
 RUN pip install -r requirements.txt
 
@@ -13,8 +13,4 @@ ENV APP_MODE=streamlit
 
 EXPOSE ${PORT}
 
-CMD if [ "$APP_MODE" = "flask" ]; then \
-      python app.py; \
-    else \
-      streamlit run app_streamlit.py --server.port=${PORT} --server.address=0.0.0.0; \
-    fi
+CMD ["/app/start.sh"]
