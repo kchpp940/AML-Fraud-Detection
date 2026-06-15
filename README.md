@@ -88,6 +88,7 @@ http://localhost:8080
 ```
 
 **Environment Variables:**
+- `HOST`: The address the server binds to (default: `0.0.0.0`, all network interfaces)
 - `PORT`: The port the application listens on (default: `8080`)
 - `APP_MODE`: Which web interface to run, `streamlit` or `flask` (default: `streamlit`)
 
@@ -190,7 +191,7 @@ Two web interfaces are available, controlled by the `APP_MODE` environment varia
 - **Streamlit** (default, `APP_MODE=streamlit`): An interactive web application with visualizations for exploring prediction results and model probabilities.
 - **Flask** (`APP_MODE=flask`): A lightweight web framework providing a simple form-based interface for fraud prediction.
 
-Both interfaces listen on the port specified by the `PORT` environment variable (default: `8080`).
+Both interfaces bind to the address specified by `HOST` (default: `0.0.0.0`) and listen on the port specified by `PORT` (default: `8080`).
 
 ## Tools and Technologies
 - **Data Processing:** Python, Pandas, NumPy, Scikit-learn
