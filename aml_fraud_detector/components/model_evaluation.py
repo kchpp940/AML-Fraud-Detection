@@ -11,8 +11,7 @@ from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import (
     model_metrics, 
     load_object, 
-    ModelMetrics,
-    _serialize_cm
+    ModelMetrics
 )
 from aml_fraud_detector.components.model_trainer import ModelTrainerResult
 
@@ -21,17 +20,23 @@ class ModelEvaluation:
     def __init__(self):
         logging.info("Model evaluation started")
 
-    def eval_metrics(self, y_test, y_pred):
-        return model_metrics(y_test, y_pred)
+    def eval_metrics(self, y_true, y_pred) -> ModelMetrics:
+        return model_metrics(y_true, y_pred)
     
     def log_metrics_to_mlflow(self, metrics: ModelMetrics):
         mlflow.log_metric("precision", metrics.precision)
         mlflow.log_metric("recall", metrics.recall)
         mlflow.log_metric("f1", metrics.f1_score)
+        mlflow.log_dict(metrics.to_dict(), "metrics.json")
 
-    def initiate_model_evaluation(self, train_array, test_array, trainer_result: Optional[ModelTrainerResult] = None):
+    def log_params_to_mlflow(self, params: Dict[str, Any], prefix: str = ""):
+        for key, value in params.items():
+            param_key = f"{prefix}{key}"
+            mlflow.log_param(param_key, value)
+
+    def initiate_model_evaluation(self, train_array, test_array, trainer_result: Optional[ModelTrainerResult] = None) -> ModelMetrics:
         try:
-            X_test, y_test = (test_array[:, :-1], test_array[:,-1])
+            X_test, y_test = (test_array[:, :-1], test_array[:, -1])
 
             model_path = trainer_result.model_path if trainer_result else os.path.join("artifacts", "model.pkl")
             model = load_object(file_path=model_path)
@@ -41,23 +46,21 @@ class ModelEvaluation:
             with mlflow.start_run():
                 if trainer_result:
                     mlflow.log_param("best_model_name", trainer_result.best_model_name)
-                    for param_name, param_value in trainer_result.best_params.items():
-                        mlflow.log_param(param_name, param_value)
+                    self.log_params_to_mlflow(trainer_result.best_params, prefix="best_")
                     mlflow.log_param("model_path", trainer_result.model_path)
-                    log_payload = trainer_result.to_log_dict()
-                    logging.info(f"Logged trainer result to MLflow: {log_payload}")
+                    logging.info(f"Logged trainer result to MLflow: {trainer_result.to_log_dict()}")
 
                 predictions = model.predict(X_test)
                 signature = infer_signature(X_test, predictions)
                 test_metrics = self.eval_metrics(y_test, predictions)
-                metrics_dict = test_metrics.to_log_dict()
+                metrics_log = test_metrics.to_log_dict()
 
-                print(f"Precision: {metrics_dict['Precision']}")
-                print(f"Recall: {metrics_dict['Recall']}")
-                print(f"F1 score: {metrics_dict['F1 score']}")
-                print(f"Confusion Matrix:\n{metrics_dict['Confusion Matrix']}")
+                print(f"Precision: {metrics_log['Precision']}")
+                print(f"Recall: {metrics_log['Recall']}")
+                print(f"F1 score: {metrics_log['F1 score']}")
+                print(f"Confusion Matrix:\n{metrics_log['Confusion Matrix']}")
 
-                logging.info(f"Evaluation metrics: {metrics_dict}")
+                logging.info(f"Evaluation metrics: {metrics_log}")
 
                 self.log_metrics_to_mlflow(test_metrics)
 

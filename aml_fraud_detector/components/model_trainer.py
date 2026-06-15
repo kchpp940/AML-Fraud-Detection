@@ -27,44 +27,12 @@ class ModelTrainerConfig:
     trained_model_file_path = os.path.join("artifacts", "model.pkl")
 
 
+@dataclass
 class ModelTrainerResult:
-    def __init__(self,
-                 best_model_name: str,
-                 best_params: Dict[str, Any],
-                 test_metrics: ModelMetrics,
-                 model_path: str):
-        self.best_model_name = best_model_name
-        self.best_params = best_params
-        self.test_metrics = test_metrics
-        self.model_path = model_path
-
-    def __iter__(self):
-        yield self.best_model_name
-        yield self.best_params
-        yield self.test_metrics.to_dict()
-        yield self.model_path
-
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            return list(self)[key]
-        if isinstance(key, str):
-            mapping = {
-                "best_model_name": self.best_model_name,
-                "best_params": self.best_params,
-                "test_metrics": self.test_metrics.to_dict(),
-                "model_path": self.model_path,
-            }
-            return mapping[key]
-        raise KeyError(key)
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def keys(self):
-        return ["best_model_name", "best_params", "test_metrics", "model_path"]
+    best_model_name: str
+    best_params: Dict[str, Any]
+    test_metrics: ModelMetrics
+    model_path: str
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -87,7 +55,7 @@ class ModelTrainer:
     def __init__(self):
         self.model_trainer_config = ModelTrainerConfig()
 
-    def initiate_model_trainer(self, train_array, test_array):
+    def initiate_model_trainer(self, train_array, test_array) -> ModelTrainerResult:
         try:
             logging.info(f"Get Independent features and Dependent feature from Train and Test datasets")
             X_train, y_train, X_test, y_test = (
@@ -120,7 +88,7 @@ class ModelTrainer:
                 }
             }
 
-            train_report, test_report, best_params_report = evaluate_models(
+            eval_result = evaluate_models(
                 X_train=X_train_smp, 
                 y_train=y_train_smp, 
                 X_test=X_test,
@@ -129,8 +97,8 @@ class ModelTrainer:
                 params=params)
             
             models_recall_score = {
-                model: metrics_list[0]["Recall"]
-                for model, metrics_list in test_report.items()
+                model_name: metrics.recall
+                for model_name, metrics in eval_result.test_metrics.items()
             }
             logging.info(f"The models and their corresponding Recall score: \n{models_recall_score}")
 
@@ -139,7 +107,7 @@ class ModelTrainer:
             print(f"Best Model: {best_model_name} with Recall score: {best_recall}")
             
             best_model = models[best_model_name]
-            best_params = best_params_report[best_model_name]
+            best_params = eval_result.best_params[best_model_name]
 
             save_object(
                  file_path = self.model_trainer_config.trained_model_file_path,
@@ -157,13 +125,12 @@ class ModelTrainer:
             print(f"  F1 score: {test_metrics.f1_score}")
             print(f"  Confusion Matrix:\n{_serialize_cm(test_metrics.confusion_matrix)}")
 
-            result = ModelTrainerResult(
+            return ModelTrainerResult(
                 best_model_name=best_model_name,
                 best_params=best_params,
                 test_metrics=test_metrics,
                 model_path=self.model_trainer_config.trained_model_file_path
             )
-            return result
 
         except Exception as e:
             logging.info("Exception occured at Model Training")
