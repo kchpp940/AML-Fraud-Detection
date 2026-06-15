@@ -1,0 +1,37 @@
+[ 2026-06-15 18:52:26,637] 143 root - INFO - Validating artifacts in: artifacts
+[ 2026-06-15 18:52:26,638] 179 root - INFO - Artifact validation passed
+[ 2026-06-15 18:52:26,639] 65 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 18:52:26,639] 143 root - INFO - Validating artifacts in: artifacts
+[ 2026-06-15 18:52:26,640] 179 root - INFO - Artifact validation passed
+[ 2026-06-15 18:52:26,878] 97 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 18:52:26,878] 56 root - INFO - PredictionPipeline created (artifacts_dir=artifacts, validate=True)
+[ 2026-06-15 18:52:26,878] 63 root - INFO - PredictionPipeline: initializing inference services
+[ 2026-06-15 18:52:26,878] 65 root - INFO - Loading model artifacts from disk: artifacts
+[ 2026-06-15 18:52:26,878] 143 root - INFO - Validating artifacts in: artifacts
+[ 2026-06-15 18:52:26,880] 179 root - INFO - Artifact validation passed
+[ 2026-06-15 18:52:26,888] 97 root - INFO - Artifacts loaded successfully: model_type=XGBClassifier, preprocessor_type=ColumnTransformer, model_version=10001
+[ 2026-06-15 18:52:26,888] 38 root - INFO - SchemaAligner bound: numerical=['amount_received'], categorical=['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 18:52:26,888] 33 root - INFO - Predictor bound: model=XGBClassifier, preprocessor=ColumnTransformer, version=10001
+[ 2026-06-15 18:52:26,888] 45 root - INFO - RiskExplainer bound to artifacts
+[ 2026-06-15 18:52:26,888] 74 root - INFO - PredictionPipeline: all services ready, model_version=10001
+[ 2026-06-15 18:52:26,892] 101 root - INFO - Input has extra columns not in feature schema: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']. These will be dropped before preprocessing.
+[ 2026-06-15 18:52:26,894] 136 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['amount_received', 'account', 'account_1', 'payment_format', 'day'], shape=(1, 5)
+[ 2026-06-15 18:52:26,905] 57 root - INFO - Preprocessor transform: input_shape=(1, 5), output_shape=(1, 11)
+[ 2026-06-15 18:52:26,907] 113 root - INFO - Prediction complete: n=1, fraud_count=0
+[ 2026-06-15 18:52:26,908] 149 root - INFO - PredictionPipeline.predict_single: label=Not Fraud, fraud_prob=0.0017
+[ 2026-06-15 18:52:26,910] 101 root - INFO - Input has extra columns not in feature schema: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']. These will be dropped before preprocessing.
+[ 2026-06-15 18:52:26,912] 136 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['amount_received', 'account', 'account_1', 'payment_format', 'day'], shape=(3, 5)
+[ 2026-06-15 18:52:26,918] 57 root - INFO - Preprocessor transform: input_shape=(3, 5), output_shape=(3, 11)
+[ 2026-06-15 18:52:26,919] 113 root - INFO - Prediction complete: n=3, fraud_count=0
+[ 2026-06-15 18:52:26,920] 101 root - INFO - BatchAssembler: assembled 3 predictions, fraud=0, legit=3, fraud_rate=0.0000
+[ 2026-06-15 18:52:26,920] 185 root - INFO - PredictionPipeline.predict_batch: n=3, fraud_rate=0.0000
+[ 2026-06-15 18:52:26,923] 101 root - INFO - Input has extra columns not in feature schema: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']. These will be dropped before preprocessing.
+[ 2026-06-15 18:52:26,928] 136 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['amount_received', 'account', 'account_1', 'payment_format', 'day'], shape=(1, 5)
+[ 2026-06-15 18:52:26,932] 57 root - INFO - Preprocessor transform: input_shape=(1, 5), output_shape=(1, 11)
+[ 2026-06-15 18:52:26,934] 113 root - INFO - Prediction complete: n=1, fraud_count=0
+[ 2026-06-15 18:52:26,934] 101 root - INFO - BatchAssembler: assembled 1 predictions, fraud=0, legit=1, fraud_rate=0.0000
+[ 2026-06-15 18:52:26,934] 185 root - INFO - PredictionPipeline.predict_batch: n=1, fraud_rate=0.0000
+[ 2026-06-15 18:52:26,935] 101 root - INFO - Input has extra columns not in feature schema: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']. These will be dropped before preprocessing.
+[ 2026-06-15 18:52:26,936] 136 root - INFO - SchemaAligner: input cols=['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day'], output cols=['amount_received', 'account', 'account_1', 'payment_format', 'day'], shape=(1, 5)
+[ 2026-06-15 18:52:26,941] 57 root - INFO - Preprocessor transform: input_shape=(1, 5), output_shape=(1, 11)
+[ 2026-06-15 18:52:26,942] 88 root - INFO - Probability produced shape=(1, 2)

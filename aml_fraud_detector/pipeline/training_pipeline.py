@@ -12,7 +12,7 @@ from aml_fraud_detector.components.model_trainer import ModelTrainer
 from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
-from aml_fraud_detector.utils.main_utils import save_training_summary, save_model_metadata, save_artifact_manifest
+from aml_fraud_detector.utils.main_utils import save_training_summary
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
@@ -91,22 +91,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         summary.summary_path = os.path.abspath(
             training_config.artifacts_subpath("training_summary.json")
         )
-
-        summary.model_metadata_path = save_model_metadata(
-            artifacts_dir=summary.artifacts_dir,
-            data_source_path=summary.data_source,
-            best_model_name=summary.best_model_name,
-            best_model_params=summary.best_model_params,
-            selection_metric=summary.selection_metric,
-            best_metric_value=summary.best_metric_value,
-            all_model_metrics=summary.all_model_metrics,
-            model_path=summary.model_path,
-        )
-
-        summary.artifact_manifest_path = save_artifact_manifest(
-            artifacts_dir=summary.artifacts_dir,
-        )
-
         save_training_summary(
             file_path=summary.summary_path,
             summary_obj=summary,
@@ -145,8 +129,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Preprocessor saved : {summary.preprocessor_path}")
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
-        print(f"Metadata saved     : {summary.model_metadata_path}")
-        print(f"Manifest saved     : {summary.artifact_manifest_path}")
         print("=" * 72 + "\n")
 
         return summary
