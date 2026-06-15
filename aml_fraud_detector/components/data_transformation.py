@@ -14,13 +14,16 @@ from category_encoders import TargetEncoder, CountEncoder
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
-from aml_fraud_detector.entity.artifact_entity import FeatureSchema
+from aml_fraud_detector.entity.artifact_entity import DataTransformationArtifact
+from aml_fraud_detector.entity.feature_schema import FeatureSchema
 
 
 @dataclass
 class DataTransformationConfig:
     preprocessor_obj_file_path = os.path.join("artifacts", "preprocessor.pkl")
     feature_schema_file_path = os.path.join("artifacts", "feature_schema.pkl")
+    transformed_train_file_path = os.path.join("artifacts", "transformed_train.npy")
+    transformed_test_file_path = os.path.join("artifacts", "transformed_test.npy")
 
 
 class DataTransformation:
@@ -128,6 +131,7 @@ class DataTransformation:
             logging.info(f"Column types: {column_types}")
 
             feature_schema = FeatureSchema(
+                schema_source="data_transformation",
                 original_raw_columns=original_raw_columns,
                 cleaned_columns=cleaned_columns,
                 derived_features=derived_features,
@@ -143,6 +147,7 @@ class DataTransformation:
                 obj=feature_schema,
             )
             logging.info(f"Saved feature schema to {self.data_transformation_config.feature_schema_file_path}")
+            logging.info(f"Feature schema summary:\n{feature_schema.summary()}")
 
             logging.info(f"Obtaining proprocessing object")
             preprocessing_obj = self.get_data_transformer_object(numerical_features, categorical_features)
@@ -156,16 +161,26 @@ class DataTransformation:
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
 
+            np.save(self.data_transformation_config.transformed_train_file_path, train_arr)
+            np.save(self.data_transformation_config.transformed_test_file_path, test_arr)
+            logging.info(f"Saved transformed train data to {self.data_transformation_config.transformed_train_file_path}")
+            logging.info(f"Saved transformed test data to {self.data_transformation_config.transformed_test_file_path}")
+
             save_object(
                 file_path = self.data_transformation_config.preprocessor_obj_file_path,
                 obj = preprocessing_obj
             )
             logging.info(f"Saved data preprocessing object")
 
-            return(
-                train_arr,
-                test_arr
+            data_transformation_artifact = DataTransformationArtifact(
+                transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
+                transformed_test_file_path=self.data_transformation_config.transformed_test_file_path,
+                preprocessor_object_file_path=self.data_transformation_config.preprocessor_obj_file_path,
+                feature_schema_file_path=self.data_transformation_config.feature_schema_file_path,
             )
+            logging.info(f"Data Transformation Artifact: {data_transformation_artifact}")
+
+            return data_transformation_artifact
 
         except Exception as e:
             raise CustomerException(e, sys)

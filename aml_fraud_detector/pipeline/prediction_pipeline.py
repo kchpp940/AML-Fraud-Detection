@@ -7,18 +7,36 @@ from typing import Dict, Any, Optional
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import load_object
-from aml_fraud_detector.entity.artifact_entity import FeatureSchema
+from aml_fraud_detector.entity.artifact_entity import DataTransformationArtifact
+from aml_fraud_detector.entity.feature_schema import FeatureSchema
 
 
 class PredictionPipeline:
-    def __init__(self):
-        self.model_path = os.path.join("artifacts", "model.pkl")
-        self.preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
-        self.feature_schema_path = os.path.join("artifacts", "feature_schema.pkl")
+    def __init__(
+        self,
+        model_path: Optional[str] = None,
+        preprocessor_path: Optional[str] = None,
+        feature_schema_path: Optional[str] = None,
+    ):
+        self.model_path = model_path or os.path.join("artifacts", "model.pkl")
+        self.preprocessor_path = preprocessor_path or os.path.join("artifacts", "preprocessor.pkl")
+        self.feature_schema_path = feature_schema_path or os.path.join("artifacts", "feature_schema.pkl")
         self._model = None
         self._preprocessor = None
         self._feature_schema = None
         self._loaded = False
+
+    @classmethod
+    def from_data_transformation_artifact(
+        cls,
+        data_transformation_artifact: DataTransformationArtifact,
+        model_path: Optional[str] = None,
+    ) -> 'PredictionPipeline':
+        return cls(
+            model_path=model_path or os.path.join("artifacts", "model.pkl"),
+            preprocessor_path=data_transformation_artifact.preprocessor_object_file_path,
+            feature_schema_path=data_transformation_artifact.feature_schema_file_path,
+        )
 
     def _load_artifacts(self):
         if self._loaded:
@@ -29,8 +47,16 @@ class PredictionPipeline:
             self._preprocessor = load_object(file_path=self.preprocessor_path)
             self._feature_schema = load_object(file_path=self.feature_schema_path)
             self._loaded = True
-            logging.info(f"Loaded feature schema with {len(self._feature_schema.model_input_columns)} input columns")
-            logging.info(f"Model input columns: {self._feature_schema.model_input_columns}")
+            logging.info(
+                f"Loaded feature schema v{self._feature_schema.schema_version} "
+                f"(source: {self._feature_schema.schema_source})"
+            )
+            logging.info(f"Feature schema summary:\n{self._feature_schema.summary()}")
+            logging.info(
+                f"Artifact paths - model: {self.model_path}, "
+                f"preprocessor: {self.preprocessor_path}, "
+                f"schema: {self.feature_schema_path}"
+            )
         except Exception as e:
             raise CustomerException(e, sys)
 

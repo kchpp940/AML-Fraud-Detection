@@ -1,0 +1,80 @@
+[ 2026-06-15 10:41:08,753] 72 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-15 10:41:08,864] 76 root - INFO - Reading train and test data completed
+[ 2026-06-15 10:41:08,864] 79 root - INFO - Original raw columns: ['Timestamp', 'From Bank', 'Account', 'To Bank', 'Account.1', 'Amount Received', 'Receiving Currency', 'Amount Paid', 'Payment Currency', 'Payment Format', 'Is Laundering']
+[ 2026-06-15 10:41:08,866] 83 root - INFO - Train and Test dataframe columns name renamed
+[ 2026-06-15 10:41:08,866] 86 root - INFO - Cleaned columns: ['timestamp', 'from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'amount_paid', 'payment_currency', 'payment_format', 'is_laundering']
+[ 2026-06-15 10:41:08,870] 88 root - INFO - Train Dataframe Head : 
+          timestamp  from_bank    account  to_bank  account_1  amount_received receiving_currency   amount_paid payment_currency payment_format  is_laundering
+0  2022/09/02 11:26     353132  814282F31   255063  814282BC1          0.02664            Bitcoin       0.02664          Bitcoin        Bitcoin              0
+1  2022/09/02 04:29      29003  80B58DFD0   123390  80EC2ACA0      91604.31000          US Dollar   91604.31000        US Dollar            ACH              0
+2  2022/09/10 01:30     143430  810A32FA0   244192  811917200       2145.51000             Shekel    2145.51000           Shekel         Cheque              0
+3  2022/09/07 21:25      16678  806484950    17554  806AAFE90     108457.21000              Ruble  108457.21000            Ruble         Cheque              0
+4  2022/09/02 06:22        210  809181590    24779  80924A880       7577.02000    Canadian Dollar    7577.02000  Canadian Dollar    Credit Card              0
+[ 2026-06-15 10:41:08,871] 89 root - INFO - Test Dataframe Head : 
+          timestamp  from_bank    account  to_bank  account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering
+0  2022/09/09 19:26      33727  80C66DAE0    33727  80C66DAE0         16515.55          US Dollar    349189.96     Mexican Peso            ACH              0
+1  2022/09/08 18:24      28694  8036FA390   122151  80BDB1470           169.14          US Dollar       169.14        US Dollar           Cash              0
+2  2022/09/05 16:06         70  1004286A8    13057  80189B650         19878.41               Euro     19878.41             Euro    Credit Card              0
+3  2022/09/06 15:53          9  8060A15C0        9  8060B3140          8390.38              Ruble      8390.38            Ruble           Cash              0
+4  2022/09/09 19:12       1853  801449850    17729  808FBDE10            98.92          US Dollar        98.92        US Dollar         Cheque              0
+[ 2026-06-15 10:41:08,920] 121 root - INFO - Model input columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:41:08,921] 124 root - INFO - Columns name of numerical features: ['amount_received']
+[ 2026-06-15 10:41:08,923] 126 root - INFO - Columns name of categorical features: ['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-15 10:41:08,923] 131 root - INFO - Column types: {'account': 'object', 'account_1': 'object', 'amount_received': 'float64', 'payment_format': 'object', 'day': 'object'}
+[ 2026-06-15 10:41:08,924] 149 root - INFO - Saved feature schema to artifacts/feature_schema.pkl
+[ 2026-06-15 10:41:08,924] 150 root - INFO - Feature schema summary:
+FeatureSchema v1.0.0 (source: data_transformation)
+  Model input columns (5): ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+  Numerical columns: ['amount_received']
+  Categorical columns: ['account', 'account_1', 'payment_format', 'day']
+  Derived features: ['date', 'day', 'time']
+  Dropped columns: ['is_laundering', 'timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank']
+  Missing strategy: default_fill
+[ 2026-06-15 10:41:08,924] 152 root - INFO - Obtaining proprocessing object
+[ 2026-06-15 10:41:08,924] 63 root - INFO - Preprocessed both numerical and categorical columns
+[ 2026-06-15 10:41:08,924] 155 root - INFO - Applying preprocessing object on training and testing datasets.
+[ 2026-06-15 10:41:09,198] 166 root - INFO - Saved transformed train data to artifacts/transformed_train.npy
+[ 2026-06-15 10:41:09,198] 167 root - INFO - Saved transformed test data to artifacts/transformed_test.npy
+[ 2026-06-15 10:41:09,479] 173 root - INFO - Saved data preprocessing object
+[ 2026-06-15 10:41:09,479] 181 root - INFO - Data Transformation Artifact: DataTransformationArtifact(transformed_train_file_path='artifacts/transformed_train.npy', transformed_test_file_path='artifacts/transformed_test.npy', preprocessor_object_file_path='artifacts/preprocessor.pkl', feature_schema_file_path='artifacts/feature_schema.pkl')
+[ 2026-06-15 10:41:09,487] 126 root - INFO - CustomData input DataFrame columns: ['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+[ 2026-06-15 10:41:09,488] 45 root - INFO - Loading model, preprocessor, and feature schema...
+[ 2026-06-15 10:41:09,532] 50 root - INFO - Loaded feature schema v1.0.0 (source: data_transformation)
+[ 2026-06-15 10:41:09,533] 54 root - INFO - Feature schema summary:
+FeatureSchema v1.0.0 (source: data_transformation)
+  Model input columns (5): ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+  Numerical columns: ['amount_received']
+  Categorical columns: ['account', 'account_1', 'payment_format', 'day']
+  Derived features: ['date', 'day', 'time']
+  Dropped columns: ['is_laundering', 'timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank']
+  Missing strategy: default_fill
+[ 2026-06-15 10:41:09,533] 55 root - INFO - Artifact paths - model: artifacts/model.pkl, preprocessor: artifacts/preprocessor.pkl, schema: artifacts/feature_schema.pkl
+[ 2026-06-15 10:41:09,533] 70 root - INFO - Input features columns: ['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+[ 2026-06-15 10:41:09,536] 72 root - INFO - Aligned features columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:41:09,537] 73 root - INFO - Aligned features dtypes:
+account             object
+account_1           object
+amount_received    float64
+payment_format      object
+day                 object
+dtype: object
+[ 2026-06-15 10:41:09,549] 70 root - INFO - Input features columns: ['from_bank', 'account', 'to_bank', 'account_1', 'amount_received', 'receiving_currency', 'payment_currency', 'payment_format', 'day']
+[ 2026-06-15 10:41:09,550] 72 root - INFO - Aligned features columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:41:09,551] 73 root - INFO - Aligned features dtypes:
+account             object
+account_1           object
+amount_received    float64
+payment_format      object
+day                 object
+dtype: object
+[ 2026-06-15 10:41:09,556] 126 root - INFO - CustomData input DataFrame columns: ['Timestamp', 'Account', 'Account_1', 'Amount_Received', 'Payment_Format']
+[ 2026-06-15 10:41:09,556] 70 root - INFO - Input features columns: ['Timestamp', 'Account', 'Account_1', 'Amount_Received', 'Payment_Format']
+[ 2026-06-15 10:41:09,559] 72 root - INFO - Aligned features columns: ['account', 'account_1', 'amount_received', 'payment_format', 'day']
+[ 2026-06-15 10:41:09,559] 73 root - INFO - Aligned features dtypes:
+account             object
+account_1           object
+amount_received    float64
+payment_format      object
+day                 object
+dtype: object

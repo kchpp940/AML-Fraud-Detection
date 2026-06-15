@@ -6,7 +6,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from aml_fraud_detector.entity.artifact_entity import FeatureSchema
+from aml_fraud_detector.entity.feature_schema import FeatureSchema, SCHEMA_VERSION
+from aml_fraud_detector.entity.artifact_entity import DataTransformationArtifact
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 
 
@@ -182,6 +183,55 @@ class TestRequiredFields:
         assert "Account.1" in required_fields
         assert "Amount Received" in required_fields
         assert "Payment Format" in required_fields
+
+
+class TestDataTransformationArtifact:
+    def test_data_transformation_artifact_contains_schema_path(self):
+        artifact = DataTransformationArtifact(
+            transformed_train_file_path="/tmp/train.npy",
+            transformed_test_file_path="/tmp/test.npy",
+            preprocessor_object_file_path="/tmp/preprocessor.pkl",
+            feature_schema_file_path="/tmp/feature_schema.pkl",
+        )
+        assert artifact.feature_schema_file_path == "/tmp/feature_schema.pkl"
+        assert artifact.preprocessor_object_file_path == "/tmp/preprocessor.pkl"
+        assert artifact.transformed_train_file_path == "/tmp/train.npy"
+        assert artifact.transformed_test_file_path == "/tmp/test.npy"
+
+    def test_prediction_pipeline_from_artifact(self, tmp_path, sample_schema):
+        import dill
+
+        preprocessor_path = str(tmp_path / "preprocessor.pkl")
+        schema_path = str(tmp_path / "feature_schema.pkl")
+        model_path = str(tmp_path / "model.pkl")
+
+        with open(schema_path, "wb") as f:
+            dill.dump(sample_schema, f)
+
+        from sklearn.preprocessing import StandardScaler
+        preprocessor = StandardScaler()
+        with open(preprocessor_path, "wb") as f:
+            dill.dump(preprocessor, f)
+
+        from sklearn.linear_model import LogisticRegression
+        model = LogisticRegression()
+        with open(model_path, "wb") as f:
+            dill.dump(model, f)
+
+        artifact = DataTransformationArtifact(
+            transformed_train_file_path=str(tmp_path / "train.npy"),
+            transformed_test_file_path=str(tmp_path / "test.npy"),
+            preprocessor_object_file_path=preprocessor_path,
+            feature_schema_file_path=schema_path,
+        )
+
+        pipeline = PredictionPipeline.from_data_transformation_artifact(
+            artifact, model_path=model_path
+        )
+
+        assert pipeline.preprocessor_path == preprocessor_path
+        assert pipeline.feature_schema_path == schema_path
+        assert pipeline.model_path == model_path
 
 
 if __name__ == "__main__":

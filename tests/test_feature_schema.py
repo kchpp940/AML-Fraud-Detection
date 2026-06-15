@@ -6,12 +6,19 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from aml_fraud_detector.entity.artifact_entity import FeatureSchema
+from aml_fraud_detector.entity.feature_schema import (
+    FeatureSchema,
+    MISSING_STRATEGY_DEFAULT,
+    MISSING_STRATEGY_ERROR,
+    SCHEMA_VERSION,
+)
 
 
 @pytest.fixture
 def sample_schema():
     return FeatureSchema(
+        schema_version=SCHEMA_VERSION,
+        schema_source="data_transformation",
         original_raw_columns=[
             "Timestamp", "From Bank", "Account", "To Bank", "Account.1",
             "Amount Received", "Receiving Currency", "Amount Paid",
@@ -41,7 +48,15 @@ def sample_schema():
             "payment_format": "object",
             "day": "object",
         },
+        missing_strategy=MISSING_STRATEGY_DEFAULT,
+        default_fill_values={},
     )
+
+@pytest.fixture
+def strict_schema(sample_schema):
+    schema = FeatureSchema.from_dict(sample_schema.to_dict())
+    schema.missing_strategy = MISSING_STRATEGY_ERROR
+    return schema
 
 
 class TestFeatureSchema:
@@ -184,6 +199,62 @@ class TestFeatureSchema:
         })
         aligned = sample_schema.align_features(df)
         assert aligned["day"].iloc[0] == "Monday"
+
+    def test_schema_has_version_and_source(self, sample_schema):
+        assert sample_schema.schema_version == SCHEMA_VERSION
+        assert sample_schema.schema_source == "data_transformation"
+
+    def test_summary_contains_key_info(self, sample_schema):
+        summary = sample_schema.summary()
+        assert "FeatureSchema v" in summary
+        assert "data_transformation" in summary
+        assert "Model input columns" in summary
+        assert "Numerical columns" in summary
+        assert "Categorical columns" in summary
+        assert "Derived features" in summary
+        assert "Dropped columns" in summary
+        assert "Missing strategy" in summary
+
+    def test_strict_missing_strategy_raises_error(self, strict_schema):
+        df = pd.DataFrame({
+            "account": ["80CF063F0"],
+            "account_1": ["80CFE1EB0"],
+            "amount_received": [386006.86],
+        })
+        with pytest.raises(ValueError, match="Missing required columns"):
+            strict_schema.align_features(df)
+
+    def test_default_missing_strategy_fills_defaults(self, sample_schema):
+        df = pd.DataFrame({
+            "account": ["80CF063F0"],
+            "account_1": ["80CFE1EB0"],
+            "amount_received": [386006.86],
+            "payment_format": ["Cheque"],
+        })
+        aligned = sample_schema.align_features(df)
+        assert "day" in aligned.columns
+        assert aligned["day"].iloc[0] == ""
+
+    def test_custom_default_fill_values(self, sample_schema):
+        schema = FeatureSchema.from_dict(sample_schema.to_dict())
+        schema.default_fill_values = {"day": "Monday"}
+        df = pd.DataFrame({
+            "account": ["80CF063F0"],
+            "account_1": ["80CFE1EB0"],
+            "amount_received": [386006.86],
+            "payment_format": ["Cheque"],
+        })
+        aligned = schema.align_features(df)
+        assert aligned["day"].iloc[0] == "Monday"
+
+    def test_validate_compatibility_same_schema(self, sample_schema):
+        other = FeatureSchema.from_dict(sample_schema.to_dict())
+        assert sample_schema.validate_compatibility(other) is True
+
+    def test_validate_compatibility_different_columns(self, sample_schema):
+        other = FeatureSchema.from_dict(sample_schema.to_dict())
+        other.model_input_columns = sample_schema.model_input_columns + ["extra_col"]
+        assert sample_schema.validate_compatibility(other) is False
 
 
 if __name__ == "__main__":
