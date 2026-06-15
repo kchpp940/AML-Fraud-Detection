@@ -1,0 +1,40 @@
+data:
+  source_path: "notebook/data/HI-Small_Trans.csv"
+  sample_size: 50000
+  test_size: 0.2
+  random_state: 42
+
+features:
+  target_column: "is_laundering"
+  drop_columns:
+    - "timestamp"
+    - "date"
+    - "time"
+    - "amount_paid"
+    - "receiving_currency"
+    - "payment_currency"
+    - "from_bank"
+    - "to_bank"
+
+models:
+  selection_metric: "Recall"
+  enabled:
+    RandomForest: true
+    AdaBoost: true
+    GradientBoosting: false
+    XGBoost: true
+  param_grid:
+    RandomForest:
+      n_estimators: [50, 100, 200]
+    AdaBoost:
+      n_estimators: [50, 100, 200]
+      learning_rate: [0.01, 0.1, 0.5, 1.0]
+    GradientBoosting:
+      n_estimators: [50, 100, 200]
+      learning_rate: [0.01, 0.1, 0.05, 0.001]
+    XGBoost:
+      n_estimators: [50, 100, 200]
+      learning_rate: [0.01, 0.1, 0.05, 0.001]
+
+output:
+  artifacts_dir: "artifacts"

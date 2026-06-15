@@ -1,8 +1,11 @@
 import os
 import sys
+import json
 import dill
 import numpy as np
 import pandas as pd
+from dataclasses import asdict
+from datetime import datetime
 
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.exception import CustomerException
@@ -16,6 +19,21 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold, KFold
 from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
 from sklearn.metrics import classification_report, confusion_matrix, auc, roc_curve
 from sklearn.metrics import ConfusionMatrixDisplay, RocCurveDisplay
+
+
+def save_training_summary(file_path: str, summary_obj) -> str:
+    try:
+        dir_path = os.path.dirname(file_path)
+        os.makedirs(dir_path, exist_ok=True)
+        data = asdict(summary_obj) if hasattr(summary_obj, "__dataclass_fields__") else dict(summary_obj)
+        data["generated_at"] = datetime.now().isoformat()
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False, default=str)
+        logging.info(f"Training summary saved to: {file_path}")
+        return os.path.abspath(file_path)
+    except Exception as e:
+        logging.info("Exception Occurred in save_training_summary function utils")
+        raise CustomerException(e, sys)
 
 
 def save_object(file_path, obj):

@@ -1,13 +1,8 @@
-import os
 from flask import Flask, request, render_template
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 
 application = Flask(__name__)
 app = application
-
-HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", 8080))
-APP_MODE = os.getenv("APP_MODE", "streamlit")
 
 # Route for a home page
 @app.route("/")
@@ -38,4 +33,4 @@ def predict_datapoint():
     
     
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT)
+    app.run(host="0.0.0.0", port=8080)

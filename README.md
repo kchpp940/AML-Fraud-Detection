@@ -63,34 +63,15 @@ The previous trained models with best hyperparamters were evaluated based on acc
 The final model was containerized using Docker and deployed on AWS. Continuous Integration/Continuous Deployment (CI/CD) pipelines were set up using GitHub Actions and AWS services. The deployment process involved the following steps:
 
 **Notes**: 
-Finally run the following command to test in local after building prediction pipeline for web interface.
-
-All run modes are unified through the `start.sh` entry script, which is the same one used inside the Docker container.
-
-**Default: Streamlit (port 8080)**
+Finally run the following command to test in local after buling prediction pipeline for web interface using FastAPI or streamlit
 ```bash
-./start.sh
+python app.py
+or
+streamlit run app_streamlit.py
 ```
-
-**Flask mode (port 8080)**
 ```bash
-APP_MODE=flask ./start.sh
+open up you local host and port
 ```
-
-**Custom port (e.g. 5000)**
-```bash
-PORT=5000 ./start.sh
-```
-
-Then open your browser and navigate to:
-```bash
-http://localhost:8080
-```
-
-**Environment Variables:**
-- `HOST`: The address the server binds to (default: `0.0.0.0`, all network interfaces)
-- `PORT`: The port the application listens on (default: `8080`)
-- `APP_MODE`: Which web interface to run, `streamlit` or `flask` (default: `streamlit`)
 
 
 		
@@ -98,7 +79,7 @@ http://localhost:8080
 
 Build an Image from a Dockerfile
 ```bash
-docker build -t aml-fraud-detector .
+docker build -t aml-streamlit-app .
 ```
 List local images
 ```bash
@@ -112,21 +93,14 @@ Remove all unused images
 ```bash
 docker image prune
 ```
-Run a container with default Streamlit on port 8080:
+Run a container with and publish a container’s port(s) to the host.
 ```bash
-docker run -p 8080:8080 aml-fraud-detector
+docker run -p 8501:8501 aml-streamlit-app
+or
+docker run -p 5000:5000 app_name
 ```
-Run a container with Flask mode:
 ```bash
-docker run -p 8080:8080 -e APP_MODE=flask aml-fraud-detector
-```
-Run with a custom port:
-```bash
-docker run -p 5000:5000 -e PORT=5000 aml-fraud-detector
-```
-Then open your browser and navigate to:
-```bash
-http://localhost:8080
+open up your local host and port
 ```
 
 
@@ -187,18 +161,16 @@ http://localhost:8080
 
 
 ## Web Interfaces
-Two web interfaces are available, controlled by the `APP_MODE` environment variable:
-- **Streamlit** (default, `APP_MODE=streamlit`): An interactive web application with visualizations for exploring prediction results and model probabilities.
-- **Flask** (`APP_MODE=flask`): A lightweight web framework providing a simple form-based interface for fraud prediction.
-
-Both interfaces bind to the address specified by `HOST` (default: `0.0.0.0`) and listen on the port specified by `PORT` (default: `8080`).
+Two web interfaces were developed to interact with the model:
+- **FastAPI:** A high-performance web framework for building APIs with Python, used to create an API endpoint for real-time fraud detection.
+- **Streamlit:** An open-source app framework for machine learning and data science projects, used to build an interactive web application for visualizing results and interacting with the model.
 
 ## Tools and Technologies
 - **Data Processing:** Python, Pandas, NumPy, Scikit-learn
 - **Modeling:** Random Forest, XGBoost, AdaBoost
 - **Hyperparameter Tuning:** Grid Search, Cross-Validation
 - **Deployment:** Docker, AWS (EC2, ECR), GitHub Actions
-- **Web Interfaces:** Flask, Streamlit
+- **Web Interfaces:** FastAPI, Streamlit
 - **Version Control and Experiment Tracking:** GitHub, DVC, MLflow
 
 ## Outcome
@@ -207,7 +179,7 @@ The project resulted in a robust machine learning model that significantly enhan
 
 MLflow was used for experiment tracking, allowing the team to log and compare different model versions and their performance metrics. It provided valuable insights into model evaluation by tracking parameters, metrics, and artifacts, which aided in making informed decisions during model tuning and selection.
 
-The web interfaces enabled users to easily determine whether a transaction is fraudulent or legitimate based on its details. These interfaces were developed using Flask for a lightweight form-based interface and Streamlit for an interactive, visualization-rich experience, ensuring they were user-friendly and flexible.
+The web interfaces enabled users to easily determine whether a transaction is fraudulent or legitimate based on its details. These interfaces were developed using FastAPI for API-based access and Streamlit for an interactive, web-based experience, ensuring they were user-friendly and flexible.
 
 
 
@@ -266,15 +238,12 @@ pip install -r requirements.txt
 Note: -e . at the end in requirements.txt file -> This is for `setup.py` file
 ```
 ```bash
-# Default: Streamlit (port 8080)
-./start.sh
-
-# Or Flask mode (port 8080)
-APP_MODE=flask ./start.sh
+python app.py
+or
+streamlit run app_streamlit.py
 ```
 ```bash
-# Open your browser and navigate to
-http://localhost:8080
+open up you local host and port
 ```
 - Database setup - MongoDB
 	- create project `aml_fraud_detector_mongoDB`

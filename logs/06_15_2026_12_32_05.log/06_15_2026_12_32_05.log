@@ -1,0 +1,7 @@
+[ 2026-06-15 12:32:05,053] 145 root - INFO - Loading training config from: /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-15 12:32:05,054] 90 root - INFO - Env override: data.test_size = 0.3 (from AML_TRAIN_DATA_TEST_SIZE)
+[ 2026-06-15 12:32:05,054] 90 root - INFO - Env override: models.selection_metric = F1 (from AML_TRAIN_MODEL_METRIC)
+[ 2026-06-15 12:32:05,054] 90 root - INFO - Env override: models.enabled.RandomForest = False (from AML_TRAIN_MODEL_RF_ENABLED)
+[ 2026-06-15 12:32:05,054] 90 root - INFO - Env override: models.enabled.GradientBoosting = True (from AML_TRAIN_MODEL_GB_ENABLED)
+[ 2026-06-15 12:32:05,054] 90 root - INFO - Env override: output.artifacts_dir = custom_artifacts (from AML_TRAIN_OUTPUT_DIR)
+[ 2026-06-15 12:32:05,054] 169 root - INFO - Training config loaded and validated successfully
