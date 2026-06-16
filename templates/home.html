@@ -1,63 +1,18 @@
 <html>
-<head>
-<style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .container { max-width: 900px; margin: 0 auto; }
-    nav { margin-bottom: 24px; }
-    nav a { margin-right: 16px; text-decoration: none; color: #06c; font-weight: bold; }
-    nav a:hover { text-decoration: underline; }
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-weight: bold; margin-bottom: 4px; }
-    .form-group input { width: 100%; padding: 6px; box-sizing: border-box; }
-    .btn { padding: 10px 24px; margin-top: 10px; cursor: pointer; }
-    .panel { margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 6px; }
-    .panel h3 { margin-top: 0; }
-
-    /* ---------- banners ---------- */
-    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
-    .banner-error   { background: #fdd; color: #900; border: 1px solid #fcc; }
-    .banner-warning { background: #ffe; color: #660; border: 1px solid #eea; }
-    .banner-success { background: #dfd; color: #060; border: 1px solid #cec; }
-    .banner-info    { background: #e8f2ff; color: #036; border: 1px solid #cde; }
-    .banner-empty   { display: none; }
-
-    /* ---------- field rows ---------- */
-    .field { margin-bottom: 6px; }
-    .field span.label { font-weight: bold; display: inline-block; width: 220px; }
-
-    /* ---------- prediction badge ---------- */
-    .prediction-legit { background: #dfd; color: #060; border: 1px solid #9c9; padding: 2px 10px; border-radius: 4px; font-weight: bold; display: inline-block; }
-    .prediction-fraud { background: #fdd; color: #900; border: 1px solid #eaa; padding: 2px 10px; border-radius: 4px; font-weight: bold; display: inline-block; }
-    .prediction-unknown { background: #eee; color: #666; padding: 2px 10px; border-radius: 4px; display: inline-block; }
-
-    /* ---------- risk badge ---------- */
-    .risk-Minimal  { color: #090; font-weight: bold; }
-    .risk-Low      { color: #090; }
-    .risk-Medium   { color: #cc0; font-weight: bold; }
-    .risk-High     { color: #e80; font-weight: bold; }
-    .risk-Critical  { color: #c00; font-weight: bold; }
-    .risk-Unknown  { color: #666; }
-
-    .contrib { white-space: pre-line; font-size: 0.9em; color: #444; }
-</style>
-</head>
 <body>
-    <div class="container">
-       <nav>
-           <a href="/">Home</a>
-           <a href="/predictdata">Single Transaction Prediction</a>
-           <a href="/batchprediction">Batch CSV Prediction</a>
-       </nav>
-       <h1>Anti Money Laundering Detector</h1>
-
+    <div class="login">
+       <h1>Money Laundary Detector</h1>
+   
        <form action="{{ url_for('predict_datapoint')}}" method="post">
-        <h2><legend>Transaction Input</legend></h2>
+        <h2>
+            <legend>Anti Money Laundering Detection</legend>
+        </h2>
         <div class="form-group">
             <label for="from_bank">Bank where transaction originates:</label>
             <input type="text" id="from_bank" name="from_bank" placeholder="Enter Numeric code (int)">
         </div>
         <div class="form-group">
-            <label for="account">Code for account where transaction originates:</label>
+            <label for="account"> Code for account where transaction originates:</label>
             <input type="text" id="account" name="account" placeholder="Enter code (str)">
         </div>
         <div class="form-group">
@@ -65,105 +20,31 @@
             <input type="text" id="to_bank" name="to_bank" placeholder="Enter Numeric code (int)">
         </div>
         <div class="form-group">
-            <label for="account_1">Code for account where transaction ends:</label>
+            <label for="account_1"> Code for account where transaction ends:</label>
             <input type="text" id="account_1" name="account_1" placeholder="Enter code (str)">
         </div>
         <div class="form-group">
-            <label for="amount_received">Monetary amount received:</label>
+            <label for="amount_received"> Monetary amount received:</label>
             <input type="text" id="amount_received" name="amount_received" placeholder="Enter the amount (float)">
         </div>
         <div class="form-group">
-            <label for="receiving_currency">Currency such as dollars, euros etc.:</label>
+            <label for="receiving_currency"> Currency such as dollars, euros etc.:</label>
             <input type="text" id="receiving_currency" name="receiving_currency" placeholder="Enter currency (str)">
         </div>
         <div class="form-group">
-            <label for="payment_currency">Payment currency:</label>
+            <label for="payment_currency"> Currency such as dollars, euros etc.:</label>
             <input type="text" id="payment_currency" name="payment_currency" placeholder="Enter currency (str)">
         </div>
         <div class="form-group">
-            <label for="payment_format">How transaction was conducted:</label>
+            <label for="payment_format"> How transaction was conducted:</label>
             <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
         </div>
-        <div class="form-group">
-            <label for="day">Day:</label>
-            <input type="text" id="day" name="day" placeholder="Enter day (str)">
-        </div>
         <div style="clear:both;"></div>
-        <input class="btn" type="submit" value="Predict whether the transaction is Fraud or not" required />
-       </form>
-
-       {% if display %}
-       <!-- ============================================================ -->
-       <!-- MODEL INFO                                                  -->
-       <!-- ============================================================ -->
-       <div class="panel">
-           <h3>Model Info</h3>
-           <div class="field"><span class="label">Model Version:</span> {{ display.model_version }}</div>
-           <div class="field"><span class="label">Model Name:</span> {{ display.model_name }}</div>
-           <div class="field"><span class="label">Trained At:</span> {{ display.training_time }}</div>
-           <div class="field"><span class="label">Feature Contract:</span> v{{ display.feature_contract_version }}</div>
-           <div class="field"><span class="label">Metric ({{ display.selection_metric }}):</span>
-               {{ "%.4f"|format(display.best_metric_value) }}
-           </div>
-       </div>
-
-       <!-- ============================================================ -->
-       <!-- ARTIFACT VALIDATION                                       -->
-       <!-- ============================================================ -->
-       <div class="panel">
-           <h3>Artifact Validation</h3>
-           <div class="alert {% if display.validation_valid %}banner-success{% else %}banner-error{% endif %}">
-               {% if display.validation_valid %}
-               All required artifacts present &amp; digest verified.
-               {% else %}
-               Artifact verification failed — see error list below.
-               {% endif %}
-           </div>
-           {% for err in display.validation_errors %}
-           <div class="alert banner-error">{{ err }}</div>
-           {% endfor %}
-           {% for warn in display.validation_warnings %}
-           <div class="alert banner-warning">{{ warn }}</div>
-           {% endfor %}
-           <div class="field"><span class="label">Manifest present:</span>
-               {% if display.validation_details.manifest_present %}
-               Yes ({{ display.validation_details.manifest_artifacts|length }} files)
-               {% else %}
-               No
-               {% endif %}
-           </div>
-       </div>
-
-       <!-- ============================================================ -->
-       <!-- PREDICTION RESULT (只渲染 display 中预计算字段 -->
-       <!-- ============================================================ -->
-       <div class="panel">
-           <h3>Prediction Result</h3>
-
-           <!-- Error banner: 用 banner-empty class 在空值时自动隐藏 -->
-           <div class="alert {% if display.single_error_banner %}banner-error{% else %}banner-empty{% endif %}">
-               {{ display.single_error_banner }}
-           </div>
-
-           <div class="field"><span class="label">Final Prediction:</span>
-               <span class="{{ display.single_prediction_badge_class }}">{{ display.single_prediction_badge_label }}</span>
-           </div>
-           <div class="field"><span class="label">Fraud Probability:</span> {{ "%.4f"|format(display.fraud_probability) }}</div>
-           <div class="field"><span class="label">Legit Probability:</span> {{ "%.4f"|format(display.legit_probability) }}</div>
-           <div class="field"><span class="label">Risk Level:</span>
-               <span class="{{ display.single_risk_badge_class }}">{{ display.single_risk_badge_label }}</span>
-           </div>
-           <div class="field"><span class="label">Transaction ID:</span> {{ display.transaction_id }}</div>
-
-           <h3>Risk Explanation</h3>
-           <div class="alert banner-info">{{ display.risk_summary }}</div>
-
-           <div class="alert {% if display.single_risk_contributors_display %}banner-success{% else %}banner-empty{% endif %}">
-               <b>Top Contributors</b>
-               <div class="contrib">{{ display.single_risk_contributors_display }}</div>
-           </div>
-       </div>
-       {% endif %}
-    </div>
-</body>
+            <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
+    </form>
+    <h2>
+       The prediction is {{results}}
+    </h2>
+   <body>
 </html>
+

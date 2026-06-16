@@ -1,0 +1,19 @@
+[ 2026-06-16 09:50:37,329] 119 root - INFO - Derived column 'date' from 'timestamp'
+[ 2026-06-16 09:50:37,332] 124 root - INFO - Derived column 'day' from 'timestamp'
+[ 2026-06-16 09:50:37,334] 129 root - INFO - Derived column 'time' from 'timestamp'
+[ 2026-06-16 09:50:37,335] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 09:50:37,336] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 09:50:37,336] 181 root - WARNING - Missing required columns: ['c']
+[ 2026-06-16 09:50:37,345] 226 root - INFO - Starting dataframe normalization: 8 columns, 2 rows
+[ 2026-06-16 09:50:37,346] 234 root - INFO - Renamed 8 columns
+[ 2026-06-16 09:50:37,347] 119 root - INFO - Derived column 'date' from 'timestamp'
+[ 2026-06-16 09:50:37,347] 124 root - INFO - Derived column 'day' from 'timestamp'
+[ 2026-06-16 09:50:37,348] 129 root - INFO - Derived column 'time' from 'timestamp'
+[ 2026-06-16 09:50:37,348] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 09:50:37,348] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 09:50:37,352] 280 root - INFO - Normalization complete: 1 numerical, 6 categorical columns
+[ 2026-06-16 09:50:37,355] 119 root - INFO - Derived column 'date' from 'timestamp'
+[ 2026-06-16 09:50:37,355] 124 root - INFO - Derived column 'day' from 'timestamp'
+[ 2026-06-16 09:50:37,356] 129 root - INFO - Derived column 'time' from 'timestamp'
+[ 2026-06-16 09:50:37,356] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 09:50:37,357] 161 root - INFO - Converted column 'to_bank' from object to object

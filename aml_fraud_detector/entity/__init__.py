@@ -10,7 +10,7 @@ from aml_fraud_detector.entity.artifact_entity import (
     ValidationStatus,
     PredictionResult,
     BatchPredictionResult,
-    UnifiedArtifactsView,
+    UnifiedPredictionResponse,
 )
 
 __all__ = [
@@ -25,5 +25,5 @@ __all__ = [
     "ValidationStatus",
     "PredictionResult",
     "BatchPredictionResult",
-    "UnifiedArtifactsView",
+    "UnifiedPredictionResponse",
 ]

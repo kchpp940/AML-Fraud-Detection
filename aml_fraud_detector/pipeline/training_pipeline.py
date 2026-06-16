@@ -7,6 +7,7 @@ from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 
 from aml_fraud_detector.components.data_ingestion import DataIngestion
+from aml_fraud_detector.components.data_validation import DataValidation
 from aml_fraud_detector.components.data_transformation import DataTransformation
 from aml_fraud_detector.components.model_trainer import ModelTrainer
 from aml_fraud_detector.components.model_evaluation import ModelEvaluation
@@ -51,6 +52,31 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"Data ingestion done: total={summary.data_rows}, "
             f"train≈{summary.train_rows}, test≈{summary.test_rows}"
         )
+
+        logging.info("\n" + "=" * 72)
+        logging.info("Running Data Validation")
+        logging.info("=" * 72)
+        data_validation = DataValidation(training_config=training_config)
+        validation_artifact = data_validation.initiate_data_validation(
+            train_path=train_data_path,
+            test_path=test_data_path,
+        )
+
+        if not validation_artifact.validation_status:
+            error_msg = (
+                f"Data validation failed with {len(validation_artifact.validation_errors)} "
+                f"errors: {validation_artifact.validation_errors}"
+            )
+            logging.error(error_msg)
+            raise CustomerException(ValueError(error_msg), sys)
+
+        logging.info(
+            f"Data validation passed: "
+            f"{len(validation_artifact.validation_warnings)} warnings"
+        )
+        if validation_artifact.validation_warnings:
+            for warn in validation_artifact.validation_warnings:
+                logging.warning(f"  - {warn}")
 
         data_transformation = DataTransformation(training_config=training_config)
         transform_artifact = data_transformation.initiate_data_transformation(

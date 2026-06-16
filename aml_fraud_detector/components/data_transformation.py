@@ -15,6 +15,10 @@ from category_encoders import TargetEncoder, CountEncoder
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
+from aml_fraud_detector.utils import (
+    normalize_dataframe,
+    NormalizationReport,
+)
 from aml_fraud_detector.configuration import TrainingConfig
 
 
@@ -99,51 +103,59 @@ class DataTransformation:
             test_df = pd.read_csv(test_path)
             logging.info("Reading train and test data completed")
 
-            train_df.columns = train_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
-            test_df.columns = test_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
-            logging.info("Train and Test dataframe columns name renamed")
-
-            logging.info(f"Train Dataframe Head : \n{train_df.head().to_string()}")
-            logging.info(f"Test Dataframe Head : \n{test_df.head().to_string()}")
-
-            if "from_bank" in train_df.columns:
-                train_df["from_bank"] = train_df["from_bank"].astype("object")
-            if "to_bank" in train_df.columns:
-                train_df["to_bank"] = train_df["to_bank"].astype("object")
-            if "from_bank" in test_df.columns:
-                test_df["from_bank"] = test_df["from_bank"].astype("object")
-            if "to_bank" in test_df.columns:
-                test_df["to_bank"] = test_df["to_bank"].astype("object")
-
-            if "timestamp" in train_df.columns:
-                train_df["timestamp"] = pd.to_datetime(train_df["timestamp"])
-                train_df["date"] = train_df["timestamp"].dt.date
-                train_df["day"] = train_df["timestamp"].dt.day_name()
-                train_df["time"] = train_df["timestamp"].dt.time
-            if "timestamp" in test_df.columns:
-                test_df["timestamp"] = pd.to_datetime(test_df["timestamp"])
-                test_df["date"] = test_df["timestamp"].dt.date
-                test_df["day"] = test_df["timestamp"].dt.day_name()
-                test_df["time"] = test_df["timestamp"].dt.time
-
             target_column_name = self.training_config.features.target_column
+            drop_columns = self.training_config.features.drop_columns
+
+            logging.info("Applying unified feature normalization to training data")
+            train_df_normalized, train_norm_report = normalize_dataframe(
+                train_df,
+                target_column_name=target_column_name,
+                drop_columns=drop_columns,
+                derive_temporal=True,
+                clean_categorical=True,
+            )
+
+            logging.info("Applying unified feature normalization to test data")
+            test_df_normalized, test_norm_report = normalize_dataframe(
+                test_df,
+                target_column_name=target_column_name,
+                drop_columns=drop_columns,
+                derive_temporal=True,
+                clean_categorical=True,
+            )
+
+            if train_norm_report.renamed_columns:
+                logging.info(
+                    f"Renamed columns: {train_norm_report.renamed_columns}"
+                )
+            if train_norm_report.derived_columns:
+                logging.info(
+                    f"Derived temporal columns: {train_norm_report.derived_columns}"
+                )
+
+            logging.info(f"Train Dataframe Head : \n{train_df_normalized.head().to_string()}")
+            logging.info(f"Test Dataframe Head : \n{test_df_normalized.head().to_string()}")
+
             extra_drop = [target_column_name]
             configured_drop = [
-                c for c in self.training_config.features.drop_columns
+                c for c in drop_columns
                 if c != target_column_name
             ]
-            drop_columns = extra_drop + configured_drop
-            existing_drop = [c for c in drop_columns if c in train_df.columns]
+            all_drop_columns = extra_drop + configured_drop
+            normalized_drop = [
+                c for c in all_drop_columns
+                if c in train_df_normalized.columns
+            ]
 
-            input_features_train_df = train_df.drop(columns=existing_drop, axis=1)
-            target_feature_train_df = train_df[target_column_name]
+            input_features_train_df = train_df_normalized.drop(columns=normalized_drop, axis=1)
+            target_feature_train_df = train_df_normalized[target_column_name]
 
-            input_features_test_df = test_df.drop(columns=existing_drop, axis=1)
-            target_feature_test_df = test_df[target_column_name]
+            input_features_test_df = test_df_normalized.drop(columns=normalized_drop, axis=1)
+            target_feature_test_df = test_df_normalized[target_column_name]
 
-            numerical_features = input_features_train_df.select_dtypes(include=np.number).columns.tolist()
+            numerical_features = train_norm_report.numerical_columns
             logging.info(f"Columns name of numerical features: {numerical_features}")
-            categorical_features = input_features_train_df.select_dtypes(include=object).columns.tolist()
+            categorical_features = train_norm_report.categorical_columns
             logging.info(f"Columns name of categorical features: {categorical_features}")
             feature_columns = numerical_features + categorical_features
 

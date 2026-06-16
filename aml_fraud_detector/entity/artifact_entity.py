@@ -9,7 +9,6 @@ class ProcessStatus(str, Enum):
 
 
 class RiskLevel(str, Enum):
-    MINIMAL = "Minimal"
     LOW = "Low"
     MEDIUM = "Medium"
     HIGH = "High"
@@ -42,19 +41,18 @@ FOUR_ARTIFACT_FILENAMES = [
 @dataclass
 class RiskExplanation:
     fraud_probability: float = 0.0
-    risk_level: RiskLevel = RiskLevel.MINIMAL
-    summary_text: str = ""
-    top_contributors: List[Dict[str, Any]] = field(default_factory=list)
+    risk_level: RiskLevel = RiskLevel.LOW
+    top_factors: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
 class ModelVersionInfo:
     model_version: int = 0
-    best_model_name: str = ""
+    model_name: str = ""
     training_time: str = ""
     selection_metric: str = ""
     best_metric_value: float = 0.0
-    feature_contract_version: str = ""
+    feature_schema_version: str = ""
     artifact_path: str = ""
 
 
@@ -63,19 +61,19 @@ class ValidationStatus:
     is_valid: bool = True
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
-    details: Dict[str, Any] = field(default_factory=dict)
+    checked_artifacts: List[str] = field(default_factory=list)
 
 
 @dataclass
 class PredictionResult:
     prediction: int = -1
-    class_label: str = ""
     fraud_probability: float = 0.0
     legit_probability: float = 0.0
-    model_version: int = 0
-    transaction_id: Optional[str] = None
+    class_label: str = ""
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
+    model_version: int = 0
+    transaction_id: Optional[str] = None
     risk_explanation: RiskExplanation = field(default_factory=RiskExplanation)
 
     @property
@@ -83,26 +81,23 @@ class PredictionResult:
         return self.risk_explanation.risk_level
 
     @property
-    def risk_summary(self) -> str:
-        return self.risk_explanation.summary_text
-
-    @property
-    def top_contributors(self) -> List[Dict[str, Any]]:
-        return self.risk_explanation.top_contributors
+    def top_factors(self) -> List[Dict[str, Any]]:
+        return self.risk_explanation.top_factors
 
 
 @dataclass
 class BatchPredictionResult:
     total_count: int = 0
     fraud_count: int = 0
-    legit_count: int = 0
     fraud_rate: float = 0.0
+    predictions: List[PredictionResult] = field(default_factory=list)
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
-    predictions: List[PredictionResult] = field(default_factory=list)
 
 
 @dataclass
-class UnifiedArtifactsView:
+class UnifiedPredictionResponse:
     model_version: ModelVersionInfo = field(default_factory=ModelVersionInfo)
     validation: ValidationStatus = field(default_factory=ValidationStatus)
+    single_prediction: Optional[PredictionResult] = None
+    batch_prediction: Optional[BatchPredictionResult] = None
