@@ -1,6 +1,6 @@
 import sys
 import logging
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field as dc_field, asdict
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
@@ -10,12 +10,7 @@ from aml_fraud_detector.constants import (
     ERROR_MESSAGES,
     ERROR_CATEGORY_MAP,
     HTTP_STATUS_CODES,
-    ERROR_SEVERITY,
 )
-
-
-def _get_severity(error_code: ErrorCode) -> str:
-    return ERROR_SEVERITY.get(error_code, "warning")
 
 
 def _format_message(error_code: ErrorCode, **kwargs) -> str:
@@ -31,18 +26,18 @@ class ErrorDetail:
     error_code: ErrorCode
     error_category: ErrorCategory
     message: str
-    field_name: Optional[str] = None
-    field_value: Optional[Any] = None
-    context: Dict[str, Any] = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    field: Optional[str] = None
+    value: Optional[Any] = None
+    context: Dict[str, Any] = dc_field(default_factory=dict)
+    timestamp: str = dc_field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "error_code": self.error_code.value,
             "error_category": self.error_category.value,
             "message": self.message,
-            "field": self.field_name,
-            "value": str(self.field_value) if self.field_value is not None else None,
+            "field": self.field,
+            "value": str(self.value) if self.value is not None else None,
             "context": self.context,
             "timestamp": self.timestamp,
         }
@@ -69,29 +64,12 @@ class UnifiedErrorResponse:
         }
 
     def to_user_display(self) -> Dict[str, Any]:
-        if not self.error:
-            return {
-                "success": False,
-                "error_category": "internal_error",
-                "error_code": "E9999",
-                "message": "发生未知错误",
-                "suggestion": "请稍后重试或联系技术支持",
-                "field": None,
-                "value": None,
-                "trace_id": self.trace_id,
-                "severity": "critical",
-            }
-        severity = _get_severity(self.error.error_code)
         return {
             "success": False,
-            "error_category": self.error.error_category.value,
-            "error_code": self.error.error_code.value,
-            "message": self.error.to_user_message(),
+            "error_category": self.error.error_category.value if self.error else "internal_error",
+            "error_code": self.error.error_code.value if self.error else "E9999",
+            "message": self.error.to_user_message() if self.error else "发生未知错误",
             "suggestion": self._get_suggestion(),
-            "field": self.error.field_name,
-            "value": str(self.error.field_value) if self.error.field_value is not None else None,
-            "trace_id": self.trace_id,
-            "severity": severity,
         }
 
     def _get_suggestion(self) -> str:
@@ -119,19 +97,18 @@ class AMLException(Exception):
         error_code: ErrorCode,
         *,
         error_details: Optional[sys] = None,
-        message: Optional[str] = None,
         **kwargs,
     ):
         self.error_code = error_code
         self.error_category = ERROR_CATEGORY_MAP.get(error_code, ErrorCategory.INTERNAL_ERROR)
         self.kwargs = kwargs
-        self.message = message if message is not None else _format_message(error_code, **kwargs)
+        self.message = _format_message(error_code, **kwargs)
         self.error_detail = ErrorDetail(
             error_code=error_code,
             error_category=self.error_category,
             message=self.message,
-            field_name=kwargs.get("field"),
-            field_value=kwargs.get("value"),
+            field=kwargs.get("field"),
+            value=kwargs.get("value"),
             context={k: str(v) for k, v in kwargs.items() if k not in ("field", "value")},
         )
 

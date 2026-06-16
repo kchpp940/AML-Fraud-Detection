@@ -1,5 +1,4 @@
 {
-  "schema_version": "1.0",
   "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest",
   "artifacts": {
     "data.csv": {

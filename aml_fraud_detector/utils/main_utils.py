@@ -38,8 +38,8 @@ def save_training_summary(file_path: str, summary_obj) -> str:
         logging.info(f"Training summary saved to: {file_path}")
         return os.path.abspath(file_path)
     except Exception as e:
-        logging.error("Exception occurred in save_training_summary", exc_info=True)
-        raise wrap_exception(e, error_details=sys)
+        logging.info("Exception Occurred in save_training_summary function utils")
+        raise CustomerException(e, sys)
 
 
 def save_object(file_path, obj):
@@ -89,8 +89,8 @@ def upsampling_train_data(X, y):
         logging.info(f"Upsampling the minority class data completed") 
         return X_sm, y_sm
     except Exception as e:
-        logging.error("Exception occurred during upsampling", exc_info=True)
-        raise wrap_exception(e, error_details=sys)
+        logging.info(f"Exception occured during upsampling the minority class")
+        raise CustomerException(e, sys)
 
 
 def model_metrics(y_pred, y_test):
@@ -162,6 +162,6 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
         return train_report, test_report
 
     except Exception as e:
-        logging.error("Exception occurred during model evaluation", exc_info=True)
-        raise wrap_exception(e, error_details=sys)
+        logging.info(f"Exception occured during model training")
+        raise CustomerException(e, sys)
     

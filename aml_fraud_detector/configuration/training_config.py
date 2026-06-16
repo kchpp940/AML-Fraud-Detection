@@ -12,6 +12,7 @@ from aml_fraud_detector.exception import (
 )
 from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
+from aml_fraud_detector.runtime.workspace import WorkspaceContext, WorkspaceMode
 
 
 DEFAULT_CONFIG_PATH = os.path.join("config", "training_config.yaml")
@@ -186,12 +187,16 @@ class TrainingConfig:
             artifacts_dir=raw["output"]["artifacts_dir"],
         )
         self._validate()
+
+        self.workspace: WorkspaceContext = WorkspaceContext.from_config_dict(raw)
+        self.workspace.ensure_directories()
+
         self._resolved_cache: Optional[Dict[str, Any]] = None
         logging.info("Training config loaded and validated successfully")
         logging.info(
             f"Resolved config signature: data_source={self.resolve_source_path()}, "
             f"target={self.features.target_column}, metric={self.models.selection_metric}, "
-            f"output={self.output.artifacts_dir}"
+            f"output={self.workspace.artifacts_dir}"
         )
 
     @staticmethod
@@ -250,7 +255,14 @@ class TrainingConfig:
                 },
                 "param_grid": {},
             },
-            "output": {"artifacts_dir": "artifacts"},
+            "output": {
+                "artifacts_dir": "artifacts",
+                "workspace": {
+                    "mode": "flat",
+                    "root": None,
+                    "run_name": None,
+                },
+            },
         }
         if not os.path.isfile(path):
             return defaults, False
@@ -318,7 +330,7 @@ class TrainingConfig:
         return os.path.abspath(self.data.source_path)
 
     def artifacts_subpath(self, *parts: str) -> str:
-        return os.path.join(self.output.artifacts_dir, *parts)
+        return self.workspace.artifacts_subpath(*parts)
 
     def to_resolved_dict(self) -> Dict[str, Any]:
         """
@@ -334,11 +346,12 @@ class TrainingConfig:
           - features: target_column, drop_columns
           - models: selection_metric, enabled, param_grid
           - output: artifacts_dir (absolute), preprocessor_path, model_path, summary_path
+          - workspace: workspace context info
         """
         if self._resolved_cache is not None:
             return self._resolved_cache
 
-        abs_artifacts = os.path.abspath(self.output.artifacts_dir)
+        ws = self.workspace
         snapshot: Dict[str, Any] = {
             "run_info": {
                 "created_at": self.created_at,
@@ -369,15 +382,16 @@ class TrainingConfig:
                 "param_grid": dict(self.models.param_grid),
             },
             "output": {
-                "artifacts_dir": abs_artifacts,
+                "artifacts_dir": os.path.abspath(ws.artifacts_dir),
                 "artifacts_dir_input": self.output.artifacts_dir,
-                "train_csv": os.path.abspath(self.artifacts_subpath("train.csv")),
-                "test_csv": os.path.abspath(self.artifacts_subpath("test.csv")),
-                "raw_csv": os.path.abspath(self.artifacts_subpath("data.csv")),
-                "preprocessor_pkl": os.path.abspath(self.artifacts_subpath("preprocessor.pkl")),
-                "model_pkl": os.path.abspath(self.artifacts_subpath("model.pkl")),
-                "summary_json": os.path.abspath(self.artifacts_subpath("training_summary.json")),
+                "train_csv": os.path.abspath(ws.get_artifact_path("train_csv")),
+                "test_csv": os.path.abspath(ws.get_artifact_path("test_csv")),
+                "raw_csv": os.path.abspath(ws.get_artifact_path("raw_csv")),
+                "preprocessor_pkl": os.path.abspath(ws.get_artifact_path("preprocessor_pkl")),
+                "model_pkl": os.path.abspath(ws.get_artifact_path("model_pkl")),
+                "summary_json": os.path.abspath(ws.get_artifact_path("summary_json")),
             },
+            "workspace": ws.to_dict(),
         }
         self._resolved_cache = snapshot
         return snapshot

@@ -22,6 +22,7 @@ from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
 from aml_fraud_detector.configuration import TrainingConfig
+from aml_fraud_detector.runtime.workspace import WorkspaceContext
 
 
 @dataclass
@@ -41,12 +42,16 @@ class DataTransformationArtifact:
 
 
 class DataTransformation:
-    def __init__(self, training_config: Optional[TrainingConfig] = None):
+    def __init__(
+        self,
+        training_config: Optional[TrainingConfig] = None,
+        workspace: Optional[WorkspaceContext] = None,
+    ):
         self.training_config = training_config or TrainingConfig()
+        self.workspace = workspace or self.training_config.workspace
         self._resolved = self.training_config.to_resolved_dict()
-        tc = self.training_config
         self.data_transformation_config = DataTransformationConfig(
-            preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl")
+            preprocessor_obj_file_path=self.workspace.get_artifact_path("preprocessor_pkl")
         )
         logging.info(
             f"DataTransformation initialized with resolved config: "
@@ -94,7 +99,7 @@ class DataTransformation:
             return preprocessor
 
         except Exception as e:
-            raise wrap_exception(e, error_details=sys)
+            raise CustomerException(e, sys)
 
     def initiate_data_transformation(
         self, train_path: str, test_path: str
@@ -224,4 +229,4 @@ class DataTransformation:
             )
 
         except Exception as e:
-            raise wrap_exception(e, error_details=sys)
+            raise CustomerException(e, sys)

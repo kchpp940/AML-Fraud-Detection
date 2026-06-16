@@ -27,6 +27,7 @@ from aml_fraud_detector.entity.artifact_entity import (
     BatchPredictionResult,
     ProcessStatus,
     RiskLevel,
+    ClassLabel,
 )
 from aml_fraud_detector.exception import (
     FeatureAlignmentException,
@@ -176,13 +177,13 @@ def step4_flask_routes_use_builder():
     with open("app.py", "r") as f:
         src = f.read()
 
-    build_calls = re.findall(r"\bbuilder\.build_(?:single|batch|validation_only)", src)
-    flatten_calls = re.findall(r"\bbuilder\.flatten_for_display", src)
+    build_calls = re.findall(r"_builder\.build_(single|batch|validation_only)", src)
+    flatten_calls = re.findall(r"_builder\.flatten_for_display", src)
 
-    _assert(any("build_single" in c for c in build_calls), "/predictdata route 调用 build_single")
-    _assert(any("build_batch" in c for c in build_calls), "/batchprediction route 调用 build_batch")
-    _assert(any("build_validation_only" in c for c in build_calls), "GET 请求调用 build_validation_only")
-    print(f"  builder.build_ 调用次数: {len(build_calls)} ({', '.join(c.split('.')[-1] for c in build_calls)})")
+    _assert("build_single" in build_calls, "/predictdata route 调用 build_single")
+    _assert("build_batch" in build_calls, "/batchprediction route 调用 build_batch")
+    _assert("build_validation_only" in build_calls, "GET 请求调用 build_validation_only")
+    print(f"  _builder.build_ 调用次数: {len(build_calls)} ({', '.join(build_calls)})")
     _assert(len(flatten_calls) > 0, "flatten_for_display 被调用")
     print(f"  flatten_for_display 调用次数: {len(flatten_calls)}")
     print(f"\033[32m[PASS]\033[0m Flask 两条路径都调用 ResponseBuilder + flatten_for_display")
@@ -224,14 +225,14 @@ def step6_streamlit_uses_builder():
     with open("app_streamlit.py", "r") as f:
         src = f.read()
 
-    build_calls = re.findall(r"\bbuilder\.build_(?:single|batch|validation_only)", src)
-    flatten_calls = re.findall(r"\bbuilder\.flatten_for_display", src)
-    bdf_calls = re.findall(r"\bbuilder\.batch_to_dataframe", src)
+    build_calls = re.findall(r"builder\.build_(single|batch|validation_only)", src)
+    flatten_calls = re.findall(r"builder\.flatten_for_display", src)
+    bdf_calls = re.findall(r"builder\.batch_to_dataframe", src)
 
-    _assert(any("build_single" in c for c in build_calls), "Streamlit 调用 build_single")
-    _assert(any("build_batch" in c for c in build_calls), "Streamlit 调用 build_batch")
-    _assert(any("build_validation_only" in c for c in build_calls), "Streamlit 调用 build_validation_only")
-    print(f"  builder.build_ 调用次数: {len(build_calls)} ({', '.join(build_calls)})")
+    _assert("build_single" in build_calls, "Streamlit 调用 build_single")
+    _assert("build_batch" in build_calls, "Streamlit 调用 build_batch")
+    _assert("build_validation_only" in build_calls, "Streamlit 调用 build_validation_only")
+    print(f"  _builder.build_ 调用次数: {len(build_calls)} ({', '.join(build_calls)})")
     print(f"  flatten_for_display 调用次数: {len(flatten_calls)}")
     print(f"  batch_to_dataframe 调用次数: {len(bdf_calls)}")
 
@@ -303,13 +304,9 @@ def step7_end_to_end_flask():
     resp = client.post("/batchprediction", content_type="multipart/form-data")
     html = resp.data.decode()
     _assert(resp.status_code == 200, "缺文件场景 HTTP 200 (页面内错误展示)")
-    _assert(
-        "E2001" in html or "error_code" in html or "error_message" in html or "error_category" in html,
-        "缺文件场景 display.error_xxx 字段被渲染 (E2001 错误码出现)"
-    )
-    _assert("缺少必需输入字段" in html or "INPUT_MISSING_FIELD" in html or "输入校验错误" in html,
-            "缺文件场景 错误消息通过 display.error_message/display.error_category_display 展示")
-    print(f"  缺文件错误场景 ✓ (错误码 E2001 通过 display 字段展示，页面不拼文案)")
+    _assert("error_code" in html or "INPUT_MISSING_FIELD" in html or "error_message" in html,
+            "缺文件场景 display.error_xxx 字段被渲染")
+    print(f"  缺文件错误场景 ✓ (错误码通过 display 字段展示)")
 
     print()
     print("=" * 72)

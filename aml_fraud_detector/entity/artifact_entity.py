@@ -111,7 +111,6 @@ class BatchPredictionResult:
     total_count: int = 0
     fraud_count: int = 0
     fraud_rate: float = 0.0
-    overall_risk_level: RiskLevel = RiskLevel.LOW
     predictions: List[PredictionResult] = field(default_factory=list)
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
@@ -122,7 +121,6 @@ class BatchPredictionResult:
             "total_count": self.total_count,
             "fraud_count": self.fraud_count,
             "fraud_rate": self.fraud_rate,
-            "overall_risk_level": self.overall_risk_level.value,
             "predictions": [p.to_dict() for p in self.predictions],
             "process_status": self.process_status.value,
             "error_reason": self.error_reason,
@@ -193,19 +191,6 @@ class UnifiedPredictionResponse:
             result["batch_prediction"] = self.batch_prediction.to_dict()
         if self.error:
             result["error"] = self.error.to_dict()
-        if not self.is_success():
-            if not self.error and self.single_prediction and self.single_prediction.error_detail:
-                result["error"] = UnifiedErrorResponse(
-                    success=False,
-                    status="error",
-                    error=self.single_prediction.error_detail,
-                ).to_dict()
-            elif not self.error and self.batch_prediction and self.batch_prediction.error_detail:
-                result["error"] = UnifiedErrorResponse(
-                    success=False,
-                    status="error",
-                    error=self.batch_prediction.error_detail,
-                ).to_dict()
         return result
 
     def is_success(self) -> bool:
@@ -216,7 +201,3 @@ class UnifiedPredictionResponse:
         if self.batch_prediction and not self.batch_prediction.is_success():
             return False
         return True
-
-    @classmethod
-    def from_error(cls, error_resp: UnifiedErrorResponse) -> "UnifiedPredictionResponse":
-        return cls(error=error_resp)

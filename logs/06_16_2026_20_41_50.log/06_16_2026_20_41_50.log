@@ -1,0 +1,13 @@
+[ 2026-06-16 20:41:50,140] 59 root - INFO - WorkspaceContext initialized (mode=flat, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/artifacts)
+[ 2026-06-16 20:41:50,140] 59 root - INFO - WorkspaceContext initialized (mode=batched, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_204150/artifacts)
+[ 2026-06-16 20:41:50,140] 164 root - INFO - Loading training config (source=explicit): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 20:41:50,142] 59 root - INFO - WorkspaceContext initialized (mode=flat, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/artifacts)
+[ 2026-06-16 20:41:50,142] 94 root - DEBUG - Workspace directories ensured: artifacts=/Users/pkcha/AML-Fraud-Detection/artifacts, logs=/Users/pkcha/AML-Fraud-Detection/logs, tmp=/Users/pkcha/AML-Fraud-Detection/tmp
+[ 2026-06-16 20:41:50,142] 195 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 20:41:50,142] 196 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=/Users/pkcha/AML-Fraud-Detection/artifacts
+[ 2026-06-16 20:41:50,142] 94 root - DEBUG - Workspace directories ensured: artifacts=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_204150/artifacts, logs=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_204150/logs, tmp=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_204150/tmp
+[ 2026-06-16 20:41:50,142] 59 root - INFO - WorkspaceContext initialized (mode=batched, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/runs/test_run_123/artifacts)
+[ 2026-06-16 20:41:57,716] 59 root - INFO - WorkspaceContext initialized (mode=flat, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/test_artifacts)
+[ 2026-06-16 20:41:57,716] 41 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=50000, test_size=0.2
+[ 2026-06-16 20:41:57,716] 56 root - INFO - DataTransformation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], preprocessor_out=/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl
+[ 2026-06-16 20:41:57,716] 66 root - INFO - ModelTrainer initialized with resolved config: enabled=['Random Forest', 'AdaBoost', 'XGBoost'], metric=Recall, model_out=/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl

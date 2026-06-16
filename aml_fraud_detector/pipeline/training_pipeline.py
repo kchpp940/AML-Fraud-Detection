@@ -9,7 +9,7 @@ from aml_fraud_detector.exception import (
     wrap_exception,
     create_error_from_exception,
 )
-from aml_fraud_detector.logger import logging
+from aml_fraud_detector.logger import logging, configure_logging_from_workspace
 from aml_fraud_detector.constants import ErrorCode
 
 from aml_fraud_detector.components.data_ingestion import DataIngestion
@@ -20,6 +20,7 @@ from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 from aml_fraud_detector.utils.main_utils import save_training_summary
 from aml_fraud_detector.entity import TrainingPipelineResult, ProcessStatus
+from aml_fraud_detector.runtime.workspace import WorkspaceContext
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipelineResult:
@@ -36,6 +37,10 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         logging.error("Training config load failed with unexpected error", exc_info=True)
         err = wrap_exception(e, error_details=sys)
         return TrainingPipelineResult.from_error(err.error_detail)
+
+    workspace = training_config.workspace
+    log_file_path = configure_logging_from_workspace(workspace)
+    logging.info(f"Log file configured at: {log_file_path}")
 
     resolved = training_config.to_resolved_dict()
     logging.info(
@@ -57,7 +62,9 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
     )
 
     try:
-        data_ingestion = DataIngestion(training_config=training_config)
+        data_ingestion = DataIngestion(
+            training_config=training_config, workspace=workspace
+        )
         train_data_path, test_data_path, df_sample = data_ingestion.initiate_data_ingestion()
 
         summary.data_rows = len(df_sample)
@@ -68,7 +75,9 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"train≈{summary.train_rows}, test≈{summary.test_rows}"
         )
 
-        data_transformation = DataTransformation(training_config=training_config)
+        data_transformation = DataTransformation(
+            training_config=training_config, workspace=workspace
+        )
         transform_artifact = data_transformation.initiate_data_transformation(
             train_data_path, test_data_path
         )
@@ -86,7 +95,9 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"{len(summary.categorical_features)} cat)"
         )
 
-        model_trainer = ModelTrainer(training_config=training_config)
+        model_trainer = ModelTrainer(
+            training_config=training_config, workspace=workspace
+        )
         trainer_artifact = model_trainer.initiate_model_trainer(train_arr, test_arr)
 
         summary.candidate_models = trainer_artifact.candidate_models
@@ -105,12 +116,14 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         )
 
         summary.summary_path = os.path.abspath(
-            training_config.artifacts_subpath("training_summary.json")
+            workspace.get_artifact_path("summary_json")
         )
         save_training_summary(
             file_path=summary.summary_path,
             summary_obj=summary,
         )
+
+        latest_link = workspace.update_latest_link()
 
         logging.info("=" * 72)
         logging.info("Training pipeline completed successfully")
@@ -129,6 +142,11 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
                       f"{ov['original_value']!r} -> {ov['resolved_value']!r}")
         else:
             print("Env overrides      : (none)")
+        print(f"Workspace mode     : {workspace.mode.value}")
+        print(f"Workspace root     : {workspace.workspace_root}")
+        if workspace.mode.value == "batched":
+            print(f"Run name           : {workspace.run_name}")
+            print(f"Run directory      : {workspace.run_dir}")
         print(f"Data source        : {summary.data_source}")
         print(f"Total rows         : {summary.data_rows}")
         print(f"Train / Test rows  : {summary.train_rows} / {summary.test_rows}")
@@ -145,6 +163,9 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         print(f"Preprocessor saved : {summary.preprocessor_path}")
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
+        print(f"Log file           : {log_file_path}")
+        if latest_link:
+            print(f"Latest run link    : {latest_link}")
         print("=" * 72 + "\n")
 
         return TrainingPipelineResult(
@@ -156,6 +177,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
                 "preprocessor": summary.preprocessor_path,
                 "model": summary.model_path,
                 "summary": summary.summary_path,
+                "log_file": log_file_path,
             },
         )
 

@@ -14,6 +14,8 @@ from aml_fraud_detector.constants import (
     ERROR_CATEGORY_DISPLAY,
     ERROR_SEVERITY,
     HTTP_STATUS_CODES,
+    PROCESS_STATUS_SUCCESS,
+    PROCESS_STATUS_ERROR,
 )
 from aml_fraud_detector.exception import (
     AMLException,
@@ -169,7 +171,7 @@ class ResponseBuilder:
         vm.training_time = mvi.training_time or ""
         vm.selection_metric = mvi.selection_metric or ""
         vm.best_metric_value = mvi.best_metric_value or ""
-        vm.feature_contract_version = mvi.feature_schema_version or mvi.feature_contract_version or ""
+        vm.feature_contract_version = mvi.feature_contract_version or ""
 
     def _fill_validation_fields(
         self, vm: UnifiedViewModel, vs: Optional[ValidationStatus]
@@ -179,9 +181,7 @@ class ResponseBuilder:
         vm.validation_valid = vs.is_valid
         vm.validation_errors = list(vs.errors)
         vm.validation_warnings = list(vs.warnings)
-        vm.validation_details = {
-            "checked_artifacts": list(getattr(vs, "checked_artifacts", [])),
-        }
+        vm.validation_details = list(vs.details)
         vm.has_alerts = (len(vs.errors) + len(vs.warnings)) > 0
 
     def _fill_error_fields(
@@ -242,16 +242,12 @@ class ResponseBuilder:
             self._fill_error_fields(vm, prediction_result.error_detail, tid)
             return vm
 
-        vm.prediction_code = int(prediction_result.prediction) if prediction_result.prediction >= 0 else 0
-        vm.prediction_label = prediction_result.class_label or ("正常交易" if prediction_result.prediction == 0 else "疑似欺诈")
+        vm.prediction_code = int(prediction_result.class_label.value) if hasattr(prediction_result.class_label, "value") else int(prediction_result.class_label)
+        vm.prediction_label = prediction_result.class_label.name if hasattr(prediction_result.class_label, "name") else str(prediction_result.class_label)
         vm.fraud_probability = float(prediction_result.fraud_probability)
-        vm.legit_probability = float(prediction_result.legit_probability) if prediction_result.legit_probability > 0 else float(1.0 - prediction_result.fraud_probability)
-        risk_level_raw = prediction_result.risk_level
-        vm.risk_level = risk_level_raw.value if hasattr(risk_level_raw, "value") else str(risk_level_raw)
-        vm.risk_summary = (
-            getattr(prediction_result, "risk_summary", None)
-            or f"{vm.prediction_label}，欺诈概率 {vm.fraud_probability * 100:.1f}%，风险等级 {vm.risk_level}"
-        )
+        vm.legit_probability = float(1.0 - prediction_result.fraud_probability)
+        vm.risk_level = prediction_result.risk_level.value if hasattr(prediction_result.risk_level, "value") else str(prediction_result.risk_level)
+        vm.risk_summary = prediction_result.risk_summary or ""
         vm.risk_contributors = [dict(x) for x in (prediction_result.top_factors or [])]
         return vm
 
@@ -310,23 +306,14 @@ class ResponseBuilder:
         rows = []
         for pr in vm._batch_results:
             factors = list(pr.top_factors or [])
-            pcode = int(pr.prediction) if pr.prediction >= 0 else 0
-            plabel = pr.class_label or ("正常交易" if pcode == 0 else "疑似欺诈")
-            legit_p = float(pr.legit_probability) if pr.legit_probability > 0 else float(1.0 - pr.fraud_probability)
-            rl_raw = pr.risk_level
-            rl = rl_raw.value if hasattr(rl_raw, "value") else str(rl_raw)
-            rs = (
-                getattr(pr, "risk_summary", None)
-                or f"{plabel}，欺诈概率 {float(pr.fraud_probability) * 100:.1f}%，风险等级 {rl}"
-            )
             row = {
                 "transaction_id": pr.transaction_id or "",
-                "prediction_code": pcode,
-                "prediction_label": plabel,
+                "prediction_code": int(pr.class_label.value) if hasattr(pr.class_label, "value") else int(pr.class_label),
+                "prediction_label": pr.class_label.name if hasattr(pr.class_label, "name") else str(pr.class_label),
                 "fraud_probability": float(pr.fraud_probability),
-                "legit_probability": legit_p,
-                "risk_level": rl,
-                "risk_summary": rs,
+                "legit_probability": float(1.0 - pr.fraud_probability),
+                "risk_level": pr.risk_level.value if hasattr(pr.risk_level, "value") else str(pr.risk_level),
+                "risk_summary": pr.risk_summary or "",
                 "top_factor_1": factors[0].get("feature", "") if len(factors) > 0 else "",
                 "top_factor_2": factors[1].get("feature", "") if len(factors) > 1 else "",
                 "top_factor_3": factors[2].get("feature", "") if len(factors) > 2 else "",
