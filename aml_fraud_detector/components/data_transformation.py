@@ -22,7 +22,6 @@ from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
 from aml_fraud_detector.configuration import TrainingConfig
-from aml_fraud_detector.runtime.workspace import WorkspaceContext
 
 
 @dataclass
@@ -42,16 +41,12 @@ class DataTransformationArtifact:
 
 
 class DataTransformation:
-    def __init__(
-        self,
-        training_config: Optional[TrainingConfig] = None,
-        workspace: Optional[WorkspaceContext] = None,
-    ):
+    def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
-        self.workspace = workspace or self.training_config.workspace
         self._resolved = self.training_config.to_resolved_dict()
+        tc = self.training_config
         self.data_transformation_config = DataTransformationConfig(
-            preprocessor_obj_file_path=self.workspace.get_artifact_path("preprocessor_pkl")
+            preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl")
         )
         logging.info(
             f"DataTransformation initialized with resolved config: "
@@ -118,10 +113,6 @@ class DataTransformation:
                 )
             logging.info("Reading train and test data completed")
 
-            train_df.columns = train_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
-            test_df.columns = test_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
-            logging.info("Train and Test dataframe columns name renamed")
-
             target_column_name = self.training_config.features.target_column
             required_columns = [target_column_name]
             missing_cols = [c for c in required_columns if c not in train_df.columns]
@@ -131,6 +122,10 @@ class DataTransformation:
                     error_details=sys,
                     missing=", ".join(missing_cols),
                 )
+
+            train_df.columns = train_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
+            test_df.columns = test_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
+            logging.info("Train and Test dataframe columns name renamed")
 
             logging.info(f"Train Dataframe Head : \n{train_df.head().to_string()}")
             logging.info(f"Test Dataframe Head : \n{test_df.head().to_string()}")

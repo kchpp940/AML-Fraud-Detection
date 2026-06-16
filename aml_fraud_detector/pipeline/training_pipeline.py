@@ -3,13 +3,14 @@ import sys
 from dataclasses import asdict
 from typing import Optional
 
+from aml_fraud_detector.bootstrap import ApplicationContainer
 from aml_fraud_detector.exception import (
     AMLException,
     PipelineException,
     wrap_exception,
     create_error_from_exception,
 )
-from aml_fraud_detector.logger import logging, configure_logging_from_workspace
+from aml_fraud_detector.logger import logging
 from aml_fraud_detector.constants import ErrorCode
 
 from aml_fraud_detector.components.data_ingestion import DataIngestion
@@ -20,29 +21,36 @@ from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 from aml_fraud_detector.utils.main_utils import save_training_summary
 from aml_fraud_detector.entity import TrainingPipelineResult, ProcessStatus
-from aml_fraud_detector.runtime.workspace import WorkspaceContext
 
 
 def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipelineResult:
-    logging.info("=" * 72)
-    logging.info("AML Fraud Detection - Training pipeline started")
-    logging.info("=" * 72)
+    ApplicationContainer.reset()
+    container = ApplicationContainer(
+        config_path=config_path,
+        eager_load=True,
+        mode="training",
+    )
 
-    try:
-        training_config = TrainingConfig(config_path=config_path)
-    except AMLException as e:
-        logging.error(f"Training config load failed: {e}")
-        return TrainingPipelineResult.from_error(e.error_detail)
-    except Exception as e:
-        logging.error("Training config load failed with unexpected error", exc_info=True)
-        err = wrap_exception(e, error_details=sys)
-        return TrainingPipelineResult.from_error(err.error_detail)
+    if not container.health.is_healthy():
+        logging.error(
+            f"Training environment validation failed. Health status: {container.health.overall.value}"
+        )
+        for comp in container.health.components:
+            if comp.status == "error":
+                logging.error(f"  - {comp.name}: {comp.message}")
+        error_detail = container.health.error_detail
+        if error_detail:
+            return TrainingPipelineResult.from_error(error_detail)
+        return TrainingPipelineResult.from_error(
+            create_error_from_exception(
+                Exception(f"Training bootstrap failed: {container.health.overall.value}"),
+                error_details=sys,
+            ).error
+        )
 
-    workspace = training_config.workspace
-    log_file_path = configure_logging_from_workspace(workspace)
-    logging.info(f"Log file configured at: {log_file_path}")
-
+    training_config = container.config
     resolved = training_config.to_resolved_dict()
+
     logging.info(
         f"Training config loaded (source={resolved['run_info']['config_path_source']}): "
         f"{resolved['run_info']['config_path']}"
@@ -53,6 +61,12 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"{[e['path'] for e in resolved['env_overrides']]}"
         )
 
+    health = container.health.to_dict()
+    logging.info(f"Bootstrap health: {health['overall']}")
+    for comp in health["components"]:
+        logging.info(
+            f"  - {comp['name']}: {comp['status']} ({comp['duration_ms']:.2f}ms)"
+        )
     summary = TrainingSummary(
         data_source=resolved["data"]["source_path"],
         target_column=resolved["features"]["target_column"],
@@ -62,9 +76,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
     )
 
     try:
-        data_ingestion = DataIngestion(
-            training_config=training_config, workspace=workspace
-        )
+        data_ingestion = DataIngestion(training_config=training_config)
         train_data_path, test_data_path, df_sample = data_ingestion.initiate_data_ingestion()
 
         summary.data_rows = len(df_sample)
@@ -75,9 +87,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"train≈{summary.train_rows}, test≈{summary.test_rows}"
         )
 
-        data_transformation = DataTransformation(
-            training_config=training_config, workspace=workspace
-        )
+        data_transformation = DataTransformation(training_config=training_config)
         transform_artifact = data_transformation.initiate_data_transformation(
             train_data_path, test_data_path
         )
@@ -95,9 +105,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"{len(summary.categorical_features)} cat)"
         )
 
-        model_trainer = ModelTrainer(
-            training_config=training_config, workspace=workspace
-        )
+        model_trainer = ModelTrainer(training_config=training_config)
         trainer_artifact = model_trainer.initiate_model_trainer(train_arr, test_arr)
 
         summary.candidate_models = trainer_artifact.candidate_models
@@ -116,14 +124,12 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         )
 
         summary.summary_path = os.path.abspath(
-            workspace.get_artifact_path("summary_json")
+            training_config.artifacts_subpath("training_summary.json")
         )
         save_training_summary(
             file_path=summary.summary_path,
             summary_obj=summary,
         )
-
-        latest_link = workspace.update_latest_link()
 
         logging.info("=" * 72)
         logging.info("Training pipeline completed successfully")
@@ -132,6 +138,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         print("\n" + "=" * 72)
         print("TRAINING SUMMARY")
         print("=" * 72)
+        print(f"Bootstrap status   : {container.health.overall.value.upper()}")
         print(f"Config file        : {resolved['run_info']['config_path']}")
         print(f"Config source      : {resolved['run_info']['config_path_source']}")
         print(f"YAML loaded        : {resolved['run_info']['config_path_source'] != 'defaults_only'}")
@@ -142,11 +149,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
                       f"{ov['original_value']!r} -> {ov['resolved_value']!r}")
         else:
             print("Env overrides      : (none)")
-        print(f"Workspace mode     : {workspace.mode.value}")
-        print(f"Workspace root     : {workspace.workspace_root}")
-        if workspace.mode.value == "batched":
-            print(f"Run name           : {workspace.run_name}")
-            print(f"Run directory      : {workspace.run_dir}")
         print(f"Data source        : {summary.data_source}")
         print(f"Total rows         : {summary.data_rows}")
         print(f"Train / Test rows  : {summary.train_rows} / {summary.test_rows}")
@@ -163,9 +165,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         print(f"Preprocessor saved : {summary.preprocessor_path}")
         print(f"Model saved        : {summary.model_path}")
         print(f"Summary saved      : {summary.summary_path}")
-        print(f"Log file           : {log_file_path}")
-        if latest_link:
-            print(f"Latest run link    : {latest_link}")
         print("=" * 72 + "\n")
 
         return TrainingPipelineResult(
@@ -177,7 +176,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
                 "preprocessor": summary.preprocessor_path,
                 "model": summary.model_path,
                 "summary": summary.summary_path,
-                "log_file": log_file_path,
             },
         )
 

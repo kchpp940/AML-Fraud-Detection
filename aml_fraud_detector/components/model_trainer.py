@@ -22,7 +22,6 @@ from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object, upsampling_train_data, evaluate_models
 from aml_fraud_detector.configuration import TrainingConfig
-from aml_fraud_detector.runtime.workspace import WorkspaceContext
 
 
 MODEL_REGISTRY: Dict[str, Any] = {
@@ -52,16 +51,12 @@ class ModelTrainerArtifact:
 
 
 class ModelTrainer:
-    def __init__(
-        self,
-        training_config: Optional[TrainingConfig] = None,
-        workspace: Optional[WorkspaceContext] = None,
-    ):
+    def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
-        self.workspace = workspace or self.training_config.workspace
         self._resolved = self.training_config.to_resolved_dict()
+        tc = self.training_config
         self.model_trainer_config = ModelTrainerConfig(
-            trained_model_file_path=self.workspace.get_artifact_path("model_pkl")
+            trained_model_file_path=tc.artifacts_subpath("model.pkl")
         )
         logging.info(
             f"ModelTrainer initialized with resolved config: "

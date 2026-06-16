@@ -14,7 +14,6 @@ from aml_fraud_detector.exception import (
 from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.configuration import TrainingConfig
-from aml_fraud_detector.runtime.workspace import WorkspaceContext
 
 
 @dataclass
@@ -25,18 +24,14 @@ class DataIngestionConfig:
 
 
 class DataIngestion:
-    def __init__(
-        self,
-        training_config: Optional[TrainingConfig] = None,
-        workspace: Optional[WorkspaceContext] = None,
-    ):
+    def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
-        self.workspace = workspace or self.training_config.workspace
         self._resolved = self.training_config.to_resolved_dict()
+        tc = self.training_config
         self.ingestion_config = DataIngestionConfig(
-            train_data_path=self.workspace.get_artifact_path("train_csv"),
-            test_data_path=self.workspace.get_artifact_path("test_csv"),
-            raw_data_path=self.workspace.get_artifact_path("raw_csv"),
+            train_data_path=tc.artifacts_subpath("train.csv"),
+            test_data_path=tc.artifacts_subpath("test.csv"),
+            raw_data_path=tc.artifacts_subpath("data.csv"),
         )
         logging.info(
             f"DataIngestion initialized with resolved config: "

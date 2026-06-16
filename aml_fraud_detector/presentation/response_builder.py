@@ -3,7 +3,8 @@ from __future__ import annotations
 import sys
 import uuid
 import traceback
-from dataclasses import dataclass, field, asdict
+import dataclasses
+from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -14,8 +15,6 @@ from aml_fraud_detector.constants import (
     ERROR_CATEGORY_DISPLAY,
     ERROR_SEVERITY,
     HTTP_STATUS_CODES,
-    PROCESS_STATUS_SUCCESS,
-    PROCESS_STATUS_ERROR,
 )
 from aml_fraud_detector.exception import (
     AMLException,
@@ -31,6 +30,8 @@ from aml_fraud_detector.entity.artifact_entity import (
     ModelVersionInfo,
     ProcessStatus,
     RiskLevel,
+    PROCESS_STATUS_SUCCESS,
+    PROCESS_STATUS_ERROR,
 )
 
 
@@ -111,9 +112,9 @@ class UnifiedViewModel:
     feature_contract_version: str = ""
 
     validation_valid: bool = True
-    validation_errors: List[str] = field(default_factory=list)
-    validation_warnings: List[str] = field(default_factory=list)
-    validation_details: List[Dict[str, Any]] = field(default_factory=list)
+    validation_errors: List[str] = dataclasses.field(default_factory=list)
+    validation_warnings: List[str] = dataclasses.field(default_factory=list)
+    validation_details: List[Dict[str, Any]] = dataclasses.field(default_factory=list)
     has_alerts: bool = False
 
     is_error: bool = False
@@ -124,7 +125,7 @@ class UnifiedViewModel:
     legit_probability: float = 0.0
     risk_level: str = "LOW"
     risk_summary: str = ""
-    risk_contributors: List[Dict[str, Any]] = field(default_factory=list)
+    risk_contributors: List[Dict[str, Any]] = dataclasses.field(default_factory=list)
     transaction_id: str = ""
     process_status: str = "success"
 
@@ -141,11 +142,11 @@ class UnifiedViewModel:
     error_message: str = ""
     error_field: str = ""
     error_value: str = ""
-    error_context: Dict[str, str] = field(default_factory=dict)
+    error_context: Dict[str, str] = dataclasses.field(default_factory=dict)
     error_trace_id: str = ""
     error_severity: str = "info"
 
-    _batch_results: List[PredictionResult] = field(default_factory=list)
+    _batch_results: List[PredictionResult] = dataclasses.field(default_factory=list)
     _raw_error: Optional[UnifiedErrorResponse] = None
 
     def has_error(self) -> bool:
@@ -197,7 +198,7 @@ class ResponseBuilder:
         vm.error_category_display = ERROR_CATEGORY_DISPLAY.get(error_detail.error_category, vm.error_category)
         vm.error_message = error_detail.message or ""
         vm.error_field = error_detail.field_name or ""
-        vm.error_value = str(error_detail.field_value) if error_detail.field_value is not None else ""
+        vm.error_value = str(error_detail.value) if error_detail.value is not None else ""
         vm.error_context = dict(error_detail.context) if error_detail.context else {}
         vm.error_trace_id = trace_id or self._last_trace_id
         vm.error_severity = ERROR_SEVERITY.get(error_detail.error_code, "info")

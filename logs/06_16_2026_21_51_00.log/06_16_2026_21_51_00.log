@@ -1,0 +1,2 @@
+[ 2026-06-16 21:51:01,985] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 21:51:02,168] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
