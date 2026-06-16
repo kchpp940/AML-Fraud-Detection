@@ -1,7 +1,8 @@
     
 import sys
 import os
-from typing import Optional
+import json
+from typing import Dict, List, Optional
 
 import pandas as pd
 
@@ -12,6 +13,8 @@ from aml_fraud_detector.utils.feature_normalization import (
     normalize_column_names,
     derive_temporal_features,
     clean_categorical_fields,
+    report_missing_fields,
+    normalize_column_name,
 )
 
 
@@ -19,8 +22,46 @@ class PredictionPipeline:
     def __init__(self):
         self.model_path = os.path.join("artifacts", "model.pkl")
         self.preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
+        self.feature_metadata_path = os.path.join("artifacts", "feature_metadata.json")
         self._model = None
         self._preprocessor = None
+        self._expected_features: Optional[List[str]] = None
+        self._numerical_features: Optional[List[str]] = None
+        self._categorical_features: Optional[List[str]] = None
+        self._load_feature_schema()
+
+    def _load_feature_schema(self) -> None:
+        try:
+            if not os.path.exists(self.feature_metadata_path):
+                logging.warning(
+                    f"Feature metadata not found at {self.feature_metadata_path}, "
+                    f"will use REQUIRED_INPUT_FIELDS fallback"
+                )
+                return
+
+            with open(self.feature_metadata_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+
+            self._expected_features = metadata.get("original_features")
+            self._numerical_features = metadata.get("numerical_features")
+            self._categorical_features = metadata.get("categorical_features")
+
+            if self._expected_features:
+                logging.info(
+                    f"Loaded feature schema from training artifacts: "
+                    f"{len(self._expected_features)} features "
+                    f"({len(self._numerical_features or [])} num, "
+                    f"{len(self._categorical_features or [])} cat)"
+                )
+            else:
+                logging.warning(
+                    "Feature metadata found but 'original_features' is empty"
+                )
+        except Exception as e:
+            logging.warning(
+                f"Failed to load feature metadata: {e}, "
+                f"will use REQUIRED_INPUT_FIELDS fallback"
+            )
 
     def _load_artifacts(self):
         if self._model is None:
@@ -37,6 +78,22 @@ class PredictionPipeline:
             df, _ = derive_temporal_features(df)
 
         df, _ = clean_categorical_fields(df)
+
+        if self._expected_features:
+            missing, _ = report_missing_fields(
+                df, required_columns=self._expected_features
+            )
+            if missing:
+                raise CustomerException(
+                    ValueError(
+                        f"Prediction input is missing features that were present "
+                        f"during training: {missing}. "
+                        f"Expected (from feature_metadata.json): {self._expected_features}, "
+                        f"Got: {list(df.columns)}"
+                    ),
+                    sys,
+                )
+            df = df[self._expected_features]
 
         return df
 

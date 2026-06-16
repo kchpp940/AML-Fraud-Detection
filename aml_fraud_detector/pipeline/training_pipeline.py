@@ -78,6 +78,8 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             for warn in validation_artifact.validation_warnings:
                 logging.warning(f"  - {warn}")
 
+        summary.data_quality_report_path = validation_artifact.data_quality_report_path
+
         data_transformation = DataTransformation(training_config=training_config)
         transform_artifact = data_transformation.initiate_data_transformation(
             train_data_path, test_data_path
@@ -90,6 +92,9 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         summary.categorical_features = transform_artifact.categorical_features
         summary.preprocessor_path = transform_artifact.preprocessor_path
         summary.target_column = transform_artifact.target_column or summary.target_column
+        summary.feature_metadata_path = os.path.abspath(
+            training_config.artifacts_subpath("feature_metadata.json")
+        )
         logging.info(
             f"Data transformation done: {len(summary.feature_columns)} features "
             f"({len(summary.numerical_features)} num, "

@@ -16,6 +16,8 @@ from aml_fraud_detector.utils.feature_normalization import (
     locate_target_column,
     clean_categorical_fields,
     report_missing_fields,
+    infer_feature_types,
+    NormalizationReport,
 )
 
 
@@ -34,6 +36,7 @@ class DataValidationArtifact:
     target_column: str = ""
     validation_errors: List[str] = field(default_factory=list)
     validation_warnings: List[str] = field(default_factory=list)
+    normalization_report: Optional[NormalizationReport] = None
 
 
 class DataValidation:
@@ -237,6 +240,7 @@ class DataValidation:
         time_parsing: List[Dict],
         target_distribution: Dict,
         risk_items: List[Dict],
+        norm_report: NormalizationReport,
     ) -> str:
         report = {
             "dataset_shape": [df.shape[0], df.shape[1]],
@@ -250,9 +254,10 @@ class DataValidation:
             "time_parsing": time_parsing,
             "target_distribution": target_distribution,
             "risk_items": risk_items,
+            "normalization_report": norm_report.to_dict(),
             "validation_config": {
                 "critical_feature_columns": self.critical_feature_columns,
-                "categorical_columns": [],
+                "categorical_columns": norm_report.categorical_columns,
                 "categorical_whitelist": self.categorical_whitelist,
                 "amount_columns": self.amount_columns,
                 "timestamp_columns": self.timestamp_columns,
@@ -282,11 +287,17 @@ class DataValidation:
             target_column_name = self.training_config.features.target_column
             drop_columns = self.training_config.features.drop_columns
 
+            norm_report = NormalizationReport()
+            norm_report.original_columns = list(train_df.columns)
+
             logging.info("Applying unified column name normalization")
             train_df, rename_map = normalize_column_names(train_df)
+            norm_report.normalized_columns = list(train_df.columns)
+            norm_report.renamed_columns = rename_map
 
             logging.info("Applying unified temporal feature derivation")
             train_df, derived_cols = derive_temporal_features(train_df)
+            norm_report.derived_columns = derived_cols
 
             logging.info("Applying unified categorical field cleaning")
             train_df, converted_cols = clean_categorical_fields(train_df)
@@ -295,15 +306,27 @@ class DataValidation:
             target_col, target_found = locate_target_column(
                 train_df, [target_column_name]
             )
+            norm_report.target_column = target_col
+            norm_report.target_column_found = target_found
 
             logging.info("Checking missing required fields using unified logic")
             missing_required, unexpected = report_missing_fields(
                 train_df,
                 required_columns=self.critical_feature_columns,
             )
+            norm_report.missing_required_columns = missing_required
+            norm_report.unexpected_columns = unexpected
 
             if missing_required:
                 logging.warning(f"Missing critical feature columns: {missing_required}")
+
+            exclude_for_infer = [target_column_name] if target_column_name else []
+            exclude_for_infer.extend(drop_columns)
+            numerical_all, categorical_all = infer_feature_types(
+                train_df, exclude_columns=exclude_for_infer
+            )
+            norm_report.numerical_columns = numerical_all
+            norm_report.categorical_columns = categorical_all
 
             logging.info("Checking missing values")
             missing_values = self._check_missing_values(train_df)
@@ -327,7 +350,7 @@ class DataValidation:
                 missing_values, duplicates, time_parsing, abnormal_amounts
             )
 
-            logging.info("Saving data quality report")
+            logging.info("Saving data quality report with normalization metadata")
             report_path = self._save_data_quality_report(
                 train_df,
                 missing_values,
@@ -337,6 +360,7 @@ class DataValidation:
                 time_parsing,
                 target_distribution,
                 risk_items,
+                norm_report,
             )
 
             input_feature_cols = [
@@ -395,6 +419,7 @@ class DataValidation:
                 target_column=target_col if target_found else "",
                 validation_errors=validation_errors,
                 validation_warnings=validation_warnings,
+                normalization_report=norm_report,
             )
 
         except Exception as e:

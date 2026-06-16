@@ -1,11 +1,11 @@
 {
   "dataset_shape": [
-    4000,
-    11
+    3200,
+    14
   ],
   "missing_values": [
     {
-      "column": "Timestamp",
+      "column": "timestamp",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -13,7 +13,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "From Bank",
+      "column": "from_bank",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -21,7 +21,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Account",
+      "column": "account",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -29,7 +29,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "To Bank",
+      "column": "to_bank",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -37,7 +37,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Account.1",
+      "column": "account_1",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -45,7 +45,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Amount Received",
+      "column": "amount_received",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -53,7 +53,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Receiving Currency",
+      "column": "receiving_currency",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -61,7 +61,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Amount Paid",
+      "column": "amount_paid",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -69,7 +69,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Payment Currency",
+      "column": "payment_currency",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -77,7 +77,7 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Payment Format",
+      "column": "payment_format",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -85,7 +85,31 @@
       "threshold_warning": 0.1
     },
     {
-      "column": "Is Laundering",
+      "column": "is_laundering",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "date",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "day",
+      "missing_count": 0,
+      "missing_ratio": 0.0,
+      "severity": "NONE",
+      "threshold_critical": 0.3,
+      "threshold_warning": 0.1
+    },
+    {
+      "column": "time",
       "missing_count": 0,
       "missing_ratio": 0.0,
       "severity": "NONE",
@@ -100,11 +124,94 @@
     "severity": "NONE",
     "threshold_warning": 0.1
   },
-  "abnormal_amounts": [],
+  "abnormal_amounts": [
+    {
+      "column": "amount_received",
+      "negative_count": 0,
+      "negative_ratio": 0.0,
+      "severity": "NONE"
+    },
+    {
+      "column": "amount_paid",
+      "negative_count": 0,
+      "negative_ratio": 0.0,
+      "severity": "NONE"
+    }
+  ],
   "unknown_categories": [],
-  "time_parsing": [],
-  "target_distribution": {},
+  "time_parsing": [
+    {
+      "column": "timestamp",
+      "failed_parse_count": 0,
+      "failed_ratio": 0.0,
+      "severity": "NONE"
+    }
+  ],
+  "target_distribution": {
+    "0": 3060,
+    "1": 140
+  },
   "risk_items": [],
+  "normalization_report": {
+    "original_columns": [
+      "Timestamp",
+      "From Bank",
+      "Account",
+      "To Bank",
+      "Account.1",
+      "Amount Received",
+      "Receiving Currency",
+      "Amount Paid",
+      "Payment Currency",
+      "Payment Format",
+      "Is Laundering"
+    ],
+    "normalized_columns": [
+      "timestamp",
+      "from_bank",
+      "account",
+      "to_bank",
+      "account_1",
+      "amount_received",
+      "receiving_currency",
+      "amount_paid",
+      "payment_currency",
+      "payment_format",
+      "is_laundering"
+    ],
+    "renamed_columns": {
+      "Timestamp": "timestamp",
+      "From Bank": "from_bank",
+      "Account": "account",
+      "To Bank": "to_bank",
+      "Account.1": "account_1",
+      "Amount Received": "amount_received",
+      "Receiving Currency": "receiving_currency",
+      "Amount Paid": "amount_paid",
+      "Payment Currency": "payment_currency",
+      "Payment Format": "payment_format",
+      "Is Laundering": "is_laundering"
+    },
+    "derived_columns": [
+      "date",
+      "day",
+      "time"
+    ],
+    "target_column": "is_laundering",
+    "target_column_found": true,
+    "categorical_columns": [
+      "account",
+      "account_1",
+      "payment_format",
+      "day"
+    ],
+    "numerical_columns": [
+      "amount_received"
+    ],
+    "missing_required_columns": [],
+    "unexpected_columns": [],
+    "warnings": []
+  },
   "validation_config": {
     "critical_feature_columns": [
       "account",
@@ -112,7 +219,12 @@
       "amount_received",
       "payment_format"
     ],
-    "categorical_columns": [],
+    "categorical_columns": [
+      "account",
+      "account_1",
+      "payment_format",
+      "day"
+    ],
     "categorical_whitelist": {},
     "amount_columns": [
       "amount_received",
@@ -133,5 +245,5 @@
       "target_imbalance_warning_ratio": 0.05
     }
   },
-  "generated_at": "2026-06-15T22:48:31.622267"
+  "generated_at": "2026-06-16T10:44:18.679131"
 }

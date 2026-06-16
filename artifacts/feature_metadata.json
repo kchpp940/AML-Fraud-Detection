@@ -40,8 +40,70 @@
     "payment_format": "支付方式",
     "day": "交易星期"
   },
+  "normalization_report": {
+    "original_columns": [
+      "Timestamp",
+      "From Bank",
+      "Account",
+      "To Bank",
+      "Account.1",
+      "Amount Received",
+      "Receiving Currency",
+      "Amount Paid",
+      "Payment Currency",
+      "Payment Format",
+      "Is Laundering"
+    ],
+    "normalized_columns": [
+      "timestamp",
+      "from_bank",
+      "account",
+      "to_bank",
+      "account_1",
+      "amount_received",
+      "receiving_currency",
+      "amount_paid",
+      "payment_currency",
+      "payment_format",
+      "is_laundering"
+    ],
+    "renamed_columns": {
+      "Timestamp": "timestamp",
+      "From Bank": "from_bank",
+      "Account": "account",
+      "To Bank": "to_bank",
+      "Account.1": "account_1",
+      "Amount Received": "amount_received",
+      "Receiving Currency": "receiving_currency",
+      "Amount Paid": "amount_paid",
+      "Payment Currency": "payment_currency",
+      "Payment Format": "payment_format",
+      "Is Laundering": "is_laundering"
+    },
+    "derived_columns": [
+      "date",
+      "day",
+      "time"
+    ],
+    "target_column": "is_laundering",
+    "target_column_found": true,
+    "categorical_columns": [
+      "account",
+      "account_1",
+      "payment_format",
+      "day"
+    ],
+    "numerical_columns": [
+      "amount_received"
+    ],
+    "missing_required_columns": [],
+    "unexpected_columns": [],
+    "warnings": [
+      "Converted 2 columns to object type: ['from_bank', 'to_bank']"
+    ]
+  },
   "baseline_values": {},
   "training_stats": {},
-  "training_signature": "375ba360c6bb35e3",
-  "generated_at": "2026-06-15T22:48:32.227271"
+  "training_signature": "202606161044",
+  "generated_at": "2026-06-16T10:44:18.811603"
 }

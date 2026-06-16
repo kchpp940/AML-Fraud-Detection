@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
@@ -38,6 +39,22 @@ class DataTransformationArtifact:
     preprocessor_path: str = ""
 
 
+_ENCODING_TYPE_MAP = {
+    "account": "frequency",
+    "account_1": "frequency",
+    "payment_format": "onehot",
+    "day": "onehot",
+}
+
+_FEATURE_LABELS = {
+    "amount_received": "交易金额",
+    "account": "发起账户",
+    "account_1": "接收账户",
+    "payment_format": "支付方式",
+    "day": "交易星期",
+}
+
+
 class DataTransformation:
     def __init__(self, training_config: Optional[TrainingConfig] = None):
         self.training_config = training_config or TrainingConfig()
@@ -46,6 +63,7 @@ class DataTransformation:
         self.data_transformation_config = DataTransformationConfig(
             preprocessor_obj_file_path=tc.artifacts_subpath("preprocessor.pkl")
         )
+        self.feature_metadata_path = tc.artifacts_subpath("feature_metadata.json")
         logging.info(
             f"DataTransformation initialized with resolved config: "
             f"target={self._resolved['features']['target_column']}, "
@@ -93,6 +111,47 @@ class DataTransformation:
 
         except Exception as e:
             raise CustomerException(e, sys)
+
+    def _save_feature_metadata(
+        self,
+        norm_report: NormalizationReport,
+        feature_columns: List[str],
+        numerical_features: List[str],
+        categorical_features: List[str],
+    ) -> str:
+        encoding_info = {}
+        for col in feature_columns:
+            if col in numerical_features:
+                encoding_info[col] = {"type": "numerical"}
+            elif col in _ENCODING_TYPE_MAP:
+                encoding_info[col] = {"type": _ENCODING_TYPE_MAP[col]}
+            else:
+                encoding_info[col] = {"type": "frequency"}
+
+        feature_labels = {col: _FEATURE_LABELS.get(col, col) for col in feature_columns}
+
+        metadata = {
+            "contract_version": "1.0",
+            "original_features": feature_columns,
+            "numerical_features": numerical_features,
+            "categorical_features": categorical_features,
+            "encoding_info": encoding_info,
+            "feature_labels": feature_labels,
+            "normalization_report": norm_report.to_dict(),
+            "baseline_values": {},
+            "training_stats": {},
+            "training_signature": self._resolved.get("run_info", {}).get(
+                "created_at", ""
+            )[:16].replace("-", "").replace(":", "").replace("T", ""),
+            "generated_at": pd.Timestamp.now().isoformat(),
+        }
+
+        os.makedirs(os.path.dirname(self.feature_metadata_path), exist_ok=True)
+        with open(self.feature_metadata_path, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False, default=str)
+
+        logging.info(f"Feature metadata saved to: {self.feature_metadata_path}")
+        return os.path.abspath(self.feature_metadata_path)
 
     def initiate_data_transformation(
         self, train_path: str, test_path: str
@@ -158,6 +217,14 @@ class DataTransformation:
             categorical_features = train_norm_report.categorical_columns
             logging.info(f"Columns name of categorical features: {categorical_features}")
             feature_columns = numerical_features + categorical_features
+
+            logging.info("Saving feature metadata with normalization report")
+            self._save_feature_metadata(
+                train_norm_report,
+                feature_columns,
+                numerical_features,
+                categorical_features,
+            )
 
             logging.info("Obtaining preprocessing object")
             preprocessing_obj = self.get_data_transformer_object(

@@ -1,0 +1,76 @@
+[ 2026-06-16 10:44:18,620] 161 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 10:44:18,624] 188 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 10:44:18,625] 189 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-16 10:44:18,625] 67 root - INFO - DataValidation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank']
+[ 2026-06-16 10:44:18,625] 282 root - INFO - 
+Entered the 'data validation' method or component
+[ 2026-06-16 10:44:18,625] 284 root - INFO - Reading training data from: /Users/pkcha/AML-Fraud-Detection/artifacts/train.csv
+[ 2026-06-16 10:44:18,643] 293 root - INFO - Applying unified column name normalization
+[ 2026-06-16 10:44:18,644] 298 root - INFO - Applying unified temporal feature derivation
+[ 2026-06-16 10:44:18,654] 119 root - INFO - Derived column 'date' from 'timestamp'
+[ 2026-06-16 10:44:18,656] 124 root - INFO - Derived column 'day' from 'timestamp'
+[ 2026-06-16 10:44:18,657] 129 root - INFO - Derived column 'time' from 'timestamp'
+[ 2026-06-16 10:44:18,657] 302 root - INFO - Applying unified categorical field cleaning
+[ 2026-06-16 10:44:18,658] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 10:44:18,659] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 10:44:18,659] 305 root - INFO - Locating target column using unified logic
+[ 2026-06-16 10:44:18,660] 312 root - INFO - Checking missing required fields using unified logic
+[ 2026-06-16 10:44:18,664] 331 root - INFO - Checking missing values
+[ 2026-06-16 10:44:18,669] 334 root - INFO - Checking duplicate rows
+[ 2026-06-16 10:44:18,674] 337 root - INFO - Checking time parsing
+[ 2026-06-16 10:44:18,678] 340 root - INFO - Checking abnormal amounts
+[ 2026-06-16 10:44:18,678] 345 root - INFO - Checking target distribution
+[ 2026-06-16 10:44:18,679] 348 root - INFO - Collecting risk items
+[ 2026-06-16 10:44:18,679] 353 root - INFO - Saving data quality report with normalization metadata
+[ 2026-06-16 10:44:18,681] 274 root - INFO - Data quality report saved to: artifacts/data_quality_report.json
+[ 2026-06-16 10:44:18,681] 403 root - INFO - Data validation PASSED
+[ 2026-06-16 10:44:18,682] 67 root - INFO - DataTransformation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], preprocessor_out=/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl
+[ 2026-06-16 10:44:18,682] 159 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-16 10:44:18,694] 163 root - INFO - Reading train and test data completed
+[ 2026-06-16 10:44:18,694] 168 root - INFO - Applying unified feature normalization to training data
+[ 2026-06-16 10:44:18,694] 226 root - INFO - Starting dataframe normalization: 11 columns, 3200 rows
+[ 2026-06-16 10:44:18,695] 234 root - INFO - Renamed 11 columns
+[ 2026-06-16 10:44:18,699] 119 root - INFO - Derived column 'date' from 'timestamp'
+[ 2026-06-16 10:44:18,701] 124 root - INFO - Derived column 'day' from 'timestamp'
+[ 2026-06-16 10:44:18,703] 129 root - INFO - Derived column 'time' from 'timestamp'
+[ 2026-06-16 10:44:18,704] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 10:44:18,704] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 10:44:18,706] 280 root - INFO - Normalization complete: 1 numerical, 4 categorical columns
+[ 2026-06-16 10:44:18,706] 177 root - INFO - Applying unified feature normalization to test data
+[ 2026-06-16 10:44:18,707] 226 root - INFO - Starting dataframe normalization: 11 columns, 800 rows
+[ 2026-06-16 10:44:18,708] 234 root - INFO - Renamed 11 columns
+[ 2026-06-16 10:44:18,748] 119 root - INFO - Derived column 'date' from 'timestamp'
+[ 2026-06-16 10:44:18,759] 124 root - INFO - Derived column 'day' from 'timestamp'
+[ 2026-06-16 10:44:18,763] 129 root - INFO - Derived column 'time' from 'timestamp'
+[ 2026-06-16 10:44:18,767] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 10:44:18,768] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 10:44:18,770] 280 root - INFO - Normalization complete: 1 numerical, 4 categorical columns
+[ 2026-06-16 10:44:18,770] 187 root - INFO - Renamed columns: {'Timestamp': 'timestamp', 'From Bank': 'from_bank', 'Account': 'account', 'To Bank': 'to_bank', 'Account.1': 'account_1', 'Amount Received': 'amount_received', 'Receiving Currency': 'receiving_currency', 'Amount Paid': 'amount_paid', 'Payment Currency': 'payment_currency', 'Payment Format': 'payment_format', 'Is Laundering': 'is_laundering'}
+[ 2026-06-16 10:44:18,771] 191 root - INFO - Derived temporal columns: ['date', 'day', 'time']
+[ 2026-06-16 10:44:18,796] 195 root - INFO - Train Dataframe Head : 
+            timestamp from_bank    account to_bank   account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering        date       day      time
+0 2022-01-03 18:34:00        32  ACC_00106      14  ACC2_00036           267.67               Euro       261.84             Euro    Credit Card              0  2022-01-03    Monday  18:34:00
+1 2022-01-01 07:03:00        25  ACC_00037      24  ACC2_00112           729.82          US Dollar       978.24             Euro           Wire              0  2022-01-01  Saturday  07:03:00
+2 2022-01-03 01:51:00        48  ACC_00186      39  ACC2_00019          1017.43               Euro      2712.50        US Dollar           Wire              0  2022-01-03    Monday  01:51:00
+3 2022-01-01 20:21:00        26  ACC_00019      25  ACC2_00014           250.11               Euro      1143.71             Euro   Reinvestment              0  2022-01-01  Saturday  20:21:00
+4 2022-01-01 08:26:00        34  ACC_00056      22  ACC2_00069           254.59               Yuan        46.16             Yuan    Credit Card              0  2022-01-01  Saturday  08:26:00
+[ 2026-06-16 10:44:18,808] 196 root - INFO - Test Dataframe Head : 
+            timestamp from_bank    account to_bank   account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering        date       day      time
+0 2022-01-01 09:15:00        22  ACC_00022      20  ACC2_00159           233.61          US Dollar       143.49             Yuan   Reinvestment              0  2022-01-01  Saturday  09:15:00
+1 2022-01-03 10:11:00        44  ACC_00015      39  ACC2_00152          1591.77          US Dollar       352.36             Yuan    Credit Card              1  2022-01-03    Monday  10:11:00
+2 2022-01-01 08:47:00        22  ACC_00022      45  ACC2_00080           244.32          US Dollar       339.44             Yuan         Cheque              0  2022-01-01  Saturday  08:47:00
+3 2022-01-03 17:25:00        48  ACC_00054      13  ACC2_00014          2122.75          US Dollar      1505.48             Yuan    Credit Card              0  2022-01-03    Monday  17:25:00
+4 2022-01-03 01:49:00        42  ACC_00139      34  ACC2_00036          1130.61          US Dollar        11.77             Yuan            ACH              0  2022-01-03    Monday  01:49:00
+[ 2026-06-16 10:44:18,811] 216 root - INFO - Columns name of numerical features: ['amount_received']
+[ 2026-06-16 10:44:18,811] 218 root - INFO - Columns name of categorical features: ['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-16 10:44:18,811] 221 root - INFO - Saving feature metadata with normalization report
+[ 2026-06-16 10:44:18,821] 153 root - INFO - Feature metadata saved to: artifacts/feature_metadata.json
+[ 2026-06-16 10:44:18,822] 229 root - INFO - Obtaining preprocessing object
+[ 2026-06-16 10:44:18,823] 109 root - INFO - Preprocessed both numerical and categorical columns
+[ 2026-06-16 10:44:18,823] 234 root - INFO - Applying preprocessing object on training and testing datasets.
+[ 2026-06-16 10:44:18,935] 253 root - INFO - Saved data preprocessing object
+[ 2026-06-16 10:44:18,938] 50 root - INFO - Loaded feature schema from training artifacts: 5 features (1 num, 4 cat)
+[ 2026-06-16 10:44:18,939] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 10:44:18,939] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 10:44:19,055] 181 root - WARNING - Missing required columns: ['account', 'account_1', 'day', 'payment_format']
