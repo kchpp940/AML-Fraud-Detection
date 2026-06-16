@@ -1,0 +1,8 @@
+[ 2026-06-16 22:49:14,082] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-16 22:49:15,506] 163 root - INFO - Loading training config (source=explicit): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 22:49:15,508] 190 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 22:49:15,508] 191 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-16 22:49:15,514] 163 root - INFO - Loading training config (source=explicit): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 22:49:15,515] 190 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 22:49:15,515] 191 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-16 22:49:15,516] 156 root - ERROR - Bootstrap failed: [E5005] Manifest 完整性校验失败: model.pkl: digest mismatch (expected=deadbeefdeadbeef..., actual=d3dfc609935fd0cd...)

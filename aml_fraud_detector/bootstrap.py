@@ -15,6 +15,7 @@ from aml_fraud_detector.exception import (
     MetadataValidationException,
     ModelLoadingException,
     wrap_exception,
+    ErrorDetail,
 )
 from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
@@ -63,9 +64,10 @@ class HealthStatus:
     components: List[ComponentHealth] = dataclasses.field(default_factory=list)
     model_version: ModelVersionInfo = dataclasses.field(default_factory=ModelVersionInfo)
     error_message: str = ""
+    error_detail: Optional[ErrorDetail] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "overall": self.overall.value,
             "started_at": self.started_at,
             "checked_at": self.checked_at,
@@ -73,6 +75,9 @@ class HealthStatus:
             "model_version": asdict(self.model_version),
             "error_message": self.error_message,
         }
+        if self.error_detail is not None:
+            result["error_detail"] = self.error_detail.to_dict()
+        return result
 
     def is_healthy(self) -> bool:
         return self.overall == HealthStatusEnum.HEALTHY
@@ -151,6 +156,11 @@ class ApplicationContainer:
             logging.error(f"Bootstrap failed: {e}")
             self._health.overall = HealthStatusEnum.UNHEALTHY
             self._health.error_message = str(e)
+            if isinstance(e, AMLException):
+                self._health.error_detail = e.error_detail
+            else:
+                wrapped = wrap_exception(e)
+                self._health.error_detail = wrapped.error_detail
 
         self._health.checked_at = datetime.now().isoformat()
         return self._health
