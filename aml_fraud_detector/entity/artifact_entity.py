@@ -193,6 +193,19 @@ class UnifiedPredictionResponse:
             result["batch_prediction"] = self.batch_prediction.to_dict()
         if self.error:
             result["error"] = self.error.to_dict()
+        if not self.is_success():
+            if not self.error and self.single_prediction and self.single_prediction.error_detail:
+                result["error"] = UnifiedErrorResponse(
+                    success=False,
+                    status="error",
+                    error=self.single_prediction.error_detail,
+                ).to_dict()
+            elif not self.error and self.batch_prediction and self.batch_prediction.error_detail:
+                result["error"] = UnifiedErrorResponse(
+                    success=False,
+                    status="error",
+                    error=self.batch_prediction.error_detail,
+                ).to_dict()
         return result
 
     def is_success(self) -> bool:
@@ -203,3 +216,7 @@ class UnifiedPredictionResponse:
         if self.batch_prediction and not self.batch_prediction.is_success():
             return False
         return True
+
+    @classmethod
+    def from_error(cls, error_resp: UnifiedErrorResponse) -> "UnifiedPredictionResponse":
+        return cls(error=error_resp)

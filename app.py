@@ -261,12 +261,14 @@ def api_predict():
         result = pipeline.predict_detailed(pred_df, transaction_id=trace_id)
 
         if not result.is_success():
-            err = create_error_response(
-                result.error_detail.error_code,
+            err_resp = UnifiedErrorResponse(
+                success=False,
+                status="error",
+                error=result.error_detail,
+                http_status=HTTP_STATUS_CODES.get(result.error_detail.error_category, 500),
                 trace_id=trace_id,
-                **result.error_detail.context,
             )
-            return _build_error_flask_response(err)
+            return _build_error_flask_response(err_resp)
 
         unified = UnifiedPredictionResponse(
             model_version=pipeline.get_model_version_info(),
@@ -356,7 +358,7 @@ def batch_predict_page():
             })
 
         detail = {
-            "total": br.total_transactions,
+            "total": br.total_count,
             "fraud_count": br.fraud_count,
             "fraud_rate": f"{br.fraud_rate * 100:.2f}%",
             "overall_risk": br.overall_risk_level.value,
@@ -434,12 +436,14 @@ def api_predict_batch():
                     p.transaction_id = tids[i]
 
         if not br.is_success():
-            err = create_error_response(
-                br.error_detail.error_code,
+            err_resp = UnifiedErrorResponse(
+                success=False,
+                status="error",
+                error=br.error_detail,
+                http_status=HTTP_STATUS_CODES.get(br.error_detail.error_category, 500),
                 trace_id=trace_id,
-                **br.error_detail.context,
             )
-            return _build_error_flask_response(err)
+            return _build_error_flask_response(err_resp)
 
         unified = UnifiedPredictionResponse(
             model_version=pipeline.get_model_version_info(),
