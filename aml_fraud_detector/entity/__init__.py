@@ -11,6 +11,7 @@ from aml_fraud_detector.entity.artifact_entity import (
     PredictionResult,
     BatchPredictionResult,
     UnifiedPredictionResponse,
+    TrainingPipelineResult,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "PredictionResult",
     "BatchPredictionResult",
     "UnifiedPredictionResponse",
+    "TrainingPipelineResult",
 ]

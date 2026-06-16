@@ -1,0 +1,6 @@
+[ 2026-06-16 13:26:32,740] 157 root - INFO - Starting single prediction
+[ 2026-06-16 13:26:32,769] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 13:26:32,837] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 13:26:32,846] 222 root - INFO - Prediction completed: Not Fraud, fraud_prob=0.0059
+[ 2026-06-16 13:26:32,846] 157 root - INFO - Starting single prediction
+[ 2026-06-16 13:26:32,846] 226 root - ERROR - Prediction failed: [E4001] 模型文件未找到: /nonexistent/path/model.pkl

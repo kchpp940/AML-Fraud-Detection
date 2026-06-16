@@ -8,7 +8,13 @@ from dataclasses import asdict
 from datetime import datetime
 
 from aml_fraud_detector.logger import logging
-from aml_fraud_detector.exception import CustomerException
+from aml_fraud_detector.exception import (
+    CustomerException,
+    ModelLoadingException,
+    DataQualityException,
+    wrap_exception,
+)
+from aml_fraud_detector.constants import ErrorCode
 
 from collections import Counter
 from imblearn.over_sampling import SMOTE
@@ -32,8 +38,8 @@ def save_training_summary(file_path: str, summary_obj) -> str:
         logging.info(f"Training summary saved to: {file_path}")
         return os.path.abspath(file_path)
     except Exception as e:
-        logging.info("Exception Occurred in save_training_summary function utils")
-        raise CustomerException(e, sys)
+        logging.error("Exception occurred in save_training_summary", exc_info=True)
+        raise wrap_exception(e, error_details=sys)
 
 
 def save_object(file_path, obj):
@@ -43,19 +49,35 @@ def save_object(file_path, obj):
 
         with open(file_path, "wb") as file_obj:
             dill.dump(obj, file_obj)
+        logging.info(f"Object saved to: {file_path}")
 
     except Exception as e:
-        logging.info(f'Exception Occured in save_object function utils')
-        raise CustomerException(e, sys)
-    
+        logging.error(f'Exception occurred in save_object: {e}', exc_info=True)
+        raise wrap_exception(e, error_details=sys)
+
 
 def load_object(file_path):
     try:
-        with open(file_path,'rb') as file_obj:
-            return dill.load(file_obj)
+        if not os.path.exists(file_path):
+            raise ModelLoadingException(
+                ErrorCode.MODEL_FILE_NOT_FOUND if "model" in file_path.lower() else ErrorCode.PREPROCESSOR_FILE_NOT_FOUND,
+                error_details=sys,
+                path=file_path,
+            )
+        with open(file_path, 'rb') as file_obj:
+            obj = dill.load(file_obj)
+        logging.info(f"Object loaded from: {file_path}")
+        return obj
+    except ModelLoadingException:
+        raise
     except Exception as e:
-        logging.info(f'Exception Occured in load_object function utils')
-        raise CustomerException(e, sys)
+        logging.error(f'Exception occurred in load_object: {e}', exc_info=True)
+        raise ModelLoadingException(
+            ErrorCode.MODEL_CORRUPTED if "model" in file_path.lower() else ErrorCode.PREPROCESSOR_CORRUPTED,
+            error_details=sys,
+            path=file_path,
+            detail=str(e),
+        )
 
 
 def upsampling_train_data(X, y):
@@ -67,8 +89,8 @@ def upsampling_train_data(X, y):
         logging.info(f"Upsampling the minority class data completed") 
         return X_sm, y_sm
     except Exception as e:
-        logging.info(f"Exception occured during upsampling the minority class")
-        raise CustomerException(e, sys)
+        logging.error("Exception occurred during upsampling", exc_info=True)
+        raise wrap_exception(e, error_details=sys)
 
 
 def model_metrics(y_pred, y_test):
@@ -140,6 +162,6 @@ def evaluate_models(X_train, y_train, X_test, y_test, models, params):
         return train_report, test_report
 
     except Exception as e:
-        logging.info(f"Exception occured during model training")
-        raise CustomerException(e, sys)
+        logging.error("Exception occurred during model evaluation", exc_info=True)
+        raise wrap_exception(e, error_details=sys)
     

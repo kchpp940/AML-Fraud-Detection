@@ -1,0 +1,4 @@
+[ 2026-06-16 13:23:43,877] 157 root - INFO - Starting single prediction
+[ 2026-06-16 13:23:43,921] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 13:23:44,012] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 13:23:44,026] 222 root - INFO - Prediction completed: Not Fraud, fraud_prob=0.0059

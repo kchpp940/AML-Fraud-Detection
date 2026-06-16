@@ -6,7 +6,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from aml_fraud_detector.exception import CustomerException
+from aml_fraud_detector.exception import (
+    CustomerException,
+    ConfigException,
+)
+from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 
 
@@ -149,8 +153,6 @@ class TrainingSummary:
     model_path: str = ""
     artifacts_dir: str = ""
     summary_path: str = ""
-    data_quality_report_path: str = ""
-    feature_metadata_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -198,16 +200,19 @@ class TrainingConfig:
         if explicit:
             if os.path.isfile(explicit):
                 return os.path.abspath(explicit), "explicit"
-            raise CustomerException(
-                FileNotFoundError(f"Explicit config path not found: {explicit}"), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_FILE_NOT_FOUND,
+                error_details=sys,
+                path=explicit,
             )
         if env_path:
             if os.path.isfile(env_path):
                 return os.path.abspath(env_path), "env"
-            raise CustomerException(
-                FileNotFoundError(
-                    f"Config path from {ENV_MAPPING['config.path']}={env_path} not found"
-                ), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_FILE_NOT_FOUND,
+                error_details=sys,
+                path=env_path,
+                env_var=ENV_MAPPING["config.path"],
             )
         if os.path.isfile(DEFAULT_CONFIG_PATH):
             return os.path.abspath(DEFAULT_CONFIG_PATH), "default_file"
@@ -253,8 +258,11 @@ class TrainingConfig:
             with open(path, "r", encoding="utf-8") as f:
                 loaded = yaml.safe_load(f) or {}
         except Exception as e:
-            raise CustomerException(
-                RuntimeError(f"Failed to parse YAML config '{path}': {e}"), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_PARSE_FAILED,
+                error_details=sys,
+                path=path,
+                detail=str(e),
             )
 
         def _deep_merge(base: Dict, overlay: Dict) -> Dict:
@@ -269,16 +277,21 @@ class TrainingConfig:
 
     def _validate(self) -> None:
         if not isinstance(self.data.test_size, float) or not (0.0 < self.data.test_size < 1.0):
-            raise CustomerException(
-                ValueError(f"data.test_size must be in (0, 1), got {self.data.test_size}"), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_INVALID_VALUE,
+                error_details=sys,
+                key="data.test_size",
+                value=str(self.data.test_size),
+                detail="must be in (0, 1)",
             )
         valid_metrics = {"Precision", "Recall", "F1 score", "F1"}
         if self.models.selection_metric not in valid_metrics:
-            raise CustomerException(
-                ValueError(
-                    f"models.selection_metric must be one of {sorted(valid_metrics)}, "
-                    f"got '{self.models.selection_metric}'"
-                ), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_INVALID_VALUE,
+                error_details=sys,
+                key="models.selection_metric",
+                value=self.models.selection_metric,
+                detail=f"must be one of {sorted(valid_metrics)}",
             )
         if self.models.selection_metric == "F1":
             self.models.selection_metric = "F1 score"
@@ -287,8 +300,12 @@ class TrainingConfig:
                     ov["resolved_value"] = "F1 score"
             self._raw["models"]["selection_metric"] = "F1 score"
         if not any(self.models.enabled.values()):
-            raise CustomerException(
-                ValueError("At least one model must be enabled in models.enabled"), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_INVALID_VALUE,
+                error_details=sys,
+                key="models.enabled",
+                value=str(self.models.enabled),
+                detail="at least one model must be enabled",
             )
 
     def resolve_source_path(self) -> str:

@@ -1,6 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any
 from enum import Enum
+
+from aml_fraud_detector.exception import ErrorDetail, UnifiedErrorResponse
 
 
 class ProcessStatus(str, Enum):
@@ -72,6 +74,7 @@ class PredictionResult:
     class_label: str = ""
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
+    error_detail: Optional[ErrorDetail] = None
     model_version: int = 0
     transaction_id: Optional[str] = None
     risk_explanation: RiskExplanation = field(default_factory=RiskExplanation)
@@ -84,6 +87,24 @@ class PredictionResult:
     def top_factors(self) -> List[Dict[str, Any]]:
         return self.risk_explanation.top_factors
 
+    def to_dict(self) -> Dict[str, Any]:
+        result = asdict(self)
+        if self.error_detail:
+            result["error_detail"] = self.error_detail.to_dict()
+        return result
+
+    def is_success(self) -> bool:
+        return self.process_status == ProcessStatus.SUCCESS
+
+    @classmethod
+    def from_error(cls, error_detail: ErrorDetail, transaction_id: Optional[str] = None) -> "PredictionResult":
+        return cls(
+            process_status=ProcessStatus.ERROR,
+            error_reason=error_detail.message,
+            error_detail=error_detail,
+            transaction_id=transaction_id,
+        )
+
 
 @dataclass
 class BatchPredictionResult:
@@ -93,6 +114,62 @@ class BatchPredictionResult:
     predictions: List[PredictionResult] = field(default_factory=list)
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
+    error_detail: Optional[ErrorDetail] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "total_count": self.total_count,
+            "fraud_count": self.fraud_count,
+            "fraud_rate": self.fraud_rate,
+            "predictions": [p.to_dict() for p in self.predictions],
+            "process_status": self.process_status.value,
+            "error_reason": self.error_reason,
+        }
+        if self.error_detail:
+            result["error_detail"] = self.error_detail.to_dict()
+        return result
+
+    def is_success(self) -> bool:
+        return self.process_status == ProcessStatus.SUCCESS
+
+    @classmethod
+    def from_error(cls, error_detail: ErrorDetail) -> "BatchPredictionResult":
+        return cls(
+            process_status=ProcessStatus.ERROR,
+            error_reason=error_detail.message,
+            error_detail=error_detail,
+        )
+
+
+@dataclass
+class TrainingPipelineResult:
+    process_status: ProcessStatus = ProcessStatus.SUCCESS
+    error_reason: Optional[str] = None
+    error_detail: Optional[ErrorDetail] = None
+    summary: Optional[Dict[str, Any]] = None
+    artifacts: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "process_status": self.process_status.value,
+            "error_reason": self.error_reason,
+            "summary": self.summary,
+            "artifacts": self.artifacts,
+        }
+        if self.error_detail:
+            result["error_detail"] = self.error_detail.to_dict()
+        return result
+
+    def is_success(self) -> bool:
+        return self.process_status == ProcessStatus.SUCCESS
+
+    @classmethod
+    def from_error(cls, error_detail: ErrorDetail) -> "TrainingPipelineResult":
+        return cls(
+            process_status=ProcessStatus.ERROR,
+            error_reason=error_detail.message,
+            error_detail=error_detail,
+        )
 
 
 @dataclass
@@ -101,3 +178,26 @@ class UnifiedPredictionResponse:
     validation: ValidationStatus = field(default_factory=ValidationStatus)
     single_prediction: Optional[PredictionResult] = None
     batch_prediction: Optional[BatchPredictionResult] = None
+    error: Optional[UnifiedErrorResponse] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "model_version": asdict(self.model_version),
+            "validation": asdict(self.validation),
+        }
+        if self.single_prediction:
+            result["single_prediction"] = self.single_prediction.to_dict()
+        if self.batch_prediction:
+            result["batch_prediction"] = self.batch_prediction.to_dict()
+        if self.error:
+            result["error"] = self.error.to_dict()
+        return result
+
+    def is_success(self) -> bool:
+        if self.error:
+            return False
+        if self.single_prediction and not self.single_prediction.is_success():
+            return False
+        if self.batch_prediction and not self.batch_prediction.is_success():
+            return False
+        return True

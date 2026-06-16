@@ -12,7 +12,13 @@ from sklearn.ensemble import (
 
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-from aml_fraud_detector.exception import CustomerException
+from aml_fraud_detector.exception import (
+    CustomerException,
+    ConfigException,
+    PredictionException,
+    wrap_exception,
+)
+from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object, upsampling_train_data, evaluate_models
 from aml_fraud_detector.configuration import TrainingConfig
@@ -74,8 +80,12 @@ class ModelTrainer:
                 "param_grid": params,
             }
         if not result:
-            raise CustomerException(
-                ValueError("No models enabled in models.enabled"), sys
+            raise ConfigException(
+                ErrorCode.CONFIG_INVALID_VALUE,
+                error_details=sys,
+                key="models.enabled",
+                value=str(self.training_config.models.enabled),
+                detail="no models enabled",
             )
         return result
 
@@ -195,5 +205,5 @@ class ModelTrainer:
             )
 
         except Exception as e:
-            logging.info("Exception occurred at Model Training")
-            raise CustomerException(e, sys)
+            logging.error("Exception occurred at Model Training", exc_info=True)
+            raise wrap_exception(e, error_details=sys)

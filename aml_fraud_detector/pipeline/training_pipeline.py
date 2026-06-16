@@ -1,30 +1,42 @@
 import os
 import sys
-import json
 from dataclasses import asdict
 from typing import Optional
 
-import pandas as pd
-
-from aml_fraud_detector.exception import CustomerException
+from aml_fraud_detector.exception import (
+    AMLException,
+    PipelineException,
+    wrap_exception,
+    create_error_from_exception,
+)
 from aml_fraud_detector.logger import logging
+from aml_fraud_detector.constants import ErrorCode
 
 from aml_fraud_detector.components.data_ingestion import DataIngestion
-from aml_fraud_detector.components.data_validation import DataValidation
 from aml_fraud_detector.components.data_transformation import DataTransformation
 from aml_fraud_detector.components.model_trainer import ModelTrainer
 from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
 from aml_fraud_detector.utils.main_utils import save_training_summary
+from aml_fraud_detector.entity import TrainingPipelineResult, ProcessStatus
 
 
-def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
+def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipelineResult:
     logging.info("=" * 72)
     logging.info("AML Fraud Detection - Training pipeline started")
     logging.info("=" * 72)
 
-    training_config = TrainingConfig(config_path=config_path)
+    try:
+        training_config = TrainingConfig(config_path=config_path)
+    except AMLException as e:
+        logging.error(f"Training config load failed: {e}")
+        return TrainingPipelineResult.from_error(e.error_detail)
+    except Exception as e:
+        logging.error("Training config load failed with unexpected error", exc_info=True)
+        err = wrap_exception(e, error_details=sys)
+        return TrainingPipelineResult.from_error(err.error_detail)
+
     resolved = training_config.to_resolved_dict()
     logging.info(
         f"Training config loaded (source={resolved['run_info']['config_path_source']}): "
@@ -56,33 +68,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             f"train≈{summary.train_rows}, test≈{summary.test_rows}"
         )
 
-        logging.info("\n" + "=" * 72)
-        logging.info("Running Data Validation")
-        logging.info("=" * 72)
-        data_validation = DataValidation(training_config=training_config)
-        validation_artifact = data_validation.initiate_data_validation(
-            train_path=train_data_path,
-            test_path=test_data_path,
-        )
-
-        if not validation_artifact.validation_status:
-            error_msg = (
-                f"Data validation failed with {len(validation_artifact.validation_errors)} "
-                f"errors: {validation_artifact.validation_errors}"
-            )
-            logging.error(error_msg)
-            raise CustomerException(ValueError(error_msg), sys)
-
-        logging.info(
-            f"Data validation passed: "
-            f"{len(validation_artifact.validation_warnings)} warnings"
-        )
-        if validation_artifact.validation_warnings:
-            for warn in validation_artifact.validation_warnings:
-                logging.warning(f"  - {warn}")
-
-        summary.data_quality_report_path = validation_artifact.data_quality_report_path
-
         data_transformation = DataTransformation(training_config=training_config)
         transform_artifact = data_transformation.initiate_data_transformation(
             train_data_path, test_data_path
@@ -95,9 +80,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         summary.categorical_features = transform_artifact.categorical_features
         summary.preprocessor_path = transform_artifact.preprocessor_path
         summary.target_column = transform_artifact.target_column or summary.target_column
-        summary.feature_metadata_path = os.path.abspath(
-            training_config.artifacts_subpath("feature_metadata.json")
-        )
         logging.info(
             f"Data transformation done: {len(summary.feature_columns)} features "
             f"({len(summary.numerical_features)} num, "
@@ -129,12 +111,6 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             file_path=summary.summary_path,
             summary_obj=summary,
         )
-
-        artifact_manifest_path = _generate_artifact_manifest(
-            artifacts_dir=training_config.artifacts_subpath(""),
-            summary=summary,
-        )
-        logging.info(f"Artifact manifest saved to: {artifact_manifest_path}")
 
         logging.info("=" * 72)
         logging.info("Training pipeline completed successfully")
@@ -171,60 +147,29 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
         print(f"Summary saved      : {summary.summary_path}")
         print("=" * 72 + "\n")
 
-        return summary
+        return TrainingPipelineResult(
+            process_status=ProcessStatus.SUCCESS,
+            summary=asdict(summary),
+            artifacts={
+                "train_data": train_data_path,
+                "test_data": test_data_path,
+                "preprocessor": summary.preprocessor_path,
+                "model": summary.model_path,
+                "summary": summary.summary_path,
+            },
+        )
 
+    except AMLException as e:
+        logging.error(f"Training pipeline failed: {e}", exc_info=True)
+        return TrainingPipelineResult.from_error(e.error_detail)
     except Exception as e:
-        logging.error("Training pipeline failed", exc_info=True)
-        raise CustomerException(e, sys)
-
-
-def _generate_artifact_manifest(artifacts_dir: str, summary: "TrainingSummary") -> str:
-    import hashlib
-
-    manifest_path = os.path.join(artifacts_dir, "artifact_manifest.json")
-
-    artifact_files = [
-        "data.csv",
-        "train.csv",
-        "test.csv",
-        "data_quality_report.json",
-        "preprocessor.pkl",
-        "feature_metadata.json",
-        "model.pkl",
-        "model_metadata.json",
-        "training_summary.json",
-    ]
-
-    artifacts = {}
-    for fname in artifact_files:
-        fpath = os.path.join(artifacts_dir, fname)
-        if os.path.exists(fpath):
-            stat = os.stat(fpath)
-            try:
-                with open(fpath, "rb") as f:
-                    digest = hashlib.sha256(f.read()).hexdigest()
-            except Exception:
-                digest = ""
-
-            artifacts[fname] = {
-                "path": os.path.abspath(fpath),
-                "size": stat.st_size,
-                "mtime_iso": pd.Timestamp.fromtimestamp(stat.st_mtime).isoformat(),
-                "digest": f"sha256:{digest}",
-            }
-
-    manifest = {
-        "artifacts_dir": os.path.abspath(artifacts_dir),
-        "artifacts": artifacts,
-        "generated_at": pd.Timestamp.now().isoformat(),
-    }
-
-    os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False, default=str)
-
-    return os.path.abspath(manifest_path)
+        logging.error("Training pipeline failed with unexpected error", exc_info=True)
+        wrapped = wrap_exception(e, error_details=sys)
+        return TrainingPipelineResult.from_error(wrapped.error_detail)
 
 
 if __name__ == "__main__":
-    run_training_pipeline()
+    result = run_training_pipeline()
+    if not result.is_success():
+        print(f"\nTraining failed: [{result.error_detail.error_code.value}] {result.error_reason}")
+        sys.exit(1)

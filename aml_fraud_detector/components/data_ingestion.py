@@ -6,7 +6,12 @@ from typing import Optional, Tuple
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from aml_fraud_detector.exception import CustomerException
+from aml_fraud_detector.exception import (
+    CustomerException,
+    DataQualityException,
+    wrap_exception,
+)
+from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.configuration import TrainingConfig
 
@@ -44,12 +49,29 @@ class DataIngestion:
             if os.path.exists(csv_file):
                 logging.info(f"File found: {csv_file}")
             else:
-                raise CustomerException(
-                    FileNotFoundError(f"Data source file not found: {csv_file}"), sys
+                raise DataQualityException(
+                    ErrorCode.DATA_SOURCE_NOT_FOUND,
+                    error_details=sys,
+                    path=csv_file,
                 )
 
-            df = pd.read_csv(csv_file)
+            try:
+                df = pd.read_csv(csv_file)
+            except Exception as e:
+                raise DataQualityException(
+                    ErrorCode.DATA_CORRUPTED,
+                    error_details=sys,
+                    path=csv_file,
+                    detail=str(e),
+                )
             logging.info(f"Read the dataset as DataFrame, shape={df.shape}")
+
+            if len(df) == 0:
+                raise DataQualityException(
+                    ErrorCode.DATA_EMPTY,
+                    error_details=sys,
+                    rows=0,
+                )
 
             sample_size = self.training_config.data.sample_size
             if sample_size and isinstance(sample_size, int) and sample_size < len(df):
@@ -86,4 +108,4 @@ class DataIngestion:
                 df_sample,
             )
         except Exception as e:
-            raise CustomerException(e, sys)
+            raise wrap_exception(e, error_details=sys)
