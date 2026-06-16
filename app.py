@@ -95,7 +95,7 @@ def batch_prediction():
 
     vm = _builder.build_batch(df)
     display = ResponseBuilder.flatten_for_display(vm)
-    batch_df = ResponseBuilder.batch_to_dataframe(vm)
+    batch_df = ResponseBuilder.batch_to_display_dataframe(vm)
     return render_template(
         "batch.html",
         display=display,

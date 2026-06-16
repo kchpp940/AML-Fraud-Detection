@@ -11,27 +11,52 @@
     .btn { padding: 8px 20px; margin-top: 8px; cursor: pointer; }
     .panel { margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 6px; }
     .panel h3 { margin-top: 0; }
-    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
-    .alert-error   { background: #fdd; color: #900; border: 1px solid #fcc; }
-    .alert-warning { background: #ffe; color: #660; border: 1px solid #eea; }
-    .alert-success { background: #dfd; color: #060; border: 1px solid #cec; }
-    .alert-info    { background: #e8f2ff; color: #036; border: 1px solid #cde; }
+
+    /* ---------- banners ---------- */
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+    .banner-error   { background: #fdd; color: #900; border: 1px solid #fcc; }
+    .banner-warning { background: #ffe; color: #660; border: 1px solid #eea; }
+    .banner-success { background: #dfd; color: #060; border: 1px solid #cec; }
+    .banner-info    { background: #e8f2ff; color: #036; border: 1px solid #cde; }
+    .banner-empty   { display: none; }
+
+    /* ---------- generic field rows ---------- */
     .field { margin-bottom: 6px; }
     .field span.label { font-weight: bold; display: inline-block; width: 220px; }
-    .metrics { display: flex; flex-wrap: wrap; gap: 16px; }
-    .metric-card { flex: 1 1 180px; border: 1px solid #ddd; padding: 12px; border-radius: 6px; background: #fafafa; }
-    .metric-card .val { font-size: 1.6em; font-weight: bold; }
-    .metric-card .lbl { color: #666; font-size: 0.9em; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; font-size: 0.92em; vertical-align: top; }
-    th { background: #f0f0f0; }
-    tr.fraud td { background: #fff5f5; }
-    .risk-Minimal  { color: #090; }
+
+    /* ---------- prediction badge ---------- */
+    .prediction-legit { background: #dfd; color: #060; border: 1px solid #9c9; padding: 2px 8px; border-radius: 4px; font-weight: bold; display: inline-block; }
+    .prediction-fraud { background: #fdd; color: #900; border: 1px solid #eaa; padding: 2px 8px; border-radius: 4px; font-weight: bold; display: inline-block; }
+    .prediction-unknown { background: #eee; color: #666; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+
+    /* ---------- risk badge ---------- */
+    .risk-Minimal  { color: #090; font-weight: bold; }
     .risk-Low      { color: #090; }
     .risk-Medium   { color: #cc0; font-weight: bold; }
     .risk-High     { color: #e80; font-weight: bold; }
-    .risk-Critical { color: #c00; font-weight: bold; }
-    .contrib { font-size: 0.85em; color: #444; margin-top: 2px; }
+    .risk-Critical  { color: #c00; font-weight: bold; }
+    .risk-Unknown  { color: #666; }
+
+    /* ---------- status badge ---------- */
+    .status-ok     { color: #060; font-weight: bold; }
+    .status-error   { color: #c00; font-weight: bold; }
+
+    /* ---------- metric cards ---------- */
+    .metrics { display: flex; flex-wrap: wrap; gap: 16px; }
+    .metric-card { flex: 1 1 180px; border: 1px solid #ddd; padding: 12px; border-radius: 6px; background: #fafafa; }
+    .metric-card-danger { background: #fff5f5; border-color: #e9a; }
+    .metric-card-safe   { background: #f5fff5; border-color: #9c9; }
+    .metric-card .val { font-size: 1.6em; font-weight: bold; }
+    .metric-card .lbl { color: #666; font-size: 0.9em; }
+
+    /* ---------- table ---------- */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.92em; }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; position: sticky; top: 0; }
+    tr.fraud-row td { background: #fff5f5; }
+
+    .mono { font-family: monospace; }
+    .empty-notice { color: #999; font-style: italic; }
 </style>
 </head>
 <body>
@@ -44,100 +69,111 @@
         </nav>
 
         {% if display %}
+        <!-- ============================================================ -->
+        <!-- MODEL INFO                                                   -->
+        <!-- ============================================================ -->
         <div class="panel">
             <h3>Model Info</h3>
             <div class="field"><span class="label">Model Version:</span> {{ display.model_version }}</div>
             <div class="field"><span class="label">Model Name:</span> {{ display.model_name }}</div>
             <div class="field"><span class="label">Trained At:</span> {{ display.training_time }}</div>
             <div class="field"><span class="label">Feature Contract:</span> v{{ display.feature_contract_version }}</div>
-            <div class="field"><span class="label">Metric ({{ display.selection_metric }}):</span>
-                {% if display.best_metric_value %}
+            <div class="field">
+                <span class="label">Metric ({{ display.selection_metric }}):</span>
                 {{ "%.4f"|format(display.best_metric_value) }}
-                {% else %}
-                —
-                {% endif %}
             </div>
         </div>
 
+        <!-- ============================================================ -->
+        <!-- ARTIFACT VALIDATION                                          -->
+        <!-- ============================================================ -->
         <div class="panel">
             <h3>Artifact Validation</h3>
-            {% if display.validation_valid %}
-            <div class="alert alert-success">All required artifacts present &amp; digest verified.</div>
-            {% endif %}
+            <div class="alert {% if display.validation_valid %}banner-success{% else %}banner-error{% endif %}">
+                {% if display.validation_valid %}
+                All required artifacts present &amp; digest verified.
+                {% else %}
+                Artifact verification failed — see error list below.
+                {% endif %}
+            </div>
             {% for err in display.validation_errors %}
-            <div class="alert alert-error">{{ err }}</div>
+            <div class="alert banner-error">{{ err }}</div>
             {% endfor %}
             {% for warn in display.validation_warnings %}
-            <div class="alert alert-warning">{{ warn }}</div>
+            <div class="alert banner-warning">{{ warn }}</div>
             {% endfor %}
-            <div class="field"><span class="label">Manifest present:</span>
+            <div class="field">
+                <span class="label">Manifest present:</span>
                 {% if display.validation_details.manifest_present %}
                 Yes ({{ display.validation_details.manifest_artifacts|length }} files)
                 {% else %}
                 No
                 {% endif %}
             </div>
-            {% if not display.validation_details.manifest_present %}
-            <div class="alert alert-warning">
+            <div class="alert {% if display.validation_details.manifest_present %}banner-empty{% else %}banner-warning{% endif %}">
                 artifact_manifest.json 缺失，无法进行完整性校验。
             </div>
-            {% endif %}
         </div>
         {% endif %}
 
+        <!-- ============================================================ -->
+        <!-- FILE UPLOAD                                                 -->
+        <!-- ============================================================ -->
         <div class="panel">
             <h3>Upload Batch CSV File</h3>
-            <div class="alert alert-info">
-                CSV 需要包含列：<b>from_bank, account, to_bank, account_1, amount_received,
-                receiving_currency, payment_currency, payment_format, day</b>。
-                可选列：<b>transaction_id</b> 作为交易唯一标识。
+            <div class="alert banner-info">
+                CSV needs columns: <b>from_bank, account, to_bank, account_1,
+                amount_received, receiving_currency, payment_currency, payment_format, day</b>.
+                Optional: <b>transaction_id</b>.
             </div>
             <form method="POST" action="/batchprediction" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="csv_file">CSV 文件（UTF-8 编码，最大 16 MB）:</label>
+                    <label for="csv_file">CSV 文件（UTF-8，最大 16MB）:</label>
                     <input type="file" id="csv_file" name="csv_file" accept=".csv,.txt">
                 </div>
                 <input class="btn" type="submit" value="Run Batch Prediction" />
             </form>
-
-            {% if batch_error %}
-            <div class="alert alert-error" style="margin-top:14px;">{{ batch_error }}</div>
-            {% endif %}
+            <div class="alert {% if batch_error %}banner-error{% else %}banner-empty{% endif %}">{{ batch_error }}</div>
         </div>
 
+        <!-- ============================================================ -->
+        <!-- BATCH RESULT (rendered only when batch_df actually provided) -->
+        <!-- ============================================================ -->
         {% if batch_df is defined and batch_df is not none and display and display.batch_total is defined %}
         <div class="panel">
             <h3>Batch Summary</h3>
-            <div class="field"><span class="label">Input rows:</span> {{ input_count }}</div>
-            {% if display.batch_is_error %}
-            <div class="alert alert-error">Batch prediction failed: {{ display.batch_error_reason }}</div>
-            {% else %}
+            <div class="field"><span class="label">{{ display.batch_row_count_label }}</span></div>
+            <div class="alert {% if display.batch_error_banner %}banner-error{% else %}banner-empty{% endif %}">
+                Batch prediction failed: {{ display.batch_error_banner }}
+            </div>
+
             <div class="metrics">
                 <div class="metric-card">
-                    <div class="val">{{ display.batch_total }}</div>
+                    <div class="val">{{ display.batch_summary_label_total }}</div>
                     <div class="lbl">Total Processed</div>
                 </div>
                 <div class="metric-card">
-                    <div class="val">{{ display.batch_legit }}</div>
+                    <div class="val">{{ display.batch_summary_label_legit }}</div>
                     <div class="lbl">Legit Count</div>
                 </div>
-                <div class="metric-card">
-                    <div class="val" style="color:#c00;">{{ display.batch_fraud }}</div>
+                <div class="{{ display.batch_summary_card_fraud_class }}">
+                    <div class="val">{{ display.batch_summary_label_fraud }}</div>
                     <div class="lbl">Fraud Count</div>
                 </div>
                 <div class="metric-card">
-                    <div class="val">{{ "%.2f"|format(display.batch_fraud_rate * 100) }}%</div>
+                    <div class="val">{{ display.batch_summary_label_fraud_rate }}</div>
                     <div class="lbl">Fraud Rate</div>
                 </div>
             </div>
-            {% endif %}
         </div>
 
         <div class="panel">
             <h3>Detail Table</h3>
-            {% if batch_df.empty %}
-            <div class="alert alert-warning">暂无明细数据。</div>
-            {% else %}
+
+            <div class="alert {% if batch_df.empty %}banner-warning{% else %}banner-empty{% endif %} empty-notice">
+                暂无明细数据。
+            </div>
+
             <table>
                 <thead>
                     <tr>
@@ -153,43 +189,29 @@
                 </thead>
                 <tbody>
                     {% for row in batch_df.itertuples() %}
-                    <tr{% if row.prediction == 1 %} class="fraud"{% endif %}>
-                        <td>{{ loop.index }}</td>
-                        <td style="font-family:monospace;">{{ row.transaction_id }}</td>
+                    <tr class="{{ row.row_tr_class }}">
+                        <td>{{ row.row_index }}</td>
+                        <td class="mono">{{ row.transaction_id }}</td>
+                        <td><span class="{{ row.prediction_badge_class }}">{{ row.prediction_badge_label }}</span></td>
+                        <td>{{ row.fraud_probability_display }}</td>
+                        <td>{{ row.legit_probability_display }}</td>
+                        <td><span class="{{ row.risk_level_class }}">{{ row.risk_level_label }}</span></td>
                         <td>
-                            {% if row.prediction == 1 %}
-                            <b style="color:#c00;">{{ row.class_label }}</b>
-                            {% else %}
-                            <b style="color:#060;">{{ row.class_label }}</b>
-                            {% endif %}
-                        </td>
-                        <td>{{ "%.4f"|format(row.fraud_probability) }}</td>
-                        <td>{{ "%.4f"|format(row.legit_probability) }}</td>
-                        <td><span class="risk-{{ row.risk_level }}">{{ row.risk_level }}</span></td>
-                        <td>
-                            <div>{{ row.risk_summary }}</div>
-                            {% if row.top_contributors %}
-                            <div class="contrib">
-                                <b>Top Contributors:</b>
-                                {% for c in row.top_contributors %}
-                                <div>• {{ c.feature }}={{ c.value }} → {{ "%.5f"|format(c.contribution) }}</div>
-                                {% endfor %}
+                            <div>{{ row.risk_summary_display }}</div>
+                            <div class="alert {% if row.has_contributors %}banner-info{% else %}banner-empty{% endif %}">
+                                <b>Top Contributors</b><br>{{ row.risk_contributors_display }}
                             </div>
-                            {% endif %}
                         </td>
                         <td>
-                            {% if row.process_status == "error" %}
-                            <b style="color:#c00;">ERROR</b><br>
-                            <small>{{ row.error_reason }}</small>
-                            {% else %}
-                            <span style="color:#080;">OK</span>
-                            {% endif %}
+                            <span class="{{ row.status_class }}">{{ row.status_label }}</span>
+                            <div class="alert {% if row.error_message_display %}banner-error{% else %}banner-empty{% endif %}">
+                                {{ row.error_message_display }}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            {% endif %}
         </div>
         {% endif %}
     </div>

@@ -1,0 +1,4 @@
+[ 2026-06-16 09:34:07,301] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 09:34:07,301] 204 root - INFO - PredictionPipeline created (artifacts_dir=artifacts, validate=True)
+[ 2026-06-16 09:34:07,302] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 09:34:07,317] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0

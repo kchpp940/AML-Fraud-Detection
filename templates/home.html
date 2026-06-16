@@ -12,20 +12,33 @@
     .btn { padding: 10px 24px; margin-top: 10px; cursor: pointer; }
     .panel { margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 6px; }
     .panel h3 { margin-top: 0; }
-    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
-    .alert-error { background: #fdd; color: #900; border: 1px solid #fcc; }
-    .alert-warning { background: #ffe; color: #660; border: 1px solid #eea; }
-    .alert-success { background: #dfd; color: #060; border: 1px solid #cec; }
+
+    /* ---------- banners ---------- */
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+    .banner-error   { background: #fdd; color: #900; border: 1px solid #fcc; }
+    .banner-warning { background: #ffe; color: #660; border: 1px solid #eea; }
+    .banner-success { background: #dfd; color: #060; border: 1px solid #cec; }
+    .banner-info    { background: #e8f2ff; color: #036; border: 1px solid #cde; }
+    .banner-empty   { display: none; }
+
+    /* ---------- field rows ---------- */
     .field { margin-bottom: 6px; }
     .field span.label { font-weight: bold; display: inline-block; width: 220px; }
-    .risk-Minimal { color: #090; }
-    .risk-Low { color: #090; }
-    .risk-Medium { color: #cc0; font-weight: bold; }
-    .risk-High { color: #e80; font-weight: bold; }
-    .risk-Critical { color: #c00; font-weight: bold; }
-    .contrib { margin-left: 226px; font-size: 0.9em; color: #444; }
-    .contrib li { margin-bottom: 3px; }
-    .summary { background: #f7f7f7; padding: 10px 14px; border-left: 4px solid #68f; border-radius: 3px; margin: 8px 0 12px 0; }
+
+    /* ---------- prediction badge ---------- */
+    .prediction-legit { background: #dfd; color: #060; border: 1px solid #9c9; padding: 2px 10px; border-radius: 4px; font-weight: bold; display: inline-block; }
+    .prediction-fraud { background: #fdd; color: #900; border: 1px solid #eaa; padding: 2px 10px; border-radius: 4px; font-weight: bold; display: inline-block; }
+    .prediction-unknown { background: #eee; color: #666; padding: 2px 10px; border-radius: 4px; display: inline-block; }
+
+    /* ---------- risk badge ---------- */
+    .risk-Minimal  { color: #090; font-weight: bold; }
+    .risk-Low      { color: #090; }
+    .risk-Medium   { color: #cc0; font-weight: bold; }
+    .risk-High     { color: #e80; font-weight: bold; }
+    .risk-Critical  { color: #c00; font-weight: bold; }
+    .risk-Unknown  { color: #666; }
+
+    .contrib { white-space: pre-line; font-size: 0.9em; color: #444; }
 </style>
 </head>
 <body>
@@ -80,63 +93,75 @@
        </form>
 
        {% if display %}
+       <!-- ============================================================ -->
+       <!-- MODEL INFO                                                  -->
+       <!-- ============================================================ -->
        <div class="panel">
            <h3>Model Info</h3>
            <div class="field"><span class="label">Model Version:</span> {{ display.model_version }}</div>
            <div class="field"><span class="label">Model Name:</span> {{ display.model_name }}</div>
            <div class="field"><span class="label">Trained At:</span> {{ display.training_time }}</div>
            <div class="field"><span class="label">Feature Contract:</span> v{{ display.feature_contract_version }}</div>
-           <div class="field"><span class="label">Metric ({{ display.selection_metric }}):</span> {{ "%.4f"|format(display.best_metric_value) }}</div>
-       </div>
-
-       <div class="panel">
-           <h3>Artifact Validation</h3>
-           {% if display.validation_valid %}
-           <div class="alert alert-success">All required artifacts present &amp; digest verified.</div>
-           {% endif %}
-           {% for err in display.validation_errors %}
-           <div class="alert alert-error">{{ err }}</div>
-           {% endfor %}
-           {% for warn in display.validation_warnings %}
-           <div class="alert alert-warning">{{ warn }}</div>
-           {% endfor %}
-           <div class="field"><span class="label">Manifest present:</span>
-               {% if display.validation_details.manifest_present %}Yes ({{ display.validation_details.manifest_artifacts|length }} files){% else %}No{% endif %}
+           <div class="field"><span class="label">Metric ({{ display.selection_metric }}):</span>
+               {{ "%.4f"|format(display.best_metric_value) }}
            </div>
        </div>
 
+       <!-- ============================================================ -->
+       <!-- ARTIFACT VALIDATION                                       -->
+       <!-- ============================================================ -->
        <div class="panel">
-           {% if display.is_error %}
-           <h3>Prediction Error</h3>
-           <div class="alert alert-error">{{ display.error_reason }}</div>
-           {% else %}
-           <h3>Prediction Result</h3>
-           <div class="field"><span class="label">Final Prediction:</span>
-               {% if display.prediction_code == 1 %}
-               <span style="color:#900;font-weight:bold;">{{ display.prediction_label }}</span>
+           <h3>Artifact Validation</h3>
+           <div class="alert {% if display.validation_valid %}banner-success{% else %}banner-error{% endif %}">
+               {% if display.validation_valid %}
+               All required artifacts present &amp; digest verified.
                {% else %}
-               <span style="color:#060;font-weight:bold;">{{ display.prediction_label }}</span>
+               Artifact verification failed — see error list below.
                {% endif %}
+           </div>
+           {% for err in display.validation_errors %}
+           <div class="alert banner-error">{{ err }}</div>
+           {% endfor %}
+           {% for warn in display.validation_warnings %}
+           <div class="alert banner-warning">{{ warn }}</div>
+           {% endfor %}
+           <div class="field"><span class="label">Manifest present:</span>
+               {% if display.validation_details.manifest_present %}
+               Yes ({{ display.validation_details.manifest_artifacts|length }} files)
+               {% else %}
+               No
+               {% endif %}
+           </div>
+       </div>
+
+       <!-- ============================================================ -->
+       <!-- PREDICTION RESULT (只渲染 display 中预计算字段 -->
+       <!-- ============================================================ -->
+       <div class="panel">
+           <h3>Prediction Result</h3>
+
+           <!-- Error banner: 用 banner-empty class 在空值时自动隐藏 -->
+           <div class="alert {% if display.single_error_banner %}banner-error{% else %}banner-empty{% endif %}">
+               {{ display.single_error_banner }}
+           </div>
+
+           <div class="field"><span class="label">Final Prediction:</span>
+               <span class="{{ display.single_prediction_badge_class }}">{{ display.single_prediction_badge_label }}</span>
            </div>
            <div class="field"><span class="label">Fraud Probability:</span> {{ "%.4f"|format(display.fraud_probability) }}</div>
            <div class="field"><span class="label">Legit Probability:</span> {{ "%.4f"|format(display.legit_probability) }}</div>
            <div class="field"><span class="label">Risk Level:</span>
-               <span class="risk-{{ display.risk_level }}">{{ display.risk_level }}</span>
+               <span class="{{ display.single_risk_badge_class }}">{{ display.single_risk_badge_label }}</span>
            </div>
            <div class="field"><span class="label">Transaction ID:</span> {{ display.transaction_id }}</div>
 
            <h3>Risk Explanation</h3>
-           <div class="summary">{{ display.risk_summary }}</div>
+           <div class="alert banner-info">{{ display.risk_summary }}</div>
 
-           {% if display.risk_contributors %}
-           <div class="field"><span class="label">Top Contributors:</span></div>
-           <ul class="contrib">
-               {% for c in display.risk_contributors %}
-               <li>{{ c.feature }} = {{ c.value }} &nbsp;→&nbsp; contribution: <b>{{ "%.4f"|format(c.contribution) }}</b> ({{ c.direction }})</li>
-               {% endfor %}
-           </ul>
-           {% endif %}
-           {% endif %}
+           <div class="alert {% if display.single_risk_contributors_display %}banner-success{% else %}banner-empty{% endif %}">
+               <b>Top Contributors</b>
+               <div class="contrib">{{ display.single_risk_contributors_display }}</div>
+           </div>
        </div>
        {% endif %}
     </div>
