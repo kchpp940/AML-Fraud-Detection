@@ -191,6 +191,70 @@ Data Scientist
 
 
 
+## Workspace Configuration (Runtime Artifact Management)
+
+Training artifacts (model, preprocessor, data splits, logs) are managed through a unified `WorkspaceContext` in `aml_fraud_detector/runtime/workspace.py`. All pipeline components (`DataIngestion`, `DataTransformation`, `ModelTrainer`, `TrainingPipeline`) obtain paths from the same workspace instance — no component hardcodes its own output paths.
+
+### Two Modes
+
+| Mode    | Layout                                                                 | Use Case                                  |
+|---------|------------------------------------------------------------------------|-------------------------------------------|
+| `flat`  | All artifacts go directly into `artifacts/` (or configured output dir).| Default — backward compatible.            |
+| `batched` | Each run creates `runs/run_YYYYMMDD_HHMMSS/` containing `artifacts/`, `logs/`, `tmp/`. A `runs/latest` symlink points to the most recent run. | Multi-run experiments — no overwrite risk. |
+
+### Configuration (in `config/training_config.yaml`)
+
+```yaml
+output:
+  artifacts_dir: "artifacts"
+  workspace:
+    mode: "flat"           # "flat" (default) | "batched"
+    root: null             # workspace root (default: current working dir)
+    run_name: null         # custom run name (default: auto timestamp)
+```
+
+Or via environment variable:
+```bash
+export AML_TRAIN_OUTPUT__WORKSPACE__MODE=batched
+```
+
+### Standard Artifact Paths
+
+All paths are obtained through `workspace.get_artifact_path(name)`:
+
+| Name                  | Path (flat mode)                      | Path (batched mode)                                   |
+|-----------------------|---------------------------------------|-------------------------------------------------------|
+| `raw_csv`             | `artifacts/data.csv`                  | `runs/<run>/artifacts/data.csv`                       |
+| `train_csv`           | `artifacts/train.csv`                 | `runs/<run>/artifacts/train.csv`                      |
+| `test_csv`            | `artifacts/test.csv`                  | `runs/<run>/artifacts/test.csv`                       |
+| `preprocessor_pkl`    | `artifacts/preprocessor.pkl`          | `runs/<run>/artifacts/preprocessor.pkl`               |
+| `model_pkl`           | `artifacts/model.pkl`                 | `runs/<run>/artifacts/model.pkl`                      |
+| `summary_json`        | `artifacts/training_summary.json`     | `runs/<run>/artifacts/training_summary.json`          |
+
+Additional subpaths can be constructed via:
+- `workspace.artifacts_subpath(*parts)` — e.g., `artifacts/subdir/file.txt`
+- `workspace.logs_subpath(*parts)`      — e.g., `logs/app.log`
+- `workspace.tmp_subpath(*parts)`        — e.g., `tmp/cache.dat`
+
+### Developer Convention
+
+When adding new components that produce artifacts, **do not hardcode paths** or call `os.path.join("artifacts", ...)`. Instead:
+
+1. Accept an optional `workspace` parameter in the constructor
+2. Fall back to `self.training_config.workspace` if not provided
+3. Use `workspace.get_artifact_path(...)` or `workspace.artifacts_subpath(...)` for all output paths
+
+```python
+# Correct
+class MyComponent:
+    def __init__(self, training_config, workspace=None):
+        self.workspace = workspace or training_config.workspace
+        self.output_path = self.workspace.get_artifact_path("model_pkl")
+
+# Wrong — hardcoded paths
+# self.output_path = os.path.join("artifacts", "model.pkl")
+```
+
 #### Project setup Notes
 - Setup the GitHub repository (creating repo and cloning repo locally)
 	by creating a new repository on GitHub or by creating a new directory, and initialize it

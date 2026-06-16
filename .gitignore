@@ -135,6 +135,8 @@ venv.bak/
 **/data/
 **/key_string.py
 # artifacts/
+runs/
+tmp/
 
 
 # Spyder project settings

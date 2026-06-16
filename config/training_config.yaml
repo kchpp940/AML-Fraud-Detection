@@ -38,3 +38,17 @@ models:
 
 output:
   artifacts_dir: "artifacts"
+  # Workspace configuration controls how training run artifacts are organized.
+  # Two modes are available:
+  #   - "flat"    : (default) All artifacts go directly into output.artifacts_dir.
+  #                 Backward-compatible with the original "artifacts/" layout.
+  #   - "batched" : Each training run creates an isolated directory under
+  #                 runs/run_YYYYMMDD_HHMMSS/ containing its own artifacts/,
+  #                 logs/, and tmp/ subdirectories. A "latest" symlink in
+  #                 runs/ always points to the most recent run.
+  #
+  # Environment override: AML_TRAIN_OUTPUT__WORKSPACE__MODE=batched
+  workspace:
+    mode: "flat"           # "flat" (default) | "batched"
+    root: null             # workspace root directory (default: current working dir)
+    run_name: null         # custom run name (default: auto-generated timestamp)
