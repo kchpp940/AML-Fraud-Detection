@@ -24,12 +24,14 @@ from aml_fraud_detector.entity import (
     UnifiedPredictionResponse,
     ValidationStatus,
 )
+from aml_fraud_detector.presentation import ResponseBuilder, UnifiedViewModel
 from aml_fraud_detector.logger import logging
 
 application = Flask(__name__)
 app = application
 
 _predict_pipeline = None
+_builder = None
 
 
 def _get_pipeline():
@@ -37,6 +39,13 @@ def _get_pipeline():
     if _predict_pipeline is None:
         _predict_pipeline = PredictionPipeline()
     return _predict_pipeline
+
+
+def _get_builder():
+    global _builder
+    if _builder is None:
+        _builder = ResponseBuilder()
+    return _builder
 
 
 def _get_trace_id():
@@ -102,17 +111,33 @@ def predict_datapoint():
             )
             validation = data.validate()
             if not validation.is_valid:
-                err_resp = create_error_response(
+                builder = _get_builder()
+                mvi = _get_pipeline().get_model_version_info()
+                vs = _get_pipeline().validate_artifacts(verify_digests=False)
+                from aml_fraud_detector.entity.artifact_entity import PredictionResult, ProcessStatus
+                pr = PredictionResult(
+                    process_status=ProcessStatus.ERROR,
+                    error_reason="; ".join(validation.errors),
+                )
+                from aml_fraud_detector.exception import InputValidationException, ErrorDetail
+                from aml_fraud_detector.constants import ErrorCode
+                iv_exc = InputValidationException(
                     ErrorCode.INPUT_INVALID_FORMAT,
-                    trace_id=trace_id,
                     field="multiple",
                     value="; ".join(validation.errors),
                 )
+                pr.error_detail = iv_exc.error_detail
+                vm = builder.build_single(
+                    prediction_result=pr,
+                    model_version_info=mvi,
+                    validation_status=vs,
+                    trace_id=trace_id,
+                )
+                display = builder.flatten_for_display(vm)
                 return render_template(
                     "home.html",
                     results=None,
-                    error=_error_to_display(err_resp, trace_id),
-                    detail=None,
+                    display=display,
                     trace_id=trace_id,
                 )
 
@@ -121,49 +146,65 @@ def predict_datapoint():
 
             predict_pipeline = _get_pipeline()
             detailed = predict_pipeline.predict_detailed(pred_df, transaction_id=trace_id)
+            builder = _get_builder()
 
-            if not detailed.is_success():
-                return render_template(
-                    "home.html",
-                    results=None,
-                    error=_error_to_display(detailed.error_detail, trace_id),
-                    detail=None,
-                    trace_id=trace_id,
-                )
+            mvi = predict_pipeline.get_model_version_info()
+            vs = predict_pipeline.validate_artifacts(verify_digests=False)
 
-            results = detailed.prediction
-            detail = {
-                "class_label": detailed.class_label,
-                "fraud_probability": detailed.fraud_probability,
-                "legit_probability": detailed.legit_probability,
-                "risk_level": detailed.risk_level.value,
-                "model_version": detailed.model_version,
-                "transaction_id": trace_id,
-                "top_factors": [
-                    {"feature_name": f["feature_name"], "label": f.get("label", ""), "importance": f.get("importance", 0)}
-                    for f in (detailed.risk_explanation.top_factors if detailed.risk_explanation else [])
-                ],
-            }
-            return render_template("home.html", results=results, error=None, detail=detail, trace_id=trace_id)
+            vm = builder.build_single(
+                prediction_result=detailed,
+                model_version_info=mvi,
+                validation_status=vs,
+                trace_id=trace_id,
+            )
+            display = builder.flatten_for_display(vm)
+
+            results = display["prediction_code"] if not display["has_error"] else None
+
+            return render_template("home.html", results=results, display=display, trace_id=trace_id)
 
         except AMLException as e:
-            err_resp = e.to_error_response(trace_id=trace_id)
-            return render_template(
-                "home.html",
-                results=None,
-                error=_error_to_display(err_resp, trace_id),
-                detail=None,
-                trace_id=trace_id,
-            )
+            builder = _get_builder()
+            vm = UnifiedViewModel()
+            vm.is_error = True
+            vm.error_reason = e.message
+            vm.process_status = "error"
+            from aml_fraud_detector.presentation.response_builder import ERROR_FIELDNAMES
+            err = e.error_detail
+            if err:
+                vm.error_code = err.error_code.value if hasattr(err.error_code, "value") else str(err.error_code)
+                vm.error_category = err.error_category.value if hasattr(err.error_category, "value") else str(err.error_category)
+                from aml_fraud_detector.constants import ERROR_CATEGORY_DISPLAY, ERROR_SEVERITY
+                vm.error_category_display = ERROR_CATEGORY_DISPLAY.get(err.error_category, vm.error_category)
+                vm.error_message = err.message or ""
+                vm.error_field = err.field_name or ""
+                vm.error_value = str(err.field_value) if err.field_value is not None else ""
+                vm.error_context = dict(err.context) if err.context else {}
+                vm.error_trace_id = trace_id
+                vm.error_severity = ERROR_SEVERITY.get(err.error_code, "info")
+            display = builder.flatten_for_display(vm)
+            return render_template("home.html", results=None, display=display, trace_id=trace_id)
         except Exception as e:
             err_resp = create_error_from_exception(e, trace_id=trace_id, error_details=sys)
-            return render_template(
-                "home.html",
-                results=None,
-                error=_error_to_display(err_resp, trace_id),
-                detail=None,
-                trace_id=trace_id,
-            )
+            builder = _get_builder()
+            vm = UnifiedViewModel()
+            vm.is_error = True
+            vm.error_reason = err_resp.error.message if err_resp.error else str(e)
+            vm.process_status = "error"
+            err = err_resp.error
+            if err:
+                vm.error_code = err.error_code.value if hasattr(err.error_code, "value") else str(err.error_code)
+                vm.error_category = err.error_category.value if hasattr(err.error_category, "value") else str(err.error_category)
+                from aml_fraud_detector.constants import ERROR_CATEGORY_DISPLAY, ERROR_SEVERITY
+                vm.error_category_display = ERROR_CATEGORY_DISPLAY.get(err.error_category, vm.error_category)
+                vm.error_message = err.message or ""
+                vm.error_field = err.field_name or ""
+                vm.error_value = str(err.field_value) if err.field_value is not None else ""
+                vm.error_context = dict(err.context) if err.context else {}
+                vm.error_trace_id = trace_id
+                vm.error_severity = ERROR_SEVERITY.get(err.error_code, "info")
+            display = builder.flatten_for_display(vm)
+            return render_template("home.html", results=None, display=display, trace_id=trace_id)
     
     
 @app.route("/health", methods=["GET"])
@@ -288,38 +329,76 @@ def api_predict():
 
 
 @app.route("/batch", methods=["GET", "POST"])
+@app.route("/batchprediction", methods=["GET", "POST"])
 def batch_predict_page():
     trace_id = _get_trace_id()
+    builder = _get_builder()
+    pipeline = _get_pipeline()
+    mvi = pipeline.get_model_version_info()
+    vs = pipeline.validate_artifacts(verify_digests=False)
+
     if request.method == "GET":
-        return render_template("batch.html", results=None, error=None, detail=None, trace_id=trace_id)
+        vm = builder.build_validation_only(
+            model_version_info=mvi,
+            validation_status=vs,
+            trace_id=trace_id,
+        )
+        display = builder.flatten_for_display(vm)
+        return render_template("batch.html", display=display, batch_df=None, results=None, trace_id=trace_id)
 
     try:
         if "file" not in request.files:
-            err_resp = create_error_response(
+            from aml_fraud_detector.exception import InputValidationException
+            iv_exc = InputValidationException(
                 ErrorCode.INPUT_MISSING_FIELD,
-                trace_id=trace_id,
                 field="file",
             )
+            from aml_fraud_detector.entity.artifact_entity import BatchPredictionResult, ProcessStatus
+            br = BatchPredictionResult(
+                process_status=ProcessStatus.ERROR,
+                error_reason=iv_exc.message,
+                error_detail=iv_exc.error_detail,
+            )
+            vm = builder.build_batch(
+                batch_result=br,
+                model_version_info=mvi,
+                validation_status=vs,
+                trace_id=trace_id,
+            )
+            display = builder.flatten_for_display(vm)
             return render_template(
                 "batch.html",
+                display=display,
+                batch_df=None,
                 results=None,
-                error=_error_to_display(err_resp, trace_id),
-                detail=None,
                 trace_id=trace_id,
             )
 
         file = request.files["file"]
         if file.filename == "":
-            err_resp = create_error_response(
+            from aml_fraud_detector.exception import InputValidationException
+            iv_exc = InputValidationException(
                 ErrorCode.INPUT_EMPTY_VALUE,
-                trace_id=trace_id,
                 field="file",
             )
+            from aml_fraud_detector.entity.artifact_entity import BatchPredictionResult, ProcessStatus
+            br = BatchPredictionResult(
+                process_status=ProcessStatus.ERROR,
+                error_reason=iv_exc.message,
+                error_detail=iv_exc.error_detail,
+            )
+            vm = builder.build_batch(
+                batch_result=br,
+                model_version_info=mvi,
+                validation_status=vs,
+                trace_id=trace_id,
+            )
+            display = builder.flatten_for_display(vm)
             return render_template(
                 "batch.html",
+                display=display,
+                batch_df=None,
                 results=None,
-                error=_error_to_display(err_resp, trace_id),
-                detail=None,
                 trace_id=trace_id,
             )
 
@@ -332,61 +411,93 @@ def batch_predict_page():
             if col in df.columns:
                 df[col] = df[col].astype("object")
 
-        pipeline = _get_pipeline()
         br = pipeline.predict_batch(df)
         if tids and len(tids) == len(br.predictions):
             for i, p in enumerate(br.predictions):
                 if p.transaction_id is None or str(p.transaction_id).isdigit():
                     p.transaction_id = tids[i]
 
-        if not br.is_success():
-            return render_template(
-                "batch.html",
-                results=None,
-                error=_error_to_display(br.error_detail, trace_id),
-                detail=None,
-                trace_id=trace_id,
-            )
+        vm = builder.build_batch(
+            batch_result=br,
+            model_version_info=mvi,
+            validation_status=vs,
+            trace_id=trace_id,
+        )
+        display = builder.flatten_for_display(vm)
+        batch_df = builder.batch_to_dataframe(vm)
 
-        rows = []
-        for p in br.predictions:
-            rows.append({
-                "transaction_id": p.transaction_id,
-                "prediction": p.class_label,
-                "fraud_probability": f"{p.fraud_probability * 100:.2f}%",
-                "risk_level": p.risk_level.value,
-            })
+        rows = None
+        if br.is_success():
+            rows = []
+            for p in br.predictions:
+                rows.append({
+                    "transaction_id": p.transaction_id,
+                    "prediction": p.class_label,
+                    "fraud_probability": f"{p.fraud_probability * 100:.2f}%",
+                    "risk_level": p.risk_level.value,
+                })
 
-        detail = {
-            "total": br.total_count,
-            "fraud_count": br.fraud_count,
-            "fraud_rate": f"{br.fraud_rate * 100:.2f}%",
-            "overall_risk": br.overall_risk_level.value,
-        }
         return render_template(
             "batch.html",
+            display=display,
+            batch_df=batch_df,
             results=rows,
-            error=None,
-            detail=detail,
             trace_id=trace_id,
         )
 
     except AMLException as e:
-        err_resp = e.to_error_response(trace_id=trace_id)
+        vm = UnifiedViewModel()
+        vm.batch_is_error = True
+        vm.batch_error_reason = e.message
+        vm.is_error = True
+        vm.error_reason = e.message
+        vm.process_status = "error"
+        err = e.error_detail
+        if err:
+            vm.error_code = err.error_code.value if hasattr(err.error_code, "value") else str(err.error_code)
+            vm.error_category = err.error_category.value if hasattr(err.error_category, "value") else str(err.error_category)
+            from aml_fraud_detector.constants import ERROR_CATEGORY_DISPLAY, ERROR_SEVERITY
+            vm.error_category_display = ERROR_CATEGORY_DISPLAY.get(err.error_category, vm.error_category)
+            vm.error_message = err.message or ""
+            vm.error_field = err.field_name or ""
+            vm.error_value = str(err.field_value) if err.field_value is not None else ""
+            vm.error_context = dict(err.context) if err.context else {}
+            vm.error_trace_id = trace_id
+            vm.error_severity = ERROR_SEVERITY.get(err.error_code, "info")
+        display = builder.flatten_for_display(vm)
         return render_template(
             "batch.html",
+            display=display,
+            batch_df=None,
             results=None,
-            error=_error_to_display(err_resp, trace_id),
-            detail=None,
             trace_id=trace_id,
         )
     except Exception as e:
         err_resp = create_error_from_exception(e, trace_id=trace_id, error_details=sys)
+        vm = UnifiedViewModel()
+        vm.batch_is_error = True
+        vm.is_error = True
+        err = err_resp.error
+        vm.batch_error_reason = err.message if err else str(e)
+        vm.error_reason = err.message if err else str(e)
+        vm.process_status = "error"
+        if err:
+            vm.error_code = err.error_code.value if hasattr(err.error_code, "value") else str(err.error_code)
+            vm.error_category = err.error_category.value if hasattr(err.error_category, "value") else str(err.error_category)
+            from aml_fraud_detector.constants import ERROR_CATEGORY_DISPLAY, ERROR_SEVERITY
+            vm.error_category_display = ERROR_CATEGORY_DISPLAY.get(err.error_category, vm.error_category)
+            vm.error_message = err.message or ""
+            vm.error_field = err.field_name or ""
+            vm.error_value = str(err.field_value) if err.field_value is not None else ""
+            vm.error_context = dict(err.context) if err.context else {}
+            vm.error_trace_id = trace_id
+            vm.error_severity = ERROR_SEVERITY.get(err.error_code, "info")
+        display = builder.flatten_for_display(vm)
         return render_template(
             "batch.html",
+            display=display,
+            batch_df=None,
             results=None,
-            error=_error_to_display(err_resp, trace_id),
-            detail=None,
             trace_id=trace_id,
         )
 

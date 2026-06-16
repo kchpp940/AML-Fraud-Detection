@@ -1,108 +1,244 @@
-<html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AML 反欺诈检测系统</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8f 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card {
+            background: white; border-radius: 12px; padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15); margin-bottom: 20px;
+        }
+        h1 { color: #1e3a5f; text-align: center; margin-bottom: 8px; }
+        .subtitle { color: #6b7280; text-align: center; margin-bottom: 25px; }
+        .version-info {
+            background: #f0f7ff; border-left: 4px solid #2563eb;
+            padding: 10px 15px; border-radius: 4px; margin-bottom: 20px;
+            font-size: 0.85rem; color: #1e40af;
+        }
+        .version-info span { font-weight: 600; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; color: #374151; margin-bottom: 5px; font-size: 0.9rem; }
+        input, select {
+            padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px;
+            font-size: 0.95rem; transition: border-color 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: #2563eb; }
+        button {
+            grid-column: 1 / -1; padding: 12px;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:hover { transform: translateY(-1px); }
+        .prediction-card {
+            text-align: center; padding: 25px; border-radius: 10px; margin-bottom: 15px;
+        }
+        .prediction-legit { background: linear-gradient(135deg, #d1fae5, #a7f3d0); border: 2px solid #059669; }
+        .prediction-fraud { background: linear-gradient(135deg, #fee2e2, #fecaca); border: 2px solid #dc2626; }
+        .prediction-label { font-size: 2.5rem; font-weight: 800; margin-bottom: 5px; }
+        .prediction-sub { font-size: 1rem; opacity: 0.85; }
+        .error-card {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #d97706; border-radius: 10px; padding: 20px;
+            margin-bottom: 15px;
+        }
+        .error-title { color: #92400e; font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; }
+        .error-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: 0.88rem; margin-bottom: 6px; }
+        .error-label { color: #78350f; font-weight: 600; }
+        .error-value { color: #451a03; word-break: break-all; }
+        .details-section { margin-top: 15px; }
+        .details-row {
+            display: grid; grid-template-columns: 160px 1fr; gap: 8px;
+            padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem;
+        }
+        .details-label { color: #6b7280; font-weight: 500; }
+        .details-value { color: #111827; font-weight: 600; }
+        .factors-list { list-style: none; padding: 0; margin-top: 10px; }
+        .factors-list li {
+            padding: 8px 12px; background: #f3f4f6; border-radius: 6px;
+            margin-bottom: 6px; font-size: 0.88rem;
+        }
+        .factor-imp { float: right; color: #2563eb; font-weight: 700; }
+        .trace-id {
+            font-family: monospace; font-size: 0.75rem; color: #9ca3af;
+            text-align: right; margin-top: 10px;
+        }
+        .alert-banner {
+            padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px;
+        }
+        .alert-info { background: #dbeafe; color: #1e40af; border-left: 3px solid #2563eb; }
+        .alert-warn { background: #fef3c7; color: #92400e; border-left: 3px solid #d97706; }
+        .alert-danger { background: #fee2e2; color: #991b1b; border-left: 3px solid #dc2626; }
+    </style>
+</head>
 <body>
-    <div class="login">
-       <h1>Money Laundary Detector</h1>
-   
-       <form action="{{ url_for('predict_datapoint')}}" method="post">
-        <h2>
-            <legend>Anti Money Laundering Detection</legend>
-        </h2>
-        <div class="form-group">
-            <label for="from_bank">Bank where transaction originates:</label>
-            <input type="text" id="from_bank" name="from_bank" placeholder="Enter Numeric code (int)">
-        </div>
-        <div class="form-group">
-            <label for="account"> Code for account where transaction originates:</label>
-            <input type="text" id="account" name="account" placeholder="Enter code (str)">
-        </div>
-        <div class="form-group">
-            <label for="to_bank">Bank where transaction ends:</label>
-            <input type="text" id="to_bank" name="to_bank" placeholder="Enter Numeric code (int)">
-        </div>
-        <div class="form-group">
-            <label for="account_1"> Code for account where transaction ends:</label>
-            <input type="text" id="account_1" name="account_1" placeholder="Enter code (str)">
-        </div>
-        <div class="form-group">
-            <label for="amount_received"> Monetary amount received:</label>
-            <input type="text" id="amount_received" name="amount_received" placeholder="Enter the amount (float)">
-        </div>
-        <div class="form-group">
-            <label for="receiving_currency"> Currency such as dollars, euros etc.:</label>
-            <input type="text" id="receiving_currency" name="receiving_currency" placeholder="Enter currency (str)">
-        </div>
-        <div class="form-group">
-            <label for="payment_currency"> Currency such as dollars, euros etc.:</label>
-            <input type="text" id="payment_currency" name="payment_currency" placeholder="Enter currency (str)">
-        </div>
-        <div class="form-group">
-            <label for="payment_format"> How transaction was conducted:</label>
-            <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
-        </div>
-        <div style="clear:both;"></div>
-            <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
-    </form>
+<div class="container">
+    <div class="card">
+        <h1>🔍 AML 反欺诈检测系统</h1>
+        <p class="subtitle">Anti-Money Laundering Fraud Transaction Detector</p>
 
-    {% if error %}
-    <div style="padding:16px;border-radius:8px;background:#fff5f5;border-left:6px solid #e53e3e;margin:16px 0;">
-        <div style="font-size:16px;font-weight:600;color:#c53030;margin-bottom:8px;">
-            ⚠️ {{ error.error_category }} · <code>{{ error.error_code }}</code>
-        </div>
-        <div style="font-size:14px;color:#742a2a;margin-bottom:6px;">
-            {{ error.message }}
-        </div>
-        {% if error.field %}
-        <div style="font-size:12px;color:#9b2c2c;margin-bottom:4px;">
-            <strong>字段：</strong>{{ error.field }}
+        {% if display.model_name or display.model_version %}
+        <div class="version-info">
+            <span>{{display.model_name}}</span> v{{display.model_version}}
+            | Schema: {{display.feature_contract_version}}
+            | Trained: {{display.training_time}}
         </div>
         {% endif %}
-        {% if error.suggestion %}
-        <div style="font-size:12px;color:#9b2c2c;margin-bottom:6px;">
-            <strong>建议：</strong>{{ error.suggestion }}
+
+        {% if display.has_alerts %}
+        <div class="alert-banner alert-warn">
+            ⚠️ 校验告警: {{display.validation_errors | length}} 错误, {{display.validation_warnings | length}} 警告
         </div>
         {% endif %}
-        <div style="font-size:11px;color:#b7791f;font-family:monospace;margin-top:8px;">
-            Trace ID: {{ error.trace_id }}
+
+        <form method="POST" action="/predictdata">
+            <div class="form-group">
+                <label>From Bank</label>
+                <input type="number" name="from_bank" step="1" required>
+            </div>
+            <div class="form-group">
+                <label>Account (发起方)</label>
+                <input type="text" name="account" required placeholder="8000EA0A5F">
+            </div>
+            <div class="form-group">
+                <label>To Bank</label>
+                <input type="number" name="to_bank" step="1" required>
+            </div>
+            <div class="form-group">
+                <label>Account (接收方)</label>
+                <input type="text" name="account_1" required placeholder="8000EA0A5F">
+            </div>
+            <div class="form-group">
+                <label>Amount Received</label>
+                <input type="number" name="amount_received" step="any" required placeholder="1000.0">
+            </div>
+            <div class="form-group">
+                <label>Receiving Currency</label>
+                <select name="receiving_currency" required>
+                    <option value="">-- 选择币种 --</option>
+                    <option>USD</option><option>EUR</option><option>GBP</option>
+                    <option>CNY</option><option>JPY</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Payment Currency</label>
+                <select name="payment_currency" required>
+                    <option value="">-- 选择币种 --</option>
+                    <option>USD</option><option>EUR</option><option>GBP</option>
+                    <option>CNY</option><option>JPY</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Payment Format</label>
+                <select name="payment_format" required>
+                    <option value="">-- 选择格式 --</option>
+                    <option>ACH</option><option>Wire</option><option>Check</option>
+                    <option>Cash</option><option>Credit Card</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Day of Week</label>
+                <select name="day" required>
+                    <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                    <option>Thursday</option><option>Friday</option>
+                    <option>Saturday</option><option>Sunday</option>
+                </select>
+            </div>
+            <button type="submit">🚀 开始检测</button>
+        </form>
+    </div>
+
+    {% if results is not none or display.has_error %}
+    <div class="card">
+        {% if display.has_error %}
+        <div class="error-card">
+            <div class="error-title">❌ {{display.error_category_display}} - {{display.error_code}}</div>
+            <div class="error-row">
+                <span class="error-label">错误消息</span>
+                <span class="error-value">{{display.error_message}}</span>
+            </div>
+            {% if display.error_field %}
+            <div class="error-row">
+                <span class="error-label">字段</span>
+                <span class="error-value">{{display.error_field}}</span>
+            </div>
+            {% endif %}
+            {% if display.error_value %}
+            <div class="error-row">
+                <span class="error-label">值</span>
+                <span class="error-value">{{display.error_value}}</span>
+            </div>
+            {% endif %}
+            {% if display.error_reason %}
+            <div class="error-row">
+                <span class="error-label">原因</span>
+                <span class="error-value">{{display.error_reason}}</span>
+            </div>
+            {% endif %}
+            {% if display.error_severity %}
+            <div class="error-row">
+                <span class="error-label">严重程度</span>
+                <span class="error-value">{{display.error_severity}}</span>
+            </div>
+            {% endif %}
         </div>
+        {% elif display.prediction_label %}
+        <div class="prediction-card {% if display.prediction_code == 0 %}prediction-legit{% else %}prediction-fraud{% endif %}">
+            <div class="prediction-label">
+                {% if display.prediction_code == 0 %}✅ 正常交易{% else %}⚠️ 疑似欺诈{% endif %}
+            </div>
+            <div class="prediction-sub">
+                Prediction: {{display.prediction_code}} ({{display.prediction_label}})
+                | 风险等级: <strong>{{display.risk_level}}</strong>
+                | 欺诈概率: {{display.fraud_probability}}
+            </div>
+        </div>
+
+        <div class="details-section">
+            <div class="details-row">
+                <span class="details-label">交易 ID</span>
+                <span class="details-value">{{display.transaction_id}}</span>
+            </div>
+            <div class="details-row">
+                <span class="details-label">处理状态</span>
+                <span class="details-value">{{display.process_status}}</span>
+            </div>
+            <div class="details-row">
+                <span class="details-label">风险摘要</span>
+                <span class="details-value">{{display.risk_summary}}</span>
+            </div>
+            <div class="details-row">
+                <span class="details-label">Top 风险因子</span>
+                <span class="details-value">
+                    <ul class="factors-list">
+                        {% for f in display.risk_contributors %}
+                        <li>
+                            {{ f.feature_name if 'feature_name' in f else f.feature }}
+                            {% if f.label %}<em style="color:#6b7280">({{f.label}})</em>{% endif %}
+                            <span class="factor-imp">{{f.importance}}%</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if trace_id %}
+        <div class="trace-id">Trace ID: {{display.error_trace_id or trace_id}}</div>
+        {% endif %}
     </div>
     {% endif %}
-
-    {% if results is not none %}
-    <h2>
-       The prediction is {{results}}
-    </h2>
-    {% endif %}
-
-    {% if detail %}
-    <div style="padding:16px;border-radius:8px;background:#f0fff4;border-left:6px solid #38a169;margin:16px 0;">
-        <div style="font-size:16px;font-weight:600;color:#22543d;margin-bottom:10px;">
-            ✅ 预测详情
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:13px;color:#2c5282;">
-            <div><strong>类别：</strong>{{ detail.class_label }}</div>
-            <div><strong>风险等级：</strong>{{ detail.risk_level }}</div>
-            <div><strong>欺诈概率：</strong>{{ detail.fraud_probability }}</div>
-            <div><strong>模型版本：</strong>v{{ detail.model_version }}</div>
-        </div>
-        {% if detail.top_factors %}
-        <div style="margin-top:10px;font-size:13px;color:#2c5282;">
-            <strong>Top 风险因素：</strong>
-            <ul style="margin:6px 0 0 20px;padding:0;">
-                {% for factor in detail.top_factors %}
-                <li>
-                    <strong>{{ factor.feature_name }}</strong>
-                    → {{ factor.label }}
-                    ({{ factor.importance * 100 }}% contribution)
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-        <div style="font-size:11px;color:#718096;font-family:monospace;margin-top:10px;">
-            Transaction: {{ detail.transaction_id }}
-        </div>
-    </div>
-    {% endif %}
-   <body>
+</div>
+</body>
 </html>
-

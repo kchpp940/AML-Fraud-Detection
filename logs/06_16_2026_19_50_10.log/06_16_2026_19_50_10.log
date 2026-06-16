@@ -1,0 +1,36 @@
+[ 2026-06-16 19:50:14,830] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 19:50:14,833] 348 root - INFO - predict_detailed(1 row, tid=T1)
+[ 2026-06-16 19:50:14,834] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 19:50:14,872] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 19:50:14,872] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 19:50:14,938] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 19:50:14,938] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 19:50:14,942] 155 root - INFO - Data validation passed: 1 rows, 0 warning(s)
+[ 2026-06-16 19:50:14,951] 422 root - INFO - predict_detailed done: class=Not Fraud, fraud_prob=0.0107, risk=Low
+[ 2026-06-16 19:50:14,951] 437 root - INFO - predict_batch: 3 rows
+[ 2026-06-16 19:50:14,952] 155 root - INFO - Data validation passed: 3 rows, 0 warning(s)
+[ 2026-06-16 19:50:14,955] 508 root - INFO - predict_batch done: total=3, fraud=0, rate=0.00%
+[ 2026-06-16 19:50:14,956] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 19:50:14,956] 348 root - INFO - predict_detailed(1 row, tid=None)
+[ 2026-06-16 19:50:14,956] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 19:50:14,957] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 19:50:14,957] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 19:50:14,958] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 19:50:14,958] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 19:50:14,958] 155 root - INFO - Data validation passed: 1 rows, 0 warning(s)
+[ 2026-06-16 19:50:14,963] 422 root - INFO - predict_detailed done: class=Not Fraud, fraud_prob=0.0107, risk=Low
+[ 2026-06-16 19:50:14,963] 437 root - INFO - predict_batch: 3 rows
+[ 2026-06-16 19:50:14,963] 155 root - INFO - Data validation passed: 3 rows, 0 warning(s)
+[ 2026-06-16 19:50:14,966] 508 root - INFO - predict_batch done: total=3, fraud=0, rate=0.00%
+[ 2026-06-16 19:50:14,967] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 19:50:14,967] 348 root - INFO - predict_detailed(1 row, tid=None)
+[ 2026-06-16 19:50:14,967] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 19:50:14,968] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 19:50:14,968] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 19:50:14,969] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 19:50:14,969] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 19:50:14,969] 155 root - INFO - Data validation passed: 1 rows, 0 warning(s)
+[ 2026-06-16 19:50:14,972] 422 root - INFO - predict_detailed done: class=Not Fraud, fraud_prob=0.0107, risk=Low
+[ 2026-06-16 19:50:14,972] 437 root - INFO - predict_batch: 3 rows
+[ 2026-06-16 19:50:14,973] 155 root - INFO - Data validation passed: 3 rows, 0 warning(s)
+[ 2026-06-16 19:50:14,976] 508 root - INFO - predict_batch done: total=3, fraud=0, rate=0.00%
