@@ -15,7 +15,7 @@ from category_encoders import TargetEncoder, CountEncoder
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
 from aml_fraud_detector.utils.main_utils import save_object
-from aml_fraud_detector.utils import (
+from aml_fraud_detector.utils.feature_normalization import (
     normalize_dataframe,
     NormalizationReport,
 )
