@@ -1,0 +1,197 @@
+<html>
+<head>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    nav { margin-bottom: 24px; }
+    nav a { margin-right: 16px; text-decoration: none; color: #06c; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 4px; }
+    .btn { padding: 8px 20px; margin-top: 8px; cursor: pointer; }
+    .panel { margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 6px; }
+    .panel h3 { margin-top: 0; }
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    .alert-error   { background: #fdd; color: #900; border: 1px solid #fcc; }
+    .alert-warning { background: #ffe; color: #660; border: 1px solid #eea; }
+    .alert-success { background: #dfd; color: #060; border: 1px solid #cec; }
+    .alert-info    { background: #e8f2ff; color: #036; border: 1px solid #cde; }
+    .field { margin-bottom: 6px; }
+    .field span.label { font-weight: bold; display: inline-block; width: 220px; }
+    .metrics { display: flex; flex-wrap: wrap; gap: 16px; }
+    .metric-card { flex: 1 1 180px; border: 1px solid #ddd; padding: 12px; border-radius: 6px; background: #fafafa; }
+    .metric-card .val { font-size: 1.6em; font-weight: bold; }
+    .metric-card .lbl { color: #666; font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; font-size: 0.92em; vertical-align: top; }
+    th { background: #f0f0f0; }
+    tr.fraud td { background: #fff5f5; }
+    .risk-Minimal  { color: #090; }
+    .risk-Low      { color: #090; }
+    .risk-Medium   { color: #cc0; font-weight: bold; }
+    .risk-High     { color: #e80; font-weight: bold; }
+    .risk-Critical { color: #c00; font-weight: bold; }
+    .contrib { font-size: 0.85em; color: #444; margin-top: 2px; }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Anti Money Laundering Detector — Batch Prediction</h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/predictdata">Single Transaction Prediction</a>
+            <a href="/batchprediction">Batch CSV Prediction</a>
+        </nav>
+
+        {% if display %}
+        <div class="panel">
+            <h3>Model Info</h3>
+            <div class="field"><span class="label">Model Version:</span> {{ display.model_version }}</div>
+            <div class="field"><span class="label">Model Name:</span> {{ display.model_name }}</div>
+            <div class="field"><span class="label">Trained At:</span> {{ display.training_time }}</div>
+            <div class="field"><span class="label">Feature Contract:</span> v{{ display.feature_contract_version }}</div>
+            <div class="field"><span class="label">Metric ({{ display.selection_metric }}):</span>
+                {% if display.best_metric_value %}
+                {{ "%.4f"|format(display.best_metric_value) }}
+                {% else %}
+                —
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Artifact Validation</h3>
+            {% if display.validation_valid %}
+            <div class="alert alert-success">All required artifacts present &amp; digest verified.</div>
+            {% endif %}
+            {% for err in display.validation_errors %}
+            <div class="alert alert-error">{{ err }}</div>
+            {% endfor %}
+            {% for warn in display.validation_warnings %}
+            <div class="alert alert-warning">{{ warn }}</div>
+            {% endfor %}
+            <div class="field"><span class="label">Manifest present:</span>
+                {% if display.validation_details.manifest_present %}
+                Yes ({{ display.validation_details.manifest_artifacts|length }} files)
+                {% else %}
+                No
+                {% endif %}
+            </div>
+            {% if not display.validation_details.manifest_present %}
+            <div class="alert alert-warning">
+                artifact_manifest.json 缺失，无法进行完整性校验。
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="panel">
+            <h3>Upload Batch CSV File</h3>
+            <div class="alert alert-info">
+                CSV 需要包含列：<b>from_bank, account, to_bank, account_1, amount_received,
+                receiving_currency, payment_currency, payment_format, day</b>。
+                可选列：<b>transaction_id</b> 作为交易唯一标识。
+            </div>
+            <form method="POST" action="/batchprediction" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="csv_file">CSV 文件（UTF-8 编码，最大 16 MB）:</label>
+                    <input type="file" id="csv_file" name="csv_file" accept=".csv,.txt">
+                </div>
+                <input class="btn" type="submit" value="Run Batch Prediction" />
+            </form>
+
+            {% if batch_error %}
+            <div class="alert alert-error" style="margin-top:14px;">{{ batch_error }}</div>
+            {% endif %}
+        </div>
+
+        {% if batch_df is defined and batch_df is not none and display and display.batch_total is defined %}
+        <div class="panel">
+            <h3>Batch Summary</h3>
+            <div class="field"><span class="label">Input rows:</span> {{ input_count }}</div>
+            {% if display.batch_is_error %}
+            <div class="alert alert-error">Batch prediction failed: {{ display.batch_error_reason }}</div>
+            {% else %}
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="val">{{ display.batch_total }}</div>
+                    <div class="lbl">Total Processed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="val">{{ display.batch_legit }}</div>
+                    <div class="lbl">Legit Count</div>
+                </div>
+                <div class="metric-card">
+                    <div class="val" style="color:#c00;">{{ display.batch_fraud }}</div>
+                    <div class="lbl">Fraud Count</div>
+                </div>
+                <div class="metric-card">
+                    <div class="val">{{ "%.2f"|format(display.batch_fraud_rate * 100) }}%</div>
+                    <div class="lbl">Fraud Rate</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="panel">
+            <h3>Detail Table</h3>
+            {% if batch_df.empty %}
+            <div class="alert alert-warning">暂无明细数据。</div>
+            {% else %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Transaction ID</th>
+                        <th>Prediction</th>
+                        <th>Fraud Prob</th>
+                        <th>Legit Prob</th>
+                        <th>Risk Level</th>
+                        <th>Risk Summary &amp; Contributors</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in batch_df.itertuples() %}
+                    <tr{% if row.prediction == 1 %} class="fraud"{% endif %}>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family:monospace;">{{ row.transaction_id }}</td>
+                        <td>
+                            {% if row.prediction == 1 %}
+                            <b style="color:#c00;">{{ row.class_label }}</b>
+                            {% else %}
+                            <b style="color:#060;">{{ row.class_label }}</b>
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.4f"|format(row.fraud_probability) }}</td>
+                        <td>{{ "%.4f"|format(row.legit_probability) }}</td>
+                        <td><span class="risk-{{ row.risk_level }}">{{ row.risk_level }}</span></td>
+                        <td>
+                            <div>{{ row.risk_summary }}</div>
+                            {% if row.top_contributors %}
+                            <div class="contrib">
+                                <b>Top Contributors:</b>
+                                {% for c in row.top_contributors %}
+                                <div>• {{ c.feature }}={{ c.value }} → {{ "%.5f"|format(c.contribution) }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.process_status == "error" %}
+                            <b style="color:#c00;">ERROR</b><br>
+                            <small>{{ row.error_reason }}</small>
+                            {% else %}
+                            <span style="color:#080;">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

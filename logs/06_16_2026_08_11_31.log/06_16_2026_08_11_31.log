@@ -1,0 +1,85 @@
+[ 2026-06-16 08:11:32,535] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 08:11:32,547] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 08:11:32,548] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 08:11:32,555] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 08:11:32,570] 178 root - INFO - Artifact validation: valid=False, errors=1, warnings=0
+[ 2026-06-16 08:11:32,572] 358 root - ERROR - predict_batch failed
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/prediction_pipeline.py", line 253, in predict
+    data_scaled = self._preprocessor.transform(features)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/compose/_column_transformer.py", line 1096, in transform
+    Xs = self._call_func_on_transformers(
+        X,
+    ...<3 lines>...
+        routed_params=routed_params,
+    )
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/compose/_column_transformer.py", line 897, in _call_func_on_transformers
+    return Parallel(n_jobs=self.n_jobs)(jobs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/parallel.py", line 82, in __call__
+    return super().__call__(iterable_with_config_and_warning_filters)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/joblib/parallel.py", line 1986, in __call__
+    return output if self.return_generator else list(output)
+                                                ~~~~^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/joblib/parallel.py", line 1914, in _get_sequential_output
+    res = func(*args, **kwargs)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/parallel.py", line 147, in __call__
+    return self.function(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/pipeline.py", line 1520, in _transform_one
+    res = transformer.transform(X, **params.transform)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/compose/_column_transformer.py", line 1096, in transform
+    Xs = self._call_func_on_transformers(
+        X,
+    ...<3 lines>...
+        routed_params=routed_params,
+    )
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/compose/_column_transformer.py", line 897, in _call_func_on_transformers
+    return Parallel(n_jobs=self.n_jobs)(jobs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/parallel.py", line 82, in __call__
+    return super().__call__(iterable_with_config_and_warning_filters)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/joblib/parallel.py", line 1986, in __call__
+    return output if self.return_generator else list(output)
+                                                ~~~~^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/joblib/parallel.py", line 1914, in _get_sequential_output
+    res = func(*args, **kwargs)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/parallel.py", line 147, in __call__
+    return self.function(*args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/pipeline.py", line 1520, in _transform_one
+    res = transformer.transform(X, **params.transform)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/_set_output.py", line 316, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/preprocessing/_encoders.py", line 1043, in transform
+    X_int, X_mask = self._transform(
+                    ~~~~~~~~~~~~~~~^
+        X,
+        ^^
+    ...<2 lines>...
+        warn_on_unknown=warn_on_unknown,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/preprocessing/_encoders.py", line 210, in _transform
+    diff, valid_mask = _check_unknown(Xi, self.categories_[i], return_mask=True)
+                       ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/pkcha/.local/lib/python3.13/site-packages/sklearn/utils/_encode.py", line 313, in _check_unknown
+    if xp.any(xp.isnan(known_values)):
+              ~~~~~~~~^^^^^^^^^^^^^^
+TypeError: ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/prediction_pipeline.py", line 336, in predict_batch
+    preds = self.predict(df)
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/prediction_pipeline.py", line 257, in predict
+    raise CustomerException(e, sys)
+aml_fraud_detector.exception.CustomerException: Error occured in python script name [/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/prediction_pipeline.py] line number [253] error message [ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe'']

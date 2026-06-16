@@ -247,10 +247,27 @@ class PredictionPipeline:
         )
 
     # ---------- core inference (legacy API) ----------
+    def _normalize_features(self, features: pd.DataFrame) -> pd.DataFrame:
+        """
+        根据 feature_metadata.json 把输入 DataFrame 的分类列转成 object str，
+        避免 preprocessor 的 categorical encoder 因 dtype 不匹配（如 int64→isnan）报错。
+        注意：本方法不改变语义，只保证 pipeline 的鲁棒性。
+        """
+        fm = self._feature_metadata or {}
+        categorical_cols = fm.get("categorical_features", [])
+        if not categorical_cols:
+            return features
+        out = features.copy()
+        for col in categorical_cols:
+            if col in out.columns:
+                out[col] = out[col].astype(object).where(out[col].notna(), None).astype(str)
+        return out
+
     def predict(self, features: pd.DataFrame) -> np.ndarray:
         try:
             self._ensure_loaded()
-            data_scaled = self._preprocessor.transform(features)
+            normed = self._normalize_features(features)
+            data_scaled = self._preprocessor.transform(normed)
             predictions = self._model.predict(data_scaled)
             return predictions
         except Exception as e:
@@ -259,7 +276,8 @@ class PredictionPipeline:
     def predict_proba(self, features: pd.DataFrame) -> np.ndarray:
         try:
             self._ensure_loaded()
-            data_scaled = self._preprocessor.transform(features)
+            normed = self._normalize_features(features)
+            data_scaled = self._preprocessor.transform(normed)
             predictions_prob = self._model.predict_proba(data_scaled)
             return predictions_prob
         except Exception as e:

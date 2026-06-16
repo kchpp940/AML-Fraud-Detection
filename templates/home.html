@@ -3,6 +3,9 @@
 <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     .container { max-width: 900px; margin: 0 auto; }
+    nav { margin-bottom: 24px; }
+    nav a { margin-right: 16px; text-decoration: none; color: #06c; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-weight: bold; margin-bottom: 4px; }
     .form-group input { width: 100%; padding: 6px; box-sizing: border-box; }
@@ -27,6 +30,11 @@
 </head>
 <body>
     <div class="container">
+       <nav>
+           <a href="/">Home</a>
+           <a href="/predictdata">Single Transaction Prediction</a>
+           <a href="/batchprediction">Batch CSV Prediction</a>
+       </nav>
        <h1>Anti Money Laundering Detector</h1>
 
        <form action="{{ url_for('predict_datapoint')}}" method="post">

@@ -132,30 +132,58 @@ def main():
     st.markdown(
         """
         This app predicts whether a given transaction is **fraudulent** or **non-fraudulent**.
-        Please provide the required input features in the sidebar and click the **Predict** button.
+        Switch between the **Single** tab for one-shot input and the **Batch** tab for CSV uploads.
         """
     )
     st.write("---")
 
-    st.sidebar.header("Specify Input Features")
-    input_dict, input_df = _collect_inputs()
-
-    st.header("Specified Input Parameters")
-    st.dataframe(input_df)
-    st.write("---")
-
-    # 先展示模型与校验信息（无需点击预测也可见）
+    # 先展示模型与校验信息（无论单条/批量都可见）
     vm_val = _builder.build_validation_only()
     display_val = ResponseBuilder.flatten_for_display(vm_val)
     _render_model(display_val)
     _render_validation(display_val)
     st.write("---")
 
-    st.header("Prediction Results")
-    if st.button("Predict"):
-        vm = _builder.build_single(input_dict)
-        display = ResponseBuilder.flatten_for_display(vm)
-        _render_single(display)
+    tab_single, tab_batch = st.tabs(["Single Prediction", "Batch Prediction"])
+
+    # ========================================================================
+    # 单条预测
+    # ========================================================================
+    with tab_single:
+        st.sidebar.header("Specify Input Features")
+        input_dict, input_df = _collect_inputs()
+
+        st.subheader("Specified Input Parameters")
+        st.dataframe(input_df)
+
+        if st.button("Predict"):
+            vm = _builder.build_single(input_dict)
+            display = ResponseBuilder.flatten_for_display(vm)
+            _render_single(display)
+
+    # ========================================================================
+    # 批量预测
+    # ========================================================================
+    with tab_batch:
+        st.info(
+            "CSV needs columns: from_bank, account, to_bank, account_1, "
+            "amount_received, receiving_currency, payment_currency, payment_format, day. "
+            "Optional: transaction_id."
+        )
+        uploaded = st.file_uploader("Upload batch CSV (UTF-8, max 16MB)", type=["csv","txt"])
+
+        if uploaded is not None:
+            try:
+                batch_in_df = pd.read_csv(uploaded)
+                st.caption(f"Input rows: {len(batch_in_df)}")
+                with st.expander("Preview Input"):
+                    st.dataframe(batch_in_df.head(20))
+                if st.button("Run Batch Prediction", key="batch_run"):
+                    vm = _builder.build_batch(batch_in_df)
+                    display = ResponseBuilder.flatten_for_display(vm)
+                    _render_batch(display, vm)
+            except Exception as exc:
+                st.error(f"Failed to read CSV: {exc}")
 
     st.write("---")
     st.markdown(
