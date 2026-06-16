@@ -1,0 +1,8 @@
+[ 2026-06-16 20:57:32,249] 27 root - INFO - ========================================================================
+[ 2026-06-16 20:57:32,249] 28 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-16 20:57:32,249] 29 root - INFO - ========================================================================
+[ 2026-06-16 20:57:32,249] 164 root - INFO - Loading training config (source=env): /Users/pkcha/AML-Fraud-Detection/config/smoke_batched.yaml
+[ 2026-06-16 20:57:32,250] 59 root - INFO - WorkspaceContext initialized (mode=batched, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_205732/artifacts)
+[ 2026-06-16 20:57:32,251] 94 root - DEBUG - Workspace directories ensured: artifacts=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_205732/artifacts, logs=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_205732/logs, tmp=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_205732/tmp
+[ 2026-06-16 20:57:32,251] 195 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 20:57:32,251] 196 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=/Users/pkcha/AML-Fraud-Detection/runs/run_20260616_205732/artifacts

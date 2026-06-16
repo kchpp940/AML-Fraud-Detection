@@ -1,0 +1,42 @@
+[ 2026-06-16 20:54:20,466] 27 root - INFO - ========================================================================
+[ 2026-06-16 20:54:20,466] 28 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-16 20:54:20,466] 29 root - INFO - ========================================================================
+[ 2026-06-16 20:54:20,466] 164 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 20:54:20,468] 59 root - INFO - WorkspaceContext initialized (mode=flat, root=/Users/pkcha/AML-Fraud-Detection, artifacts=/Users/pkcha/AML-Fraud-Detection/artifacts)
+[ 2026-06-16 20:54:20,468] 94 root - DEBUG - Workspace directories ensured: artifacts=/Users/pkcha/AML-Fraud-Detection/artifacts, logs=/Users/pkcha/AML-Fraud-Detection/logs, tmp=/Users/pkcha/AML-Fraud-Detection/tmp
+[ 2026-06-16 20:54:20,468] 195 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 20:54:20,468] 196 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=/Users/pkcha/AML-Fraud-Detection/artifacts
+[ 2026-06-16 20:54:20,468] 82 root - INFO - Logging configured: /Users/pkcha/AML-Fraud-Detection/logs/06_16_2026_20_54_17.log/06_16_2026_20_54_17.log
+[ 2026-06-16 20:54:20,468] 43 root - INFO - Log file configured at: /Users/pkcha/AML-Fraud-Detection/logs/06_16_2026_20_54_17.log/06_16_2026_20_54_17.log
+[ 2026-06-16 20:54:20,468] 46 root - INFO - Training config loaded (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 20:54:20,468] 41 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=50000, test_size=0.2
+[ 2026-06-16 20:54:20,468] 49 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-16 20:54:20,468] 52 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-16 20:54:20,468] 55 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-16 20:54:20,478] 72 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-16 20:54:20,478] 90 root - INFO - Using full dataset (no sampling applied)
+[ 2026-06-16 20:54:20,486] 98 root - INFO - Train Test split initiated
+[ 2026-06-16 20:54:20,496] 106 root - INFO - Ingestion completed: train=3200, test=800
+[ 2026-06-16 20:54:20,496] 73 root - INFO - Data ingestion done: total=4000, train≈3200, test≈800
+[ 2026-06-16 20:54:20,496] 56 root - INFO - DataTransformation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], preprocessor_out=/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl
+[ 2026-06-16 20:54:20,496] 107 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-16 20:54:20,500] 119 root - INFO - Reading train and test data completed
+[ 2026-06-16 20:54:20,501] 185 root - ERROR - Training pipeline failed: [E9999] 内部错误: [E1003] 数据缺少必需列: is_laundering
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 125, in initiate_data_transformation
+    raise DataQualityException(
+    ...<3 lines>...
+    )
+aml_fraud_detector.exception.DataQualityException: [E1003] 数据缺少必需列: is_laundering
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/training_pipeline.py", line 81, in run_training_pipeline
+    transform_artifact = data_transformation.initiate_data_transformation(
+        train_data_path, test_data_path
+    )
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 232, in initiate_data_transformation
+    raise CustomerException(e, sys)
+aml_fraud_detector.exception.CustomerException: [E9999] 内部错误: [E1003] 数据缺少必需列: is_laundering
