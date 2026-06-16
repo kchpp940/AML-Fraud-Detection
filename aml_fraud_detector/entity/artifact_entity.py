@@ -65,69 +65,6 @@ class ModelVersionInfo:
     artifact_path: str = ""
 
 
-class HealthStatusEnum(str, Enum):
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    UNHEALTHY = "unhealthy"
-    INITIALIZING = "initializing"
-
-
-class ComponentHealthStatus(str, Enum):
-    OK = "ok"
-    WARNING = "warning"
-    ERROR = "error"
-    SKIPPED = "skipped"
-
-
-@dataclass
-class ComponentHealth:
-    name: str
-    status: ComponentHealthStatus
-    message: str = ""
-    details: Dict[str, Any] = dataclasses.field(default_factory=dict)
-    duration_ms: float = 0.0
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "name": self.name,
-            "status": self.status.value,
-            "message": self.message,
-            "details": self.details,
-            "duration_ms": round(self.duration_ms, 2),
-        }
-
-
-@dataclass
-class HealthStatus:
-    overall: HealthStatusEnum = HealthStatusEnum.INITIALIZING
-    started_at: str = ""
-    checked_at: str = ""
-    components: List[ComponentHealth] = dataclasses.field(default_factory=list)
-    model_version: ModelVersionInfo = dataclasses.field(default_factory=ModelVersionInfo)
-    error_detail: Optional[ErrorDetail] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        result = {
-            "overall": self.overall.value,
-            "started_at": self.started_at,
-            "checked_at": self.checked_at,
-            "components": [c.to_dict() for c in self.components],
-            "model_version": asdict(self.model_version),
-        }
-        if self.error_detail:
-            result["error_detail"] = self.error_detail.to_dict()
-        return result
-
-    def is_healthy(self) -> bool:
-        return self.overall == HealthStatusEnum.HEALTHY
-
-    def get_component(self, name: str) -> Optional[ComponentHealth]:
-        for c in self.components:
-            if c.name == name:
-                return c
-        return None
-
-
 @dataclass
 class ValidationStatus:
     is_valid: bool = True
