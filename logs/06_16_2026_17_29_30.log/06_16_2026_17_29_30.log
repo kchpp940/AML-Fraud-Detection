@@ -1,0 +1,56 @@
+[ 2026-06-16 17:29:33,434] 348 root - INFO - predict_detailed(1 row, tid=test-single-001)
+[ 2026-06-16 17:29:33,438] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 17:29:33,500] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 17:29:33,500] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 17:29:33,664] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 17:29:33,664] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 17:29:33,668] 148 root - INFO - Data validation passed: 1 rows, 0 warning(s)
+[ 2026-06-16 17:29:33,668] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:29:33,680] 420 root - INFO - predict_detailed done: class=Not Fraud, fraud_prob=0.0200, risk=Low
+[ 2026-06-16 17:29:33,680] 296 root - INFO - predict(ndarray) - original API
+[ 2026-06-16 17:29:33,680] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:29:33,685] 296 root - INFO - predict(ndarray) - original API
+[ 2026-06-16 17:29:33,685] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:29:33,715] 435 root - INFO - predict_batch: 5 rows
+[ 2026-06-16 17:29:33,716] 148 root - INFO - Data validation passed: 5 rows, 0 warning(s)
+[ 2026-06-16 17:29:33,716] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:29:33,721] 503 root - INFO - predict_batch done: total=5, fraud=1, rate=20.00%
+[ 2026-06-16 17:29:36,202] 26 root - INFO - ========================================================================
+[ 2026-06-16 17:29:36,203] 27 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-16 17:29:36,203] 28 root - INFO - ========================================================================
+[ 2026-06-16 17:29:36,203] 163 root - INFO - Loading training config (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 17:29:36,212] 190 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 17:29:36,216] 191 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-16 17:29:36,216] 41 root - INFO - Training config loaded (source=default_file): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 17:29:36,216] 36 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=50000, test_size=0.2
+[ 2026-06-16 17:29:36,216] 44 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-16 17:29:36,216] 47 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-16 17:29:36,216] 50 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-16 17:29:36,228] 67 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-16 17:29:36,228] 85 root - INFO - Using full dataset (no sampling applied)
+[ 2026-06-16 17:29:36,240] 93 root - INFO - Train Test split initiated
+[ 2026-06-16 17:29:36,254] 101 root - INFO - Ingestion completed: train=3200, test=800
+[ 2026-06-16 17:29:36,254] 66 root - INFO - Data ingestion done: total=4000, train≈3200, test≈800
+[ 2026-06-16 17:29:36,254] 51 root - INFO - DataTransformation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], preprocessor_out=/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl
+[ 2026-06-16 17:29:36,254] 102 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-16 17:29:36,261] 114 root - INFO - Reading train and test data completed
+[ 2026-06-16 17:29:36,261] 163 root - ERROR - Training pipeline failed: [E1003] 数据缺少必需列: is_laundering
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/training_pipeline.py", line 72, in run_training_pipeline
+    transform_artifact = data_transformation.initiate_data_transformation(
+        train_data_path, test_data_path
+    )
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 227, in initiate_data_transformation
+    raise wrap_exception(e, error_details=sys)
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 120, in initiate_data_transformation
+    raise DataQualityException(
+    ...<3 lines>...
+    )
+aml_fraud_detector.exception.DataQualityException: [E1003] 数据缺少必需列: is_laundering
+[ 2026-06-16 17:29:36,264] 348 root - INFO - predict_detailed(1 row, tid=test-broken-mft-001)
+[ 2026-06-16 17:29:36,264] 427 root - ERROR - predict_detailed failed: [E5002] 元数据文件损坏: {path}
+[ 2026-06-16 17:29:36,264] 348 root - INFO - predict_detailed(1 row, tid=test-missing-feature-001)
+[ 2026-06-16 17:29:36,265] 143 root - WARNING - Data validation failed: 1 critical issue(s), first: 缺少必需列: account_1, payment_format, day
+[ 2026-06-16 17:29:36,265] 427 root - ERROR - predict_detailed failed: [E1003] 数据缺少必需列: {missing}
+[ 2026-06-16 17:29:36,266] 148 root - INFO - Data validation passed: 5 rows, 3 warning(s)

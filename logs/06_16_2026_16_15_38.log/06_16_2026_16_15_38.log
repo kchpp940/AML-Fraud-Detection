@@ -1,0 +1,10 @@
+[ 2026-06-16 16:15:39,525] 435 root - INFO - predict_batch: 8 rows
+[ 2026-06-16 16:15:39,526] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 16:15:39,553] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 16:15:39,553] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 16:15:39,628] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 16:15:39,628] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 16:15:39,630] 148 root - INFO - Data validation passed: 8 rows, 2 warning(s)
+[ 2026-06-16 16:15:39,630] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency', 'transaction_id']
+[ 2026-06-16 16:15:39,632] 510 root - ERROR - predict_batch failed: [E3004] 特征转换失败: Cannot use median strategy with non-numeric data:
+could not convert string to float: 'not_a_number'

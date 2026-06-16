@@ -111,6 +111,7 @@ class BatchPredictionResult:
     total_count: int = 0
     fraud_count: int = 0
     fraud_rate: float = 0.0
+    overall_risk_level: RiskLevel = RiskLevel.LOW
     predictions: List[PredictionResult] = field(default_factory=list)
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
@@ -121,6 +122,7 @@ class BatchPredictionResult:
             "total_count": self.total_count,
             "fraud_count": self.fraud_count,
             "fraud_rate": self.fraud_rate,
+            "overall_risk_level": self.overall_risk_level.value,
             "predictions": [p.to_dict() for p in self.predictions],
             "process_status": self.process_status.value,
             "error_reason": self.error_reason,

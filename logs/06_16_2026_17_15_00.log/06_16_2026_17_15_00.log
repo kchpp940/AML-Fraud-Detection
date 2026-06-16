@@ -1,0 +1,22 @@
+[ 2026-06-16 17:15:02,044] 348 root - INFO - predict_detailed(1 row, tid=test-single-001)
+[ 2026-06-16 17:15:02,046] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 17:15:02,079] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 17:15:02,079] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 17:15:02,177] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 17:15:02,177] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 17:15:02,180] 148 root - INFO - Data validation passed: 1 rows, 0 warning(s)
+[ 2026-06-16 17:15:02,180] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:15:02,189] 420 root - INFO - predict_detailed done: class=Not Fraud, fraud_prob=0.0200, risk=Low
+[ 2026-06-16 17:15:02,189] 296 root - INFO - predict(ndarray) - original API
+[ 2026-06-16 17:15:02,189] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:15:02,191] 296 root - INFO - predict(ndarray) - original API
+[ 2026-06-16 17:15:02,191] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:15:02,203] 435 root - INFO - predict_batch: 5 rows
+[ 2026-06-16 17:15:02,203] 148 root - INFO - Data validation passed: 5 rows, 0 warning(s)
+[ 2026-06-16 17:15:02,203] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 17:15:02,208] 503 root - INFO - predict_batch done: total=5, fraud=1, rate=20.00%
+[ 2026-06-16 17:15:04,175] 348 root - INFO - predict_detailed(1 row, tid=test-broken-mft-001)
+[ 2026-06-16 17:15:04,175] 427 root - ERROR - predict_detailed failed: [E5002] 元数据文件损坏: {path}
+[ 2026-06-16 17:15:04,176] 348 root - INFO - predict_detailed(1 row, tid=test-missing-feature-001)
+[ 2026-06-16 17:15:04,177] 143 root - WARNING - Data validation failed: 1 critical issue(s), first: 缺少必需列: account_1, payment_format, day
+[ 2026-06-16 17:15:04,177] 427 root - ERROR - predict_detailed failed: [E1003] 数据缺少必需列: {missing}

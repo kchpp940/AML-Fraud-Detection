@@ -1,0 +1,88 @@
+<html>
+<head>
+    <title>Batch Prediction - AML Fraud Detection</title>
+</head>
+<body>
+    <div class="login">
+       <h1>Batch Money Laundering Detector</h1>
+       <p><a href="/predictdata">← Single Prediction</a></p>
+
+       <form action="{{ url_for('batch_predict_page')}}" method="post" enctype="multipart/form-data">
+        <h2>
+            <legend>Upload CSV for Batch Detection</legend>
+        </h2>
+        <div class="form-group">
+            <label for="file">CSV File:</label>
+            <input type="file" id="file" name="file" accept=".csv" required>
+        </div>
+        <div style="clear:both;"></div>
+            <input class="btn btn-primary" type="submit" value="Run Batch Prediction" />
+    </form>
+
+    {% if error %}
+    <div style="padding:16px;border-radius:8px;background:#fff5f5;border-left:6px solid #e53e3e;margin:16px 0;">
+        <div style="font-size:16px;font-weight:600;color:#c53030;margin-bottom:8px;">
+            ⚠️ {{ error.error_category }} · <code>{{ error.error_code }}</code>
+        </div>
+        <div style="font-size:14px;color:#742a2a;margin-bottom:6px;">
+            {{ error.message }}
+        </div>
+        {% if error.field %}
+        <div style="font-size:12px;color:#9b2c2c;margin-bottom:4px;">
+            <strong>字段：</strong>{{ error.field }}
+        </div>
+        {% endif %}
+        {% if error.suggestion %}
+        <div style="font-size:12px;color:#9b2c2c;margin-bottom:6px;">
+            <strong>建议：</strong>{{ error.suggestion }}
+        </div>
+        {% endif %}
+        <div style="font-size:11px;color:#b7791f;font-family:monospace;margin-top:8px;">
+            Trace ID: {{ error.trace_id }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if detail %}
+    <div style="padding:16px;border-radius:8px;background:#f0fff4;border-left:6px solid #38a169;margin:16px 0;">
+        <div style="font-size:16px;font-weight:600;color:#22543d;margin-bottom:10px;">
+            ✅ Batch Result Summary
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:13px;color:#2c5282;">
+            <div><strong>Total Transactions:</strong> {{ detail.total }}</div>
+            <div><strong>Fraud Count:</strong> {{ detail.fraud_count }}</div>
+            <div><strong>Fraud Rate:</strong> {{ detail.fraud_rate }}</div>
+            <div><strong>Overall Risk:</strong> {{ detail.overall_risk }}</div>
+        </div>
+        <div style="font-size:11px;color:#718096;font-family:monospace;margin-top:10px;">
+            Trace: {{ trace_id }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <h2>Batch Predictions</h2>
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;">
+        <thead style="background:#f7fafc;">
+            <tr>
+                <th>Transaction ID</th>
+                <th>Prediction</th>
+                <th>Fraud Probability</th>
+                <th>Risk Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in results %}
+            <tr>
+                <td><code>{{ row.transaction_id }}</code></td>
+                <td>{{ row.prediction }}</td>
+                <td>{{ row.fraud_probability }}</td>
+                <td>{{ row.risk_level }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+   <body>
+</html>

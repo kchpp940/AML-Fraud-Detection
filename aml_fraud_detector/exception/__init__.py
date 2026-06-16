@@ -10,7 +10,12 @@ from aml_fraud_detector.constants import (
     ERROR_MESSAGES,
     ERROR_CATEGORY_MAP,
     HTTP_STATUS_CODES,
+    ERROR_SEVERITY,
 )
+
+
+def _get_severity(error_code: ErrorCode) -> str:
+    return ERROR_SEVERITY.get(error_code, "warning")
 
 
 def _format_message(error_code: ErrorCode, **kwargs) -> str:
@@ -64,12 +69,29 @@ class UnifiedErrorResponse:
         }
 
     def to_user_display(self) -> Dict[str, Any]:
+        if not self.error:
+            return {
+                "success": False,
+                "error_category": "internal_error",
+                "error_code": "E9999",
+                "message": "发生未知错误",
+                "suggestion": "请稍后重试或联系技术支持",
+                "field": None,
+                "value": None,
+                "trace_id": self.trace_id,
+                "severity": "critical",
+            }
+        severity = _get_severity(self.error.error_code)
         return {
             "success": False,
-            "error_category": self.error.error_category.value if self.error else "internal_error",
-            "error_code": self.error.error_code.value if self.error else "E9999",
-            "message": self.error.to_user_message() if self.error else "发生未知错误",
+            "error_category": self.error.error_category.value,
+            "error_code": self.error.error_code.value,
+            "message": self.error.to_user_message(),
             "suggestion": self._get_suggestion(),
+            "field": self.error.field_name,
+            "value": str(self.error.field_value) if self.error.field_value is not None else None,
+            "trace_id": self.trace_id,
+            "severity": severity,
         }
 
     def _get_suggestion(self) -> str:
@@ -97,12 +119,13 @@ class AMLException(Exception):
         error_code: ErrorCode,
         *,
         error_details: Optional[sys] = None,
+        message: Optional[str] = None,
         **kwargs,
     ):
         self.error_code = error_code
         self.error_category = ERROR_CATEGORY_MAP.get(error_code, ErrorCategory.INTERNAL_ERROR)
         self.kwargs = kwargs
-        self.message = _format_message(error_code, **kwargs)
+        self.message = message if message is not None else _format_message(error_code, **kwargs)
         self.error_detail = ErrorDetail(
             error_code=error_code,
             error_category=self.error_category,

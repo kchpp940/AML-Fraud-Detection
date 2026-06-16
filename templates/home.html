@@ -1,87 +1,108 @@
 <html>
-<head>
-    <style>
-        .error-box {
-            background-color: #fce4e4;
-            border: 1px solid #c0392b;
-            border-radius: 6px;
-            padding: 16px;
-            margin: 16px 0;
-        }
-        .error-box h3 { color: #c0392b; margin-top: 0; }
-        .error-box .error-code { color: #e74c3c; font-family: monospace; font-size: 0.9em; }
-        .error-box .suggestion { color: #555; font-style: italic; margin-top: 8px; }
-        .result-box {
-            background-color: #eafaf1;
-            border: 1px solid #27ae60;
-            border-radius: 6px;
-            padding: 16px;
-            margin: 16px 0;
-        }
-        .result-box h3 { color: #27ae60; margin-top: 0; }
-    </style>
-</head>
 <body>
     <div class="login">
-       <h1>Money Laundering Detector</h1>
-
-       <form action="{{ url_for('predict_datapoint') }}" method="post">
+       <h1>Money Laundary Detector</h1>
+   
+       <form action="{{ url_for('predict_datapoint')}}" method="post">
         <h2>
             <legend>Anti Money Laundering Detection</legend>
         </h2>
         <div class="form-group">
             <label for="from_bank">Bank where transaction originates:</label>
-            <input type="text" id="from_bank" name="from_bank" placeholder="Enter Numeric code (int)" required>
+            <input type="text" id="from_bank" name="from_bank" placeholder="Enter Numeric code (int)">
         </div>
         <div class="form-group">
-            <label for="account">Code for account where transaction originates:</label>
+            <label for="account"> Code for account where transaction originates:</label>
             <input type="text" id="account" name="account" placeholder="Enter code (str)">
         </div>
         <div class="form-group">
             <label for="to_bank">Bank where transaction ends:</label>
-            <input type="text" id="to_bank" name="to_bank" placeholder="Enter Numeric code (int)" required>
+            <input type="text" id="to_bank" name="to_bank" placeholder="Enter Numeric code (int)">
         </div>
         <div class="form-group">
-            <label for="account_1">Code for account where transaction ends:</label>
+            <label for="account_1"> Code for account where transaction ends:</label>
             <input type="text" id="account_1" name="account_1" placeholder="Enter code (str)">
         </div>
         <div class="form-group">
-            <label for="amount_received">Monetary amount received:</label>
-            <input type="text" id="amount_received" name="amount_received" placeholder="Enter the amount (float)" required>
+            <label for="amount_received"> Monetary amount received:</label>
+            <input type="text" id="amount_received" name="amount_received" placeholder="Enter the amount (float)">
         </div>
         <div class="form-group">
-            <label for="receiving_currency">Currency such as dollars, euros etc.:</label>
+            <label for="receiving_currency"> Currency such as dollars, euros etc.:</label>
             <input type="text" id="receiving_currency" name="receiving_currency" placeholder="Enter currency (str)">
         </div>
         <div class="form-group">
-            <label for="payment_currency">Currency such as dollars, euros etc.:</label>
+            <label for="payment_currency"> Currency such as dollars, euros etc.:</label>
             <input type="text" id="payment_currency" name="payment_currency" placeholder="Enter currency (str)">
         </div>
         <div class="form-group">
-            <label for="payment_format">How transaction was conducted:</label>
+            <label for="payment_format"> How transaction was conducted:</label>
             <input type="text" id="payment_format" name="payment_format" placeholder="Enter transaction type (str)">
         </div>
         <div style="clear:both;"></div>
             <input class="btn btn-primary" type="submit" value="Predict whether the transactions is Fraud or not" required />
-       </form>
+    </form>
 
-       {% if error %}
-       <div class="error-box">
-           <h3>Prediction Error</h3>
-           <p><strong>Category:</strong> {{ error.error_category }}</p>
-           <p><strong>Code:</strong> <span class="error-code">{{ error.error_code }}</span></p>
-           <p><strong>Message:</strong> {{ error.message }}</p>
-           <p class="suggestion">{{ error.suggestion }}</p>
-       </div>
-       {% endif %}
+    {% if error %}
+    <div style="padding:16px;border-radius:8px;background:#fff5f5;border-left:6px solid #e53e3e;margin:16px 0;">
+        <div style="font-size:16px;font-weight:600;color:#c53030;margin-bottom:8px;">
+            ⚠️ {{ error.error_category }} · <code>{{ error.error_code }}</code>
+        </div>
+        <div style="font-size:14px;color:#742a2a;margin-bottom:6px;">
+            {{ error.message }}
+        </div>
+        {% if error.field %}
+        <div style="font-size:12px;color:#9b2c2c;margin-bottom:4px;">
+            <strong>字段：</strong>{{ error.field }}
+        </div>
+        {% endif %}
+        {% if error.suggestion %}
+        <div style="font-size:12px;color:#9b2c2c;margin-bottom:6px;">
+            <strong>建议：</strong>{{ error.suggestion }}
+        </div>
+        {% endif %}
+        <div style="font-size:11px;color:#b7791f;font-family:monospace;margin-top:8px;">
+            Trace ID: {{ error.trace_id }}
+        </div>
+    </div>
+    {% endif %}
 
-       {% if results %}
-       <div class="result-box">
-           <h3>Prediction Result</h3>
-           <p><strong>Prediction:</strong> {{ results.prediction }}</p>
-           <p><strong>Fraud Probability:</strong> {{ results.fraud_probability }}</p>
-           <p><strong>Risk Level:</strong> {{ results.risk_level }}</p>
-       </div>
-       {% endif %}
-   </body>
+    {% if results is not none %}
+    <h2>
+       The prediction is {{results}}
+    </h2>
+    {% endif %}
+
+    {% if detail %}
+    <div style="padding:16px;border-radius:8px;background:#f0fff4;border-left:6px solid #38a169;margin:16px 0;">
+        <div style="font-size:16px;font-weight:600;color:#22543d;margin-bottom:10px;">
+            ✅ 预测详情
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:13px;color:#2c5282;">
+            <div><strong>类别：</strong>{{ detail.class_label }}</div>
+            <div><strong>风险等级：</strong>{{ detail.risk_level }}</div>
+            <div><strong>欺诈概率：</strong>{{ detail.fraud_probability }}</div>
+            <div><strong>模型版本：</strong>v{{ detail.model_version }}</div>
+        </div>
+        {% if detail.top_factors %}
+        <div style="margin-top:10px;font-size:13px;color:#2c5282;">
+            <strong>Top 风险因素：</strong>
+            <ul style="margin:6px 0 0 20px;padding:0;">
+                {% for factor in detail.top_factors %}
+                <li>
+                    <strong>{{ factor.feature_name }}</strong>
+                    → {{ factor.label }}
+                    ({{ factor.importance * 100 }}% contribution)
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <div style="font-size:11px;color:#718096;font-family:monospace;margin-top:10px;">
+            Transaction: {{ detail.transaction_id }}
+        </div>
+    </div>
+    {% endif %}
+   <body>
 </html>
+

@@ -1,74 +1,83 @@
+import sys
+import uuid
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-
+import dill
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 from aml_fraud_detector.exception import (
     AMLException,
+    UnifiedErrorResponse,
+    ErrorDetail,
     create_error_from_exception,
     create_error_response,
+    InputValidationException,
 )
-from aml_fraud_detector.constants import ErrorCode, ErrorCategory
-from aml_fraud_detector.entity import (
-    PredictionResult,
-    ValidationStatus,
-    ProcessStatus,
-    ErrorDetail,
+from aml_fraud_detector.constants import (
+    ErrorCode,
+    HTTP_STATUS_CODES,
+    ERROR_CATEGORY_DISPLAY,
 )
 from aml_fraud_detector.logger import logging
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
-def _display_error_from_detail(error_detail: ErrorDetail):
-    category_icons = {
-        ErrorCategory.DATA_QUALITY: "📊",
-        ErrorCategory.INPUT_VALIDATION: "✏️",
-        ErrorCategory.FEATURE_ALIGNMENT: "🔄",
-        ErrorCategory.MODEL_LOADING: "📦",
-        ErrorCategory.METADATA_VALIDATION: "📋",
-        ErrorCategory.PREDICTION_ERROR: "⚠️",
-        ErrorCategory.EXPLANATION_ERROR: "💡",
-        ErrorCategory.CONFIG_ERROR: "⚙️",
-        ErrorCategory.PIPELINE_ERROR: "🔧",
-        ErrorCategory.INTERNAL_ERROR: "❌",
-    }
-    icon = category_icons.get(error_detail.error_category, "❌")
-
-    suggestions = {
-        ErrorCategory.DATA_QUALITY: "请检查数据源文件是否存在且格式正确",
-        ErrorCategory.INPUT_VALIDATION: "请检查输入字段是否符合要求",
-        ErrorCategory.FEATURE_ALIGNMENT: "请确认输入数据特征与训练时一致",
-        ErrorCategory.MODEL_LOADING: "请检查模型文件是否存在或稍后重试",
-        ErrorCategory.METADATA_VALIDATION: "请检查模型产物完整性，可能需要重新训练",
-        ErrorCategory.PREDICTION_ERROR: "预测执行失败，请稍后重试",
-        ErrorCategory.EXPLANATION_ERROR: "解释生成失败，可尝试其他模型",
-        ErrorCategory.CONFIG_ERROR: "请检查配置文件是否正确",
-        ErrorCategory.PIPELINE_ERROR: "管道执行失败，请查看日志详情",
-        ErrorCategory.INTERNAL_ERROR: "系统内部错误，请联系技术支持",
-    }
-    suggestion = suggestions.get(error_detail.error_category, "请稍后重试")
-
-    st.error(f"{icon} **预测失败** [{error_detail.error_code.value}]")
-    st.error(f"**类别:** {error_detail.error_category.value} | **消息:** {error_detail.message}")
-    st.info(f"💡 {suggestion}")
-
-    with st.expander("查看详细错误信息"):
-        st.json(error_detail.to_dict())
+def _get_trace_id():
+    return str(uuid.uuid4())
 
 
-def _display_error_from_exception(e: Exception):
-    if isinstance(e, AMLException):
-        _display_error_from_detail(e.error_detail)
-    else:
-        error_resp = create_error_from_exception(e)
-        if error_resp.error:
-            _display_error_from_detail(error_resp.error)
-        else:
-            st.error(f"发生未知错误: {str(e)}")
+def _display_error(error_resp):
+    if isinstance(error_resp, ErrorDetail):
+        error_resp = UnifiedErrorResponse(
+            success=False,
+            status="error",
+            error=error_resp,
+            http_status=HTTP_STATUS_CODES.get(error_resp.error_category, 500),
+            trace_id=_get_trace_id(),
+        )
+    display = error_resp.to_user_display()
+    cat_label = ERROR_CATEGORY_DISPLAY.get(display["error_category"], display["error_category"])
+
+    icon = "⚠️"
+    if display.get("severity") == "critical":
+        icon = "🚨"
+    elif display.get("severity") == "info":
+        icon = "ℹ️"
+
+    st.markdown(
+        f"""
+        <div style="
+            padding: 16px;
+            border-radius: 8px;
+            background: #fff5f5;
+            border-left: 6px solid #e53e3e;
+            margin-bottom: 16px;
+        ">
+            <div style="font-size: 16px; font-weight: 600; color: #c53030; margin-bottom: 8px;">
+                {icon} {cat_label} · <code style="background:#fed7d7;padding:2px 6px;border-radius:3px;">{display["error_code"]}</code>
+            </div>
+            <div style="font-size: 14px; color: #742a2a; margin-bottom: 6px; line-height: 1.5;">
+                {display["message"]}
+            </div>
+            {"<div style=\"font-size: 12px; color: #9b2c2c; margin-bottom: 4px;\"><strong>字段：</strong>" + display["field"] + "</div>" if display.get("field") else ""}
+            {"<div style=\"font-size: 12px; color: #9b2c2c; margin-bottom: 6px;\"><strong>建议：</strong>" + display["suggestion"] + "</div>" if display.get("suggestion") else ""}
+            <div style="font-size: 11px; color: #b7791f; font-family: monospace; margin-top: 8px;">
+                Trace ID: {display["trace_id"]}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+@st.cache_resource(show_spinner=False)
+def _load_pipeline():
+    return PredictionPipeline()
 
 
 def main():
-    logging.info("Starting Streamlit App")
+    logging.info(f"Starting Streamlit App")
 
+    # App Title and Description
     st.title("Anti-Money Laundering (AML) Fraud Detection")
     st.markdown(
         """
@@ -78,7 +87,27 @@ def main():
     )
     st.write("---")
 
+    # Sidebar for Input Features
     st.sidebar.header("Specify Input Features")
+
+    try:
+        pipeline = _load_pipeline()
+        mv = pipeline.get_model_version_info()
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### Model Info")
+        st.sidebar.markdown(f"- **Name**: {mv.model_name}")
+        st.sidebar.markdown(f"- **Version**: v{mv.model_version}")
+        st.sidebar.markdown(f"- **Schema**: v{mv.feature_schema_version}")
+        st.sidebar.markdown("✅ Loaded")
+    except AMLException as e:
+        st.sidebar.error(f"Model load failed: {e.error_code.value}")
+        _display_error(e.to_error_response(trace_id=_get_trace_id()))
+        return
+    except Exception as e:
+        err = create_error_from_exception(e, trace_id=_get_trace_id(), error_details=sys)
+        st.sidebar.error("Model load failed")
+        _display_error(err)
+        return
 
     def user_input_features():
         st.sidebar.subheader("Transaction Details")
@@ -103,89 +132,89 @@ def main():
             payment_format=payment_format,
             day=day
         )
+        features_df = data.get_data_as_DataFrame()
+        return features_df, data
 
-        validation = data.validate()
-        if not validation.is_valid:
-            st.sidebar.warning(f"输入校验警告: {'; '.join(validation.errors)}")
+    df, data = user_input_features()
 
-        try:
-            features_df = data.get_data_as_DataFrame()
-            return features_df, validation
-        except AMLException as e:
-            _display_error_from_detail(e.error_detail)
-            return None, validation
-        except Exception as e:
-            _display_error_from_exception(e)
-            return None, validation
-
-    df, validation = user_input_features()
-
-    if df is not None:
-        st.header("Specified Input Parameters")
-        st.dataframe(df)
-    else:
-        st.header("Specified Input Parameters")
-        st.warning("无法生成输入数据，请检查侧边栏输入")
+    # Display Input Parameters
+    st.header("Specified Input Parameters")
+    st.dataframe(df)
     st.write("---")
 
+    # Prediction Section
     st.header("Prediction Results")
-    predict_pipeline = PredictionPipeline()
 
     if st.button("Predict"):
-        if df is None:
-            error_resp = create_error_response(
-                ErrorCode.INPUT_INVALID_FORMAT,
-                field="input_data",
-                value="无法生成有效的输入数据",
-            )
-            _display_error_from_detail(error_resp.error)
-        elif not validation.is_valid:
-            error_resp = create_error_response(
-                ErrorCode.INPUT_INVALID_FORMAT,
-                field="multiple",
-                value="; ".join(validation.errors),
-            )
-            _display_error_from_detail(error_resp.error)
-        else:
-            result = predict_pipeline.predict(df)
+        trace_id = _get_trace_id()
+        try:
+            validation = data.validate()
+            if not validation.is_valid:
+                err = create_error_response(
+                    ErrorCode.INPUT_INVALID_FORMAT,
+                    trace_id=trace_id,
+                    field="multiple",
+                    value="; ".join(validation.errors),
+                )
+                _display_error(err)
+                return
 
-            if not result.is_success():
-                _display_error_from_detail(result.error_detail)
+            # Make Prediction with detailed result
+            detailed = pipeline.predict_detailed(df, transaction_id=trace_id)
+
+            if not detailed.is_success():
+                _display_error(detailed.error_detail)
+                return
+
+            # Keep original view-model behavior: prediction array + proba array
+            prediction = [detailed.prediction]
+            prediction_proba = [[detailed.legit_probability, detailed.fraud_probability]]
+
+            # Display Prediction (original behavior)
+            st.subheader("Fraud Detector Class Labels")
+            class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
+            class_labels_df.index = ["Class Labels"]
+            st.dataframe(class_labels_df.T)
+
+            st.subheader("Prediction of the Given Transaction")
+            if prediction[0] == 1:
+                st.error("**Fraudulent Transaction**")
             else:
-                st.subheader("Fraud Detector Class Labels")
-                class_labels_df = pd.DataFrame({"Not Fraud": [0], "Fraud": [1]})
-                class_labels_df.index = ["Class Labels"]
-                st.dataframe(class_labels_df.T)
+                st.success("**Non-Fraudulent Transaction**")
 
-                st.subheader("Prediction of the Given Transaction")
-                if result.prediction == 1:
-                    st.error("**Fraudulent Transaction**")
-                else:
-                    st.success("**Non-Fraudulent Transaction**")
+            st.subheader("Prediction Probabilities")
+            proba_df = pd.DataFrame(prediction_proba, columns=["Not Fraud", "Fraud"])
+            st.dataframe(proba_df)
 
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Fraud Probability", f"{result.fraud_probability:.4f}")
-                with col2:
-                    st.metric("Legit Probability", f"{result.legit_probability:.4f}")
-                with col3:
-                    risk_emoji = {"Low": "🟢", "Medium": "🟡", "High": "🟠", "Critical": "🔴"}
-                    st.metric("Risk Level", f"{risk_emoji.get(result.risk_level.value, '⚪')} {result.risk_level.value}")
+            # Visualize Prediction Probabilities (original behavior)
+            st.subheader("Prediction Probability Distribution")
+            fig, ax = plt.subplots()
+            ax.bar(proba_df.columns, proba_df.iloc[0], color=["green", "red"])
+            ax.set_ylabel("Probability")
+            ax.set_ylim(0, 1)
+            ax.set_title("Fraud vs. Not Fraud Probability")
+            st.pyplot(fig)
 
-                if result.model_version > 0:
-                    st.caption(f"Model Version: {result.model_version}")
+            # Risk Explanation (new addition)
+            if detailed.risk_explanation and detailed.risk_explanation.top_factors:
+                with st.expander("📊 Risk Factors Explanation", expanded=True):
+                    st.subheader("Top Risk Factors")
+                    for factor in detailed.risk_explanation.top_factors:
+                        impact_icon = "🔴" if factor.get("impact") == "high" else ("🟠" if factor.get("impact") == "medium" else "🟡")
+                        st.markdown(
+                            f"- **{impact_icon} {factor.get('feature_name')}** "
+                            f"→ {factor.get('label', factor.get('explanation', ''))} "
+                            f"(contribution: {factor.get('importance', 0) * 100:.1f}%)"
+                        )
 
-                st.subheader("Prediction Probability Distribution")
-                fig, ax = plt.subplots()
-                probs = [result.legit_probability, result.fraud_probability]
-                colors = ["green", "red"]
-                labels = ["Not Fraud", "Fraud"]
-                ax.bar(labels, probs, color=colors)
-                ax.set_ylabel("Probability")
-                ax.set_title("Fraud vs. Not Fraud Probability")
-                for i, v in enumerate(probs):
-                    ax.text(i, v + 0.01, f"{v:.4f}", ha="center")
-                st.pyplot(fig)
+            st.caption(f"Trace ID: {trace_id} · Model: v{detailed.model_version}")
+
+        except AMLException as e:
+            _display_error(e.to_error_response(trace_id=trace_id))
+        except Exception as e:
+            logging.error(f"Streamlit predict error: {e}", exc_info=True)
+            err = create_error_from_exception(e, trace_id=trace_id, error_details=sys)
+            _display_error(err)
 
     st.write("---")
     st.markdown(
@@ -193,7 +222,7 @@ def main():
         **Note:** This app is for demonstration purposes only. The predictions are based on a machine learning model.
         """
     )
-    logging.info("Streamlit app execution completed")
+    logging.info(f"Streamlit app execution completed")
 
 
 if __name__ == "__main__":

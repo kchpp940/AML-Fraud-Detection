@@ -1,0 +1,7 @@
+[ 2026-06-16 15:49:25,976] 297 root - INFO - predict(ndarray) - original API
+[ 2026-06-16 15:49:25,978] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 15:49:26,010] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 15:49:26,010] 210 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 15:49:26,081] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 15:49:26,082] 214 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 15:49:26,082] 305 root - ERROR - predict() failed: [E3002] 缺少预期特征: timestamp, amount_paid

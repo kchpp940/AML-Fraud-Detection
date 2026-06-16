@@ -1,0 +1,19 @@
+[ 2026-06-16 15:59:32,428] 296 root - INFO - predict(ndarray) - original API
+[ 2026-06-16 15:59:32,430] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
+[ 2026-06-16 15:59:32,459] 69 root - INFO - Object loaded from: artifacts/model.pkl
+[ 2026-06-16 15:59:32,459] 209 root - INFO - Model loaded from artifacts/model.pkl
+[ 2026-06-16 15:59:32,527] 69 root - INFO - Object loaded from: artifacts/preprocessor.pkl
+[ 2026-06-16 15:59:32,527] 213 root - INFO - Preprocessor loaded from artifacts/preprocessor.pkl
+[ 2026-06-16 15:59:32,527] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 15:59:32,535] 311 root - INFO - predict_proba(ndarray) - original API
+[ 2026-06-16 15:59:32,535] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 15:59:32,537] 348 root - INFO - predict_detailed(1 row, tid=T-100)
+[ 2026-06-16 15:59:32,541] 148 root - INFO - Data validation passed: 1 rows, 0 warning(s)
+[ 2026-06-16 15:59:32,541] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency']
+[ 2026-06-16 15:59:32,544] 420 root - INFO - predict_detailed done: class=Not Fraud, fraud_prob=0.0059, risk=Low
+[ 2026-06-16 15:59:32,555] 435 root - INFO - predict_batch: 8 rows
+[ 2026-06-16 15:59:32,556] 148 root - INFO - Data validation passed: 8 rows, 2 warning(s)
+[ 2026-06-16 15:59:32,556] 269 root - WARNING - Dropping unexpected input columns: ['from_bank', 'to_bank', 'receiving_currency', 'payment_currency', 'transaction_id']
+[ 2026-06-16 15:59:32,557] 510 root - ERROR - predict_batch failed: [E3004] 特征转换失败: Cannot use median strategy with non-numeric data:
+could not convert string to float: 'not_a_number'
+[ 2026-06-16 15:59:32,557] 217 root - INFO - Artifact validation passed for /Users/pkcha/AML-Fraud-Detection/artifacts, checked=4 artifacts
