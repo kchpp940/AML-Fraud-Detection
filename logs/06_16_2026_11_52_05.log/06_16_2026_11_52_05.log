@@ -1,0 +1,3 @@
+[ 2026-06-16 11:52:06,768] 66 root - INFO - Loaded feature schema from training artifacts: 5 features (1 num, 4 cat)
+[ 2026-06-16 11:52:06,890] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 11:52:06,890] 161 root - INFO - Converted column 'to_bank' from object to object

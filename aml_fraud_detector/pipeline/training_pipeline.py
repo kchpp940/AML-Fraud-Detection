@@ -1,7 +1,10 @@
 import os
 import sys
+import json
 from dataclasses import asdict
 from typing import Optional
+
+import pandas as pd
 
 from aml_fraud_detector.exception import CustomerException
 from aml_fraud_detector.logger import logging
@@ -127,6 +130,12 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
             summary_obj=summary,
         )
 
+        artifact_manifest_path = _generate_artifact_manifest(
+            artifacts_dir=training_config.artifacts_subpath(""),
+            summary=summary,
+        )
+        logging.info(f"Artifact manifest saved to: {artifact_manifest_path}")
+
         logging.info("=" * 72)
         logging.info("Training pipeline completed successfully")
         logging.info("=" * 72)
@@ -167,6 +176,54 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingSummary:
     except Exception as e:
         logging.error("Training pipeline failed", exc_info=True)
         raise CustomerException(e, sys)
+
+
+def _generate_artifact_manifest(artifacts_dir: str, summary: "TrainingSummary") -> str:
+    import hashlib
+
+    manifest_path = os.path.join(artifacts_dir, "artifact_manifest.json")
+
+    artifact_files = [
+        "data.csv",
+        "train.csv",
+        "test.csv",
+        "data_quality_report.json",
+        "preprocessor.pkl",
+        "feature_metadata.json",
+        "model.pkl",
+        "model_metadata.json",
+        "training_summary.json",
+    ]
+
+    artifacts = {}
+    for fname in artifact_files:
+        fpath = os.path.join(artifacts_dir, fname)
+        if os.path.exists(fpath):
+            stat = os.stat(fpath)
+            try:
+                with open(fpath, "rb") as f:
+                    digest = hashlib.sha256(f.read()).hexdigest()
+            except Exception:
+                digest = ""
+
+            artifacts[fname] = {
+                "path": os.path.abspath(fpath),
+                "size": stat.st_size,
+                "mtime_iso": pd.Timestamp.fromtimestamp(stat.st_mtime).isoformat(),
+                "digest": f"sha256:{digest}",
+            }
+
+    manifest = {
+        "artifacts_dir": os.path.abspath(artifacts_dir),
+        "artifacts": artifacts,
+        "generated_at": pd.Timestamp.now().isoformat(),
+    }
+
+    os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False, default=str)
+
+    return os.path.abspath(manifest_path)
 
 
 if __name__ == "__main__":

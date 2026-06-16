@@ -1,0 +1,17 @@
+[ 2026-06-16 11:50:28,891] 66 root - INFO - Loaded feature schema from training artifacts: 5 features (1 num, 4 cat)
+[ 2026-06-16 11:50:28,996] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 11:50:28,996] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 11:50:29,003] 274 root - ERROR - predict_single failed: 'Series' object has no attribute 'columns'
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/prediction_pipeline.py", line 250, in predict_single
+    top_factors = self._build_top_factors(
+        normalized_features.iloc[0] if len(normalized_features) > 0 else pd.Series(),
+        fraud_prob,
+    )
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/prediction_pipeline.py", line 136, in _build_top_factors
+    if "same_currency" not in row.columns or True:
+                              ^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.13/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AttributeError: 'Series' object has no attribute 'columns'

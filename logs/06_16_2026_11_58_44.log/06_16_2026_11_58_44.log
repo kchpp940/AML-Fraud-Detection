@@ -1,0 +1,6 @@
+[ 2026-06-16 11:58:46,319] 66 root - INFO - Loaded feature schema from training artifacts: 5 features (1 num, 4 cat)
+[ 2026-06-16 11:58:46,425] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 11:58:46,425] 161 root - INFO - Converted column 'to_bank' from object to object
+[ 2026-06-16 11:58:46,435] 181 root - WARNING - Missing required columns: ['account', 'account_1', 'day', 'payment_format']
+[ 2026-06-16 11:58:46,435] 161 root - INFO - Converted column 'from_bank' from object to object
+[ 2026-06-16 11:58:46,436] 161 root - INFO - Converted column 'to_bank' from object to object
