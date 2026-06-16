@@ -1,0 +1,5 @@
+[ 2026-06-16 22:10:42,499] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-16 22:10:44,537] 163 root - INFO - Loading training config (source=explicit): /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-16 22:10:44,538] 190 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 22:10:44,538] 191 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts
+[ 2026-06-16 22:10:44,538] 151 root - ERROR - Bootstrap failed: 'TrainingConfig' object has no attribute 'artifact_dir'
