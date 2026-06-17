@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/yrobi/Desktop/Robin%20World/Data%20Science%20-%20Machine%20Learning%20Prep/01%20-%20MLOps/AML-Fraud-Detection/mlruns/0/e9410ae3c5c44cc7970ad50752676009/artifacts
+end_time: 1781623122556
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: e9410ae3c5c44cc7970ad50752676009
+run_name: enthused-carp-145
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781623118871
+status: 4
+tags: []
+user_id: pkcha

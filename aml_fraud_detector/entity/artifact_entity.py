@@ -1,5 +1,4 @@
-import dataclasses
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
@@ -16,11 +15,6 @@ class RiskLevel(str, Enum):
     MEDIUM = "Medium"
     HIGH = "High"
     CRITICAL = "Critical"
-
-
-class ClassLabel(int, Enum):
-    LEGITIMATE = 0
-    FRAUD = 1
 
 
 PROCESS_STATUS_SUCCESS = ProcessStatus.SUCCESS.value
@@ -50,8 +44,7 @@ FOUR_ARTIFACT_FILENAMES = [
 class RiskExplanation:
     fraud_probability: float = 0.0
     risk_level: RiskLevel = RiskLevel.LOW
-    risk_summary: str = ""
-    top_factors: List[Dict[str, Any]] = dataclasses.field(default_factory=list)
+    top_factors: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -68,10 +61,9 @@ class ModelVersionInfo:
 @dataclass
 class ValidationStatus:
     is_valid: bool = True
-    errors: List[str] = dataclasses.field(default_factory=list)
-    warnings: List[str] = dataclasses.field(default_factory=list)
-    details: List[Dict[str, Any]] = dataclasses.field(default_factory=list)
-    checked_artifacts: List[str] = dataclasses.field(default_factory=list)
+    errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+    checked_artifacts: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -85,7 +77,7 @@ class PredictionResult:
     error_detail: Optional[ErrorDetail] = None
     model_version: int = 0
     transaction_id: Optional[str] = None
-    risk_explanation: RiskExplanation = dataclasses.field(default_factory=RiskExplanation)
+    risk_explanation: RiskExplanation = field(default_factory=RiskExplanation)
 
     @property
     def risk_level(self) -> RiskLevel:
@@ -119,7 +111,7 @@ class BatchPredictionResult:
     total_count: int = 0
     fraud_count: int = 0
     fraud_rate: float = 0.0
-    predictions: List[PredictionResult] = dataclasses.field(default_factory=list)
+    predictions: List[PredictionResult] = field(default_factory=list)
     process_status: ProcessStatus = ProcessStatus.SUCCESS
     error_reason: Optional[str] = None
     error_detail: Optional[ErrorDetail] = None
@@ -155,7 +147,7 @@ class TrainingPipelineResult:
     error_reason: Optional[str] = None
     error_detail: Optional[ErrorDetail] = None
     summary: Optional[Dict[str, Any]] = None
-    artifacts: Dict[str, str] = dataclasses.field(default_factory=dict)
+    artifacts: Dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -182,8 +174,8 @@ class TrainingPipelineResult:
 
 @dataclass
 class UnifiedPredictionResponse:
-    model_version: ModelVersionInfo = dataclasses.field(default_factory=ModelVersionInfo)
-    validation: ValidationStatus = dataclasses.field(default_factory=ValidationStatus)
+    model_version: ModelVersionInfo = field(default_factory=ModelVersionInfo)
+    validation: ValidationStatus = field(default_factory=ValidationStatus)
     single_prediction: Optional[PredictionResult] = None
     batch_prediction: Optional[BatchPredictionResult] = None
     error: Optional[UnifiedErrorResponse] = None

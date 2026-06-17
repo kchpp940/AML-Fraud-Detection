@@ -154,6 +154,7 @@ class TrainingSummary:
     artifacts_dir: str = ""
     summary_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
+    stage_records: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class TrainingConfig:

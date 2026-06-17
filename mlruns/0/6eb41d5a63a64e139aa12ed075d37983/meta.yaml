@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/yrobi/Desktop/Robin%20World/Data%20Science%20-%20Machine%20Learning%20Prep/01%20-%20MLOps/AML-Fraud-Detection/mlruns/0/6eb41d5a63a64e139aa12ed075d37983/artifacts
+end_time: 1781623137755
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 6eb41d5a63a64e139aa12ed075d37983
+run_name: casual-newt-689
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781623135215
+status: 4
+tags: []
+user_id: pkcha

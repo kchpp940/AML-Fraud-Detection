@@ -1,0 +1,106 @@
+[ 2026-06-16 23:18:33,247] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-16 23:18:35,567] 28 root - INFO - ========================================================================
+[ 2026-06-16 23:18:35,567] 29 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-16 23:18:35,567] 30 root - INFO - ========================================================================
+[ 2026-06-16 23:18:35,567] 164 root - INFO - Loading training config (source=env): /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-16 23:18:35,568] 191 root - INFO - Training config loaded and validated successfully
+[ 2026-06-16 23:18:35,568] 192 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts_smoketest
+[ 2026-06-16 23:18:35,568] 45 root - INFO - Training config loaded (source=env): /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-16 23:18:35,568] 38 root - INFO - [StageTracker] Stage 'DataIngestion' started at 2026-06-16T23:18:35.568973
+[ 2026-06-16 23:18:35,568] 36 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=2000, test_size=0.25
+[ 2026-06-16 23:18:35,569] 44 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-16 23:18:35,569] 47 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-16 23:18:35,569] 50 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-16 23:18:35,582] 67 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-16 23:18:35,584] 82 root - INFO - Sampled 2000 rows from dataset of 4000 rows
+[ 2026-06-16 23:18:35,588] 93 root - INFO - Train Test split initiated
+[ 2026-06-16 23:18:35,593] 101 root - INFO - Ingestion completed: train=1500, test=500
+[ 2026-06-16 23:18:35,593] 50 root - INFO - [StageTracker] Stage 'DataIngestion' completed in 0.025s
+[ 2026-06-16 23:18:35,593] 80 root - INFO - Data ingestion done: total=2000, train≈1500, test≈500
+[ 2026-06-16 23:18:35,593] 38 root - INFO - [StageTracker] Stage 'DataValidation' started at 2026-06-16T23:18:35.593935
+[ 2026-06-16 23:18:35,593] 29 root - INFO - DataValidation initialized
+[ 2026-06-16 23:18:35,593] 34 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-16 23:18:35,597] 71 root - INFO - Data validation passed: missing_columns=[], null_report={}
+[ 2026-06-16 23:18:35,597] 50 root - INFO - [StageTracker] Stage 'DataValidation' completed in 0.004s
+[ 2026-06-16 23:18:35,597] 100 root - INFO - Data validation done
+[ 2026-06-16 23:18:35,597] 38 root - INFO - [StageTracker] Stage 'DataTransformation' started at 2026-06-16T23:18:35.597565
+[ 2026-06-16 23:18:35,597] 51 root - INFO - DataTransformation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], preprocessor_out=/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/preprocessor.pkl
+[ 2026-06-16 23:18:35,597] 102 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-16 23:18:35,599] 114 root - INFO - Reading train and test data completed
+[ 2026-06-16 23:18:35,599] 118 root - INFO - Train and Test dataframe columns name renamed
+[ 2026-06-16 23:18:35,600] 130 root - INFO - Train Dataframe Head : 
+             timestamp  from_bank    account  to_bank   account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering
+0  2022-01-03 00:47:00         49  ACC_00190       32  ACC2_00051           990.12               Yuan      1874.18             Euro   Reinvestment              0
+1  2022-01-01 14:53:00         17  ACC_00108       49  ACC2_00082           772.62               Euro      1604.26             Euro    Credit Card              0
+2  2022-01-03 17:57:00         47  ACC_00047       26  ACC2_00015          1557.83          US Dollar       497.84             Yuan           Wire              0
+3  2022-01-02 16:07:00         15  ACC_00079       14  ACC2_00094           114.88               Euro      1209.57             Yuan         Cheque              0
+4  2022-01-03 13:54:00         28  ACC_00156       37  ACC2_00098          1018.97          US Dollar      1702.91        US Dollar    Credit Card              0
+[ 2026-06-16 23:18:35,601] 131 root - INFO - Test Dataframe Head : 
+             timestamp  from_bank    account  to_bank   account_1  amount_received receiving_currency  amount_paid payment_currency payment_format  is_laundering
+0  2022-01-01 09:44:00         12  ACC_00144       43  ACC2_00081          1005.64          US Dollar       105.05             Yuan   Reinvestment              0
+1  2022-01-01 02:14:00         45  ACC_00036       42  ACC2_00158          1728.51          US Dollar       452.29             Euro            ACH              0
+2  2022-01-01 07:15:00         42  ACC_00008       45  ACC2_00033           208.12          US Dollar      1251.77        US Dollar           Wire              0
+3  2022-01-02 23:47:00         17  ACC_00115       29  ACC2_00157          1716.02               Euro       867.95             Yuan         Cheque              0
+4  2022-01-02 11:38:00         21  ACC_00089       46  ACC2_00053           204.90               Yuan      1419.39        US Dollar    Credit Card              0
+[ 2026-06-16 23:18:35,606] 169 root - INFO - Columns name of numerical features: ['amount_received']
+[ 2026-06-16 23:18:35,607] 171 root - INFO - Columns name of categorical features: ['account', 'account_1', 'payment_format', 'day']
+[ 2026-06-16 23:18:35,607] 174 root - INFO - Obtaining preprocessing object
+[ 2026-06-16 23:18:35,607] 93 root - INFO - Preprocessed both numerical and categorical columns
+[ 2026-06-16 23:18:35,607] 179 root - INFO - Applying preprocessing object on training and testing datasets.
+[ 2026-06-16 23:18:35,620] 52 root - INFO - Object saved to: artifacts_smoketest/preprocessor.pkl
+[ 2026-06-16 23:18:35,621] 212 root - INFO - Saved data preprocessing object
+[ 2026-06-16 23:18:35,621] 50 root - INFO - [StageTracker] Stage 'DataTransformation' completed in 0.024s
+[ 2026-06-16 23:18:35,621] 123 root - INFO - Data transformation done: 5 features (1 num, 4 cat)
+[ 2026-06-16 23:18:35,621] 38 root - INFO - [StageTracker] Stage 'ModelTrainer' started at 2026-06-16T23:18:35.621208
+[ 2026-06-16 23:18:35,621] 61 root - INFO - ModelTrainer initialized with resolved config: enabled=['Random Forest', 'AdaBoost'], metric=Recall, model_out=/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/model.pkl
+[ 2026-06-16 23:18:35,621] 96 root - INFO - Get Independent features and Dependent feature from Train and Test datasets
+[ 2026-06-16 23:18:35,621] 104 root - INFO - Imbalance dataset - upsampling the train data
+[ 2026-06-16 23:18:35,621] 86 root - INFO - Before SMOTE: Counter({np.float64(0.0): 1433, np.float64(1.0): 67})
+[ 2026-06-16 23:18:35,623] 88 root - INFO - After SMOTE: Counter({np.float64(0.0): 1433, np.float64(1.0): 1433})
+[ 2026-06-16 23:18:35,623] 89 root - INFO - Upsampling the minority class data completed
+[ 2026-06-16 23:18:35,623] 120 root - INFO - Training candidate models: ['Random Forest', 'AdaBoost']
+[ 2026-06-16 23:18:35,624] 121 root - INFO - Grid Search started for RandomForestClassifier()
+[ 2026-06-16 23:18:37,397] 125 root - INFO - Grid Search completed for RandomForestClassifier()
+[ 2026-06-16 23:18:37,397] 128 root - INFO - Best parameters: {'n_estimators': 20} for RandomForestClassifier()
+[ 2026-06-16 23:18:37,433] 138 root - INFO - Obtaining evaluation metrics for RandomForestClassifier(n_estimators=20) by using best hyperparameters
+[ 2026-06-16 23:18:37,439] 121 root - INFO - Grid Search started for AdaBoostClassifier()
+[ 2026-06-16 23:18:38,439] 125 root - INFO - Grid Search completed for AdaBoostClassifier()
+[ 2026-06-16 23:18:38,439] 128 root - INFO - Best parameters: {'learning_rate': 0.1, 'n_estimators': 50} for AdaBoostClassifier()
+[ 2026-06-16 23:18:38,496] 138 root - INFO - Obtaining evaluation metrics for AdaBoostClassifier(learning_rate=0.1) by using best hyperparameters
+[ 2026-06-16 23:18:38,500] 159 root - INFO - 
+ Metrics calculation on Train Data: 
+{'Random Forest': [{'Precision': 0.9993021632937893, 'Recall': 0.9993021632937893, 'F1 score': 0.9993021632937893, 'Confusion Matrix': array([[1432,    1],
+       [   1, 1432]])}], 'AdaBoost': [{'Precision': 0.8392297207338341, 'Recall': 0.5753663642707606, 'F1 score': 0.6399034828251919, 'Confusion Matrix': array([[ 304,   88],
+       [1129, 1345]])}]}
+[ 2026-06-16 23:18:38,500] 161 root - INFO - 
+ Metrics calculation on Test Data: 
+{'Random Forest': [{'Precision': 0.941920405982906, 'Recall': 0.91, 'F1 score': 0.9254738675180282, 'Confusion Matrix': array([[454,  31],
+       [ 14,   1]])}], 'AdaBoost': [{'Precision': 0.5705448717948718, 'Recall': 0.38, 'F1 score': 0.2652092844274195, 'Confusion Matrix': array([[168,  10],
+       [300,  22]])}]}
+[ 2026-06-16 23:18:38,500] 145 root - INFO - Model metrics on Test Data: {'Random Forest': {'Precision': 0.941920405982906, 'Recall': 0.91, 'F1 score': 0.9254738675180282}, 'AdaBoost': {'Precision': 0.5705448717948718, 'Recall': 0.38, 'F1 score': 0.2652092844274195}}
+[ 2026-06-16 23:18:38,500] 146 root - INFO - Selecting best model using metric: Recall
+[ 2026-06-16 23:18:38,500] 152 root - INFO - Models with 'Recall' score: {'Random Forest': 0.91, 'AdaBoost': 0.38}
+[ 2026-06-16 23:18:38,500] 159 root - INFO - Best Model: Random Forest with Recall score: 0.91
+[ 2026-06-16 23:18:38,503] 52 root - INFO - Object saved to: artifacts_smoketest/model.pkl
+[ 2026-06-16 23:18:38,505] 184 root - INFO - Model Training completed
+[ 2026-06-16 23:18:38,505] 185 root - INFO - Final Recall score for Random Forest: 0.91
+[ 2026-06-16 23:18:38,505] 50 root - INFO - [StageTracker] Stage 'ModelTrainer' completed in 2.884s
+[ 2026-06-16 23:18:38,505] 148 root - INFO - Model training done: best='RandomForest (Random Forest)', Recall=0.9100
+[ 2026-06-16 23:18:38,505] 38 root - INFO - [StageTracker] Stage 'ModelEvaluation' started at 2026-06-16T23:18:38.505245
+[ 2026-06-16 23:18:38,505] 34 root - INFO - Model evaluation started
+[ 2026-06-16 23:18:38,506] 69 root - INFO - Object loaded from: artifacts_smoketest/model.pkl
+[ 2026-06-16 23:18:38,506] 46 root - INFO - model has register
+[ 2026-06-16 23:18:38,806] 1270 git.cmd - DEBUG - Popen(['git', 'version'], cwd=/Users/pkcha/AML-Fraud-Detection, stdin=None, shell=False, universal_newlines=False)
+[ 2026-06-16 23:18:38,826] 1270 git.cmd - DEBUG - Popen(['git', 'version'], cwd=/Users/pkcha/AML-Fraud-Detection, stdin=None, shell=False, universal_newlines=False)
+[ 2026-06-16 23:18:38,840] 494 git.util - DEBUG - sys.platform='darwin', git_executable='git'
+[ 2026-06-16 23:18:38,841] 1270 git.cmd - DEBUG - Popen(['git', 'check-ignore', '/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline'], cwd=/Users/pkcha/AML-Fraud-Detection, stdin=None, shell=False, universal_newlines=False)
+[ 2026-06-16 23:18:38,856] 1270 git.cmd - DEBUG - Popen(['git', 'cat-file', '--batch-check'], cwd=/Users/pkcha/AML-Fraud-Detection, stdin=<valid stream>, shell=False, universal_newlines=False)
+[ 2026-06-16 23:18:38,879] 1049 urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): config.mlflow-telemetry.io:443
+[ 2026-06-16 23:18:39,604] 544 urllib3.connectionpool - DEBUG - https://config.mlflow-telemetry.io:443 "GET /3.12.0.json HTTP/1.1" 200 308
+[ 2026-06-16 23:18:42,556] 75 root - ERROR - [StageTracker] Stage 'ModelEvaluation' failed after 4.052s: [E9999] 内部错误: [Errno 1] Operation not permitted: '/C:'
+[ 2026-06-16 23:18:42,556] 168 root - WARNING - ModelEvaluation stage failed (non-fatal): [E9999] 内部错误: [Errno 1] Operation not permitted: '/C:'
+[ 2026-06-16 23:18:42,557] 38 root - INFO - Training summary saved to: /Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/training_summary.json
+[ 2026-06-16 23:18:42,557] 179 root - INFO - ========================================================================
+[ 2026-06-16 23:18:42,557] 180 root - INFO - Training pipeline completed successfully
+[ 2026-06-16 23:18:42,557] 181 root - INFO - ========================================================================

@@ -1,7 +1,6 @@
 import sys
 import logging
-import dataclasses
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field as dc_field, asdict
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
@@ -27,17 +26,17 @@ class ErrorDetail:
     error_code: ErrorCode
     error_category: ErrorCategory
     message: str
-    field_name: Optional[str] = None
+    field: Optional[str] = None
     value: Optional[Any] = None
-    context: Dict[str, Any] = dataclasses.field(default_factory=dict)
-    timestamp: str = dataclasses.field(default_factory=lambda: datetime.now().isoformat())
+    context: Dict[str, Any] = dc_field(default_factory=dict)
+    timestamp: str = dc_field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "error_code": self.error_code.value,
             "error_category": self.error_category.value,
             "message": self.message,
-            "field": self.field_name,
+            "field": self.field,
             "value": str(self.value) if self.value is not None else None,
             "context": self.context,
             "timestamp": self.timestamp,
@@ -108,7 +107,7 @@ class AMLException(Exception):
             error_code=error_code,
             error_category=self.error_category,
             message=self.message,
-            field_name=kwargs.get("field"),
+            field=kwargs.get("field"),
             value=kwargs.get("value"),
             context={k: str(v) for k, v in kwargs.items() if k not in ("field", "value")},
         )

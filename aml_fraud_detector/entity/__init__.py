@@ -1,7 +1,6 @@
 from aml_fraud_detector.entity.artifact_entity import (
     ProcessStatus,
     RiskLevel,
-    ClassLabel,
     PROCESS_STATUS_SUCCESS,
     PROCESS_STATUS_ERROR,
     REQUIRED_INPUT_FIELDS,
@@ -11,14 +10,13 @@ from aml_fraud_detector.entity.artifact_entity import (
     ValidationStatus,
     PredictionResult,
     BatchPredictionResult,
-    TrainingPipelineResult,
     UnifiedPredictionResponse,
+    TrainingPipelineResult,
 )
 
 __all__ = [
     "ProcessStatus",
     "RiskLevel",
-    "ClassLabel",
     "PROCESS_STATUS_SUCCESS",
     "PROCESS_STATUS_ERROR",
     "REQUIRED_INPUT_FIELDS",
@@ -28,6 +26,6 @@ __all__ = [
     "ValidationStatus",
     "PredictionResult",
     "BatchPredictionResult",
-    "TrainingPipelineResult",
     "UnifiedPredictionResponse",
+    "TrainingPipelineResult",
 ]

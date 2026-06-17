@@ -113,7 +113,11 @@ class DataTransformation:
                 )
             logging.info("Reading train and test data completed")
 
-            target_column_name = self.training_config.features.target_column
+            train_df.columns = train_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
+            test_df.columns = test_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
+            logging.info("Train and Test dataframe columns name renamed")
+
+            target_column_name = self.training_config.features.target_column.lower()
             required_columns = [target_column_name]
             missing_cols = [c for c in required_columns if c not in train_df.columns]
             if missing_cols:
@@ -122,10 +126,6 @@ class DataTransformation:
                     error_details=sys,
                     missing=", ".join(missing_cols),
                 )
-
-            train_df.columns = train_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
-            test_df.columns = test_df.columns.str.lower().str.replace(' ', '_').str.replace('.', '_')
-            logging.info("Train and Test dataframe columns name renamed")
 
             logging.info(f"Train Dataframe Head : \n{train_df.head().to_string()}")
             logging.info(f"Test Dataframe Head : \n{test_df.head().to_string()}")

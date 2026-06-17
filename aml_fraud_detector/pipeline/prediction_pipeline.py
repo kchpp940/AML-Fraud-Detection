@@ -13,9 +13,10 @@ from aml_fraud_detector.exception import (
     ModelLoadingException,
     wrap_exception,
 )
-from aml_fraud_detector.constants import ErrorCode
+from aml_fraud_detector.constants import ErrorCode, REQUIRED_INPUT_FIELDS
+from aml_fraud_detector.logger import logging
+from aml_fraud_detector.utils.main_utils import load_object
 from aml_fraud_detector.entity import (
-    REQUIRED_INPUT_FIELDS,
     PredictionResult,
     BatchPredictionResult,
     UnifiedPredictionResponse,
@@ -25,8 +26,6 @@ from aml_fraud_detector.entity import (
     ProcessStatus,
     ModelVersionInfo,
 )
-from aml_fraud_detector.logger import logging
-from aml_fraud_detector.utils.main_utils import load_object
 
 
 def _validate_input_field(field_name: str, value: Any, expected_type: type) -> None:
