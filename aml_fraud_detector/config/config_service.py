@@ -53,7 +53,11 @@ ENV_CONFIG_MAPPING: Dict[str, str] = {
     "training.models.selection_metric": f"{ENV_PREFIX}TRAIN_MODEL_METRIC",
     "training.output.artifacts_dir": f"{ENV_PREFIX}TRAIN_OUTPUT_DIR",
     "prediction.default_artifacts_dir": f"{ENV_PREFIX}PREDICT_ARTIFACTS_DIR",
+    "prediction.model_file_name": f"{ENV_PREFIX}PREDICT_MODEL_FILE",
     "prediction.enable_lazy_load": f"{ENV_PREFIX}PREDICT_LAZY_LOAD",
+    "prediction.risk_thresholds.critical": f"{ENV_PREFIX}PREDICT_RISK_THRESHOLD_CRITICAL",
+    "prediction.risk_thresholds.high": f"{ENV_PREFIX}PREDICT_RISK_THRESHOLD_HIGH",
+    "prediction.risk_thresholds.medium": f"{ENV_PREFIX}PREDICT_RISK_THRESHOLD_MEDIUM",
     "server.flask_host": f"{ENV_PREFIX}SERVER_HOST",
     "server.flask_port": f"{ENV_PREFIX}SERVER_PORT",
     "server.flask_debug": f"{ENV_PREFIX}SERVER_DEBUG",
@@ -61,6 +65,7 @@ ENV_CONFIG_MAPPING: Dict[str, str] = {
     "server.enable_cors": f"{ENV_PREFIX}SERVER_ENABLE_CORS",
     "server.request_timeout": f"{ENV_PREFIX}SERVER_REQUEST_TIMEOUT",
     "server.max_content_length": f"{ENV_PREFIX}SERVER_MAX_CONTENT_LENGTH",
+    "server.cors_origins": f"{ENV_PREFIX}SERVER_CORS_ORIGINS",
     "logging.level": f"{ENV_PREFIX}LOG_LEVEL",
     "logging.log_dir": f"{ENV_PREFIX}LOG_DIR",
     "logging.log_to_file": f"{ENV_PREFIX}LOG_TO_FILE",
@@ -345,14 +350,14 @@ class ConfigService:
         if legacy_mapped:
             defaults = _deep_merge(defaults, legacy_mapped)
 
-        defaults = self._apply_env_overrides(defaults)
-
         defaults["env"] = self._profile
         defaults["project_root"] = self._project_root
         if not defaults.get("app_name"):
             defaults["app_name"] = "AML Fraud Detector"
         if not defaults.get("app_version"):
             defaults["app_version"] = "1.0.0"
+
+        defaults = self._apply_env_overrides(defaults)
 
         return defaults
 
