@@ -1,0 +1,10 @@
+[ 2026-06-17 10:06:54,681] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:06:54,681] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:06:54,681] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:06:54,681] 534 root - INFO -   Profile            : local
+[ 2026-06-17 10:06:54,681] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:06:54,681] 536 root - INFO -   Config path source : profile_file:app_config.yaml
+[ 2026-06-17 10:06:54,681] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/app_config.yaml
+[ 2026-06-17 10:06:54,681] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:06:54,681] 540 root - INFO -   Env overrides      : 0
+[ 2026-06-17 10:06:54,682] 543 root - INFO - ========================================================================

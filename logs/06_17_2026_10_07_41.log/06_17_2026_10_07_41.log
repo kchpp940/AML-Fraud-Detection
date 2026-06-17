@@ -1,0 +1,53 @@
+[ 2026-06-17 10:07:41,469] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,470] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:07:41,470] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,470] 534 root - INFO -   Profile            : local
+[ 2026-06-17 10:07:41,470] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:07:41,470] 536 root - INFO -   Config path source : profile_file:app_config.yaml
+[ 2026-06-17 10:07:41,470] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/app_config.yaml
+[ 2026-06-17 10:07:41,470] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:07:41,470] 540 root - INFO -   Env overrides      : 0
+[ 2026-06-17 10:07:41,470] 543 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,470] 636 root - INFO - Effective config exported (sanitized) to: /Users/pkcha/AML-Fraud-Detection/logs/effective_config_local_20260617_100741_sanitized.json
+[ 2026-06-17 10:07:41,474] 410 root - INFO - Env override: env = 'local' -> 'staging' (from AML_ENV)
+[ 2026-06-17 10:07:41,474] 410 root - INFO - Env override: training.data.sample_size = 50000 -> 100 (from AML_TRAIN_DATA_SAMPLE_SIZE)
+[ 2026-06-17 10:07:41,474] 410 root - INFO - Env override: server.flask_port = 8080 -> 9999 (from AML_SERVER_PORT)
+[ 2026-06-17 10:07:41,475] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,475] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:07:41,475] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,475] 534 root - INFO -   Profile            : staging
+[ 2026-06-17 10:07:41,475] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:07:41,475] 536 root - INFO -   Config path source : profile_file:app_config.yaml
+[ 2026-06-17 10:07:41,475] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/app_config.yaml
+[ 2026-06-17 10:07:41,475] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:07:41,475] 540 root - INFO -   Env overrides      : 3
+[ 2026-06-17 10:07:41,475] 542 root - INFO -     - env (from AML_ENV)
+[ 2026-06-17 10:07:41,475] 542 root - INFO -     - training.data.sample_size (from AML_TRAIN_DATA_SAMPLE_SIZE)
+[ 2026-06-17 10:07:41,475] 542 root - INFO -     - server.flask_port (from AML_SERVER_PORT)
+[ 2026-06-17 10:07:41,475] 543 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,480] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,480] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:07:41,480] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,480] 534 root - INFO -   Profile            : local
+[ 2026-06-17 10:07:41,480] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:07:41,480] 536 root - INFO -   Config path source : profile_file:app_config.yaml
+[ 2026-06-17 10:07:41,480] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/app_config.yaml
+[ 2026-06-17 10:07:41,480] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:07:41,480] 540 root - INFO -   Env overrides      : 0
+[ 2026-06-17 10:07:41,480] 543 root - INFO - ========================================================================
+[ 2026-06-17 10:07:41,480] 260 root - INFO - Training config loaded via ConfigService (profile=local, source=profile_file:app_config.yaml)
+[ 2026-06-17 10:07:41,480] 265 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=/Users/pkcha/AML-Fraud-Detection/artifacts
+[ 2026-06-17 10:07:43,609] 113 root - INFO - PredictionPipeline initialized: artifacts_dir=/Users/pkcha/AML-Fraud-Detection/artifacts, lazy_load=True, ConfigService=yes
+[ 2026-06-17 10:07:43,611] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:07:43,611] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:07:43,611] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:07:43,611] 534 root - INFO -   Profile            : local
+[ 2026-06-17 10:07:43,611] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:07:43,611] 536 root - INFO -   Config path source : explicit
+[ 2026-06-17 10:07:43,611] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/training_config.yaml
+[ 2026-06-17 10:07:43,611] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:07:43,611] 540 root - INFO -   Env overrides      : 0
+[ 2026-06-17 10:07:43,611] 543 root - INFO - ========================================================================
+[ 2026-06-17 10:07:43,611] 260 root - INFO - Training config loaded via ConfigService (profile=local, source=explicit)
+[ 2026-06-17 10:07:43,611] 265 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=/Users/pkcha/AML-Fraud-Detection/artifacts
+[ 2026-06-17 10:07:44,364] 113 root - INFO - PredictionPipeline initialized: artifacts_dir=/Users/pkcha/AML-Fraud-Detection/artifacts, lazy_load=True, ConfigService=yes

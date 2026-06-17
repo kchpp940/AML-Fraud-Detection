@@ -1,0 +1,25 @@
+[ 2026-06-17 10:07:12,682] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:07:12,682] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:07:12,682] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:07:12,682] 534 root - INFO -   Profile            : local
+[ 2026-06-17 10:07:12,682] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:07:12,682] 536 root - INFO -   Config path source : profile_file:app_config.yaml
+[ 2026-06-17 10:07:12,682] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/app_config.yaml
+[ 2026-06-17 10:07:12,682] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:07:12,682] 540 root - INFO -   Env overrides      : 0
+[ 2026-06-17 10:07:12,682] 543 root - INFO - ========================================================================
+[ 2026-06-17 10:07:12,682] 636 root - INFO - Effective config exported (sanitized) to: /Users/pkcha/AML-Fraud-Detection/logs/effective_config_local_20260617_100712_sanitized.json
+[ 2026-06-17 10:07:12,685] 410 root - INFO - Env override: env = 'local' -> 'staging' (from AML_ENV)
+[ 2026-06-17 10:07:12,685] 410 root - INFO - Env override: server.flask_port = 8080 -> 9999 (from AML_SERVER_PORT)
+[ 2026-06-17 10:07:12,685] 531 root - INFO - ========================================================================
+[ 2026-06-17 10:07:12,685] 532 root - INFO - ConfigService - Configuration loaded
+[ 2026-06-17 10:07:12,685] 533 root - INFO - ========================================================================
+[ 2026-06-17 10:07:12,685] 534 root - INFO -   Profile            : staging
+[ 2026-06-17 10:07:12,685] 535 root - INFO -   Project root       : /Users/pkcha/AML-Fraud-Detection
+[ 2026-06-17 10:07:12,685] 536 root - INFO -   Config path source : profile_file:app_config.yaml
+[ 2026-06-17 10:07:12,685] 538 root - INFO -   Config file        : /Users/pkcha/AML-Fraud-Detection/config/app_config.yaml
+[ 2026-06-17 10:07:12,685] 539 root - INFO -   YAML sources loaded: 1
+[ 2026-06-17 10:07:12,685] 540 root - INFO -   Env overrides      : 2
+[ 2026-06-17 10:07:12,685] 542 root - INFO -     - env (from AML_ENV)
+[ 2026-06-17 10:07:12,685] 542 root - INFO -     - server.flask_port (from AML_SERVER_PORT)
+[ 2026-06-17 10:07:12,685] 543 root - INFO - ========================================================================

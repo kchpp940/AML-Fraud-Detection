@@ -1,0 +1,175 @@
+{
+  "_config_metadata": {
+    "loaded_at": "2026-06-17T10:07:12.678740",
+    "profile": "local",
+    "project_root": "/Users/pkcha/AML-Fraud-Detection",
+    "config_path": "/Users/pkcha/AML-Fraud-Detection/config/app_config.yaml",
+    "config_path_source": "profile_file:app_config.yaml",
+    "yaml_sources": [
+      {
+        "path": "/Users/pkcha/AML-Fraud-Detection/config/app_config.yaml",
+        "loaded_at": "2026-06-17T10:07:12.681882"
+      }
+    ],
+    "env_override_count": 0,
+    "env_overrides": []
+  },
+  "config": {
+    "app_name": "AML Fraud Detector",
+    "app_version": "1.0.0",
+    "env": "local",
+    "project_root": "/Users/pkcha/AML-Fraud-Detection",
+    "training": {
+      "data": {
+        "source_path": "/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv",
+        "sample_size": 50000,
+        "test_size": 0.2,
+        "random_state": 42
+      },
+      "features": {
+        "target_column": "is_laundering",
+        "drop_columns": [
+          "timestamp",
+          "date",
+          "time",
+          "amount_paid",
+          "receiving_currency",
+          "payment_currency",
+          "from_bank",
+          "to_bank"
+        ]
+      },
+      "models": {
+        "selection_metric": "Recall",
+        "enabled": {
+          "RandomForest": true,
+          "AdaBoost": true,
+          "GradientBoosting": false,
+          "XGBoost": true
+        },
+        "param_grid": {
+          "RandomForest": {
+            "n_estimators": [
+              50,
+              100,
+              200
+            ]
+          },
+          "AdaBoost": {
+            "n_estimators": [
+              50,
+              100,
+              200
+            ],
+            "learning_rate": [
+              0.01,
+              0.1,
+              0.5,
+              1.0
+            ]
+          },
+          "GradientBoosting": {
+            "n_estimators": [
+              50,
+              100,
+              200
+            ],
+            "learning_rate": [
+              0.01,
+              0.1,
+              0.05,
+              0.001
+            ]
+          },
+          "XGBoost": {
+            "n_estimators": [
+              50,
+              100,
+              200
+            ],
+            "learning_rate": [
+              0.01,
+              0.1,
+              0.05,
+              0.001
+            ]
+          }
+        }
+      },
+      "output": {
+        "artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
+        "train_csv_name": "train.csv",
+        "test_csv_name": "test.csv",
+        "raw_csv_name": "data.csv",
+        "preprocessor_name": "preprocessor.pkl",
+        "model_name": "model.pkl",
+        "summary_name": "training_summary.json",
+        "feature_metadata_name": "feature_metadata.json",
+        "model_metadata_name": "model_metadata.json",
+        "quality_report_name": "data_quality_report.json",
+        "manifest_name": "artifact_manifest.json",
+        "train_csv_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/train.csv",
+        "test_csv_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/test.csv",
+        "raw_csv_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/data.csv",
+        "preprocessor_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
+        "model_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
+        "summary_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/training_summary.json",
+        "feature_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
+        "model_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model_metadata.json",
+        "quality_report_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/data_quality_report.json",
+        "manifest_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/artifact_manifest.json"
+      }
+    },
+    "prediction": {
+      "default_artifacts_dir": "/Users/pkcha/AML-Fraud-Detection/artifacts",
+      "model_file_name": "model.pkl",
+      "preprocessor_file_name": "preprocessor.pkl",
+      "feature_metadata_file_name": "feature_metadata.json",
+      "model_metadata_file_name": "model_metadata.json",
+      "risk_thresholds": {
+        "critical": 0.9,
+        "high": 0.7,
+        "medium": 0.5
+      },
+      "enable_lazy_load": true,
+      "model_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model.pkl",
+      "preprocessor_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/preprocessor.pkl",
+      "feature_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/feature_metadata.json",
+      "model_metadata_path": "/Users/pkcha/AML-Fraud-Detection/artifacts/model_metadata.json"
+    },
+    "server": {
+      "flask_host": "0.0.0.0",
+      "flask_port": 8080,
+      "flask_debug": false,
+      "streamlit_port": 8501,
+      "enable_cors": true,
+      "cors_origins": [
+        "*"
+      ],
+      "request_timeout": 30,
+      "max_content_length": 16777216
+    },
+    "logging": {
+      "level": "INFO",
+      "log_dir": "/Users/pkcha/AML-Fraud-Detection/logs",
+      "log_to_file": true,
+      "log_to_console": true,
+      "log_format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "max_file_size_mb": 10,
+      "backup_count": 5
+    },
+    "security": {
+      "mask_secrets_in_logs": "***MASKED***",
+      "secret_keys": [
+        "api_key",
+        "secret",
+        "token",
+        "password",
+        "credential",
+        "access_key",
+        "private_key"
+      ],
+      "enable_input_sanitization": true
+    }
+  }
+}

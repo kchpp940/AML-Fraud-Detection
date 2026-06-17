@@ -18,7 +18,7 @@ from aml_fraud_detector.components.model_trainer import ModelTrainer
 from aml_fraud_detector.components.model_evaluation import ModelEvaluation
 
 from aml_fraud_detector.configuration import TrainingConfig, TrainingSummary
-from aml_fraud_detector.config import get_config_service, reset_config_service
+from aml_fraud_detector.config import get_config_service
 from aml_fraud_detector.utils.main_utils import save_training_summary
 from aml_fraud_detector.entity import TrainingPipelineResult, ProcessStatus
 
@@ -104,6 +104,13 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"Model training done: best='{summary.best_model_name}', "
             f"{summary.selection_metric}={summary.best_metric_value:.4f}"
         )
+
+        try:
+            model_evaluation = ModelEvaluation()
+            model_evaluation.initiate_model_evaluation(train_arr, test_arr)
+            logging.info("Model evaluation done")
+        except Exception as e:
+            logging.warning(f"ModelEvaluation stage failed (non-fatal): {e}")
 
         summary.summary_path = os.path.abspath(
             training_config.artifacts_subpath("training_summary.json")
