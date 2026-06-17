@@ -1,0 +1,50 @@
+[ 2026-06-17 09:28:25,364] 164 numexpr.utils - INFO - NumExpr defaulting to 10 threads.
+[ 2026-06-17 09:28:41,475] 28 root - INFO - ========================================================================
+[ 2026-06-17 09:28:41,475] 29 root - INFO - AML Fraud Detection - Training pipeline started
+[ 2026-06-17 09:28:41,475] 30 root - INFO - ========================================================================
+[ 2026-06-17 09:28:41,476] 164 root - INFO - Loading training config (source=env): /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-17 09:28:41,478] 191 root - INFO - Training config loaded and validated successfully
+[ 2026-06-17 09:28:41,478] 192 root - INFO - Resolved config signature: data_source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, target=is_laundering, metric=Recall, output=artifacts_smoketest
+[ 2026-06-17 09:28:41,478] 45 root - INFO - Training config loaded (source=env): /Users/pkcha/AML-Fraud-Detection/config/training_config_smoke.yaml
+[ 2026-06-17 09:28:41,478] 38 root - INFO - [StageTracker] Stage 'DataIngestion' started at 2026-06-17T09:28:41.478780
+[ 2026-06-17 09:28:41,478] 36 root - INFO - DataIngestion initialized with resolved config: source=/Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv, sample_size=2000, test_size=0.25
+[ 2026-06-17 09:28:41,478] 44 root - INFO - Entered the 'data ingestion' method or component
+[ 2026-06-17 09:28:41,478] 47 root - INFO - CSV File Path: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-17 09:28:41,478] 50 root - INFO - File found: /Users/pkcha/AML-Fraud-Detection/notebook/data/HI-Small_Trans.csv
+[ 2026-06-17 09:28:41,516] 67 root - INFO - Read the dataset as DataFrame, shape=(4000, 11)
+[ 2026-06-17 09:28:41,521] 82 root - INFO - Sampled 2000 rows from dataset of 4000 rows
+[ 2026-06-17 09:28:41,529] 93 root - INFO - Train Test split initiated
+[ 2026-06-17 09:28:41,541] 101 root - INFO - Ingestion completed: train=1500, test=500
+[ 2026-06-17 09:28:41,542] 51 root - INFO - [StageTracker] Stage 'DataIngestion' completed in 0.063s
+[ 2026-06-17 09:28:41,542] 76 root - INFO - Data ingestion done: total=2000, train≈1500, test≈500
+[ 2026-06-17 09:28:41,542] 38 root - INFO - [StageTracker] Stage 'DataValidation' started at 2026-06-17T09:28:41.542365
+[ 2026-06-17 09:28:41,542] 17 root - INFO - DataValidation initialized
+[ 2026-06-17 09:28:41,542] 22 root - INFO - Entered the 'data validation' method or component
+[ 2026-06-17 09:28:41,542] 27 root - INFO - Data validation done
+[ 2026-06-17 09:28:41,542] 51 root - INFO - [StageTracker] Stage 'DataValidation' completed in 0.000s
+[ 2026-06-17 09:28:41,542] 90 root - INFO - Data validation done
+[ 2026-06-17 09:28:41,542] 38 root - INFO - [StageTracker] Stage 'DataTransformation' started at 2026-06-17T09:28:41.542732
+[ 2026-06-17 09:28:41,542] 51 root - INFO - DataTransformation initialized with resolved config: target=is_laundering, drop=['timestamp', 'date', 'time', 'amount_paid', 'receiving_currency', 'payment_currency', 'from_bank', 'to_bank'], preprocessor_out=/Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/preprocessor.pkl
+[ 2026-06-17 09:28:41,542] 102 root - INFO - 
+Entered the 'data transformation' method or component
+[ 2026-06-17 09:28:41,548] 114 root - INFO - Reading train and test data completed
+[ 2026-06-17 09:28:41,548] 81 root - ERROR - [StageTracker] Stage 'DataTransformation' failed after 0.006s: [E9999] 内部错误: [E1003] 数据缺少必需列: is_laundering
+[ 2026-06-17 09:28:41,548] 182 root - ERROR - Training pipeline failed: [E9999] 内部错误: [E1003] 数据缺少必需列: is_laundering
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 120, in initiate_data_transformation
+    raise DataQualityException(
+    ...<3 lines>...
+    )
+aml_fraud_detector.exception.DataQualityException: [E1003] 数据缺少必需列: is_laundering
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/pipeline/training_pipeline.py", line 98, in run_training_pipeline
+    transform_artifact = data_transformation.initiate_data_transformation(
+        train_data_path, test_data_path
+    )
+  File "/Users/pkcha/AML-Fraud-Detection/aml_fraud_detector/components/data_transformation.py", line 227, in initiate_data_transformation
+    raise CustomerException(e, sys)
+aml_fraud_detector.exception.CustomerException: [E9999] 内部错误: [E1003] 数据缺少必需列: is_laundering
+[ 2026-06-17 09:28:41,550] 38 root - INFO - Training summary saved to: /Users/pkcha/AML-Fraud-Detection/artifacts_smoketest/training_summary.json
