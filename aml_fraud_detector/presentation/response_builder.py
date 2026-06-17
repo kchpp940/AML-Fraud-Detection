@@ -11,12 +11,71 @@ import pandas as pd
 from aml_fraud_detector.constants import (
     ErrorCode,
     ErrorCategory,
-    ERROR_CATEGORY_DISPLAY,
-    ERROR_SEVERITY,
     HTTP_STATUS_CODES,
+)
+from aml_fraud_detector.entity.artifact_entity import (
     PROCESS_STATUS_SUCCESS,
     PROCESS_STATUS_ERROR,
 )
+
+ERROR_CATEGORY_DISPLAY = {
+    ErrorCategory.DATA_QUALITY: "数据质量",
+    ErrorCategory.INPUT_VALIDATION: "输入校验",
+    ErrorCategory.FEATURE_ALIGNMENT: "特征对齐",
+    ErrorCategory.MODEL_LOADING: "模型加载",
+    ErrorCategory.METADATA_VALIDATION: "元数据校验",
+    ErrorCategory.PREDICTION_ERROR: "预测执行",
+    ErrorCategory.EXPLANATION_ERROR: "解释生成",
+    ErrorCategory.CONFIG_ERROR: "配置错误",
+    ErrorCategory.PIPELINE_ERROR: "管道执行",
+    ErrorCategory.INTERNAL_ERROR: "内部错误",
+}
+
+ERROR_SEVERITY = {
+    ErrorCode.DATA_SOURCE_NOT_FOUND: "critical",
+    ErrorCode.DATA_EMPTY: "critical",
+    ErrorCode.DATA_MISSING_COLUMNS: "critical",
+    ErrorCode.DATA_INVALID_DTYPE: "warning",
+    ErrorCode.DATA_OUT_OF_RANGE: "warning",
+    ErrorCode.DATA_CORRUPTED: "critical",
+    ErrorCode.DATA_SAMPLING_ERROR: "error",
+    ErrorCode.INPUT_MISSING_FIELD: "error",
+    ErrorCode.INPUT_INVALID_TYPE: "error",
+    ErrorCode.INPUT_INVALID_FORMAT: "error",
+    ErrorCode.INPUT_OUT_OF_RANGE: "warning",
+    ErrorCode.INPUT_EMPTY_VALUE: "error",
+    ErrorCode.FEATURE_MISMATCH: "critical",
+    ErrorCode.FEATURE_MISSING: "critical",
+    ErrorCode.FEATURE_UNEXPECTED: "warning",
+    ErrorCode.FEATURE_TRANSFORM_FAILED: "error",
+    ErrorCode.FEATURE_ENCODING_FAILED: "error",
+    ErrorCode.MODEL_FILE_NOT_FOUND: "critical",
+    ErrorCode.MODEL_CORRUPTED: "critical",
+    ErrorCode.MODEL_INCOMPATIBLE: "critical",
+    ErrorCode.MODEL_NOT_TRAINED: "critical",
+    ErrorCode.PREPROCESSOR_FILE_NOT_FOUND: "critical",
+    ErrorCode.PREPROCESSOR_CORRUPTED: "critical",
+    ErrorCode.METADATA_FILE_NOT_FOUND: "warning",
+    ErrorCode.METADATA_CORRUPTED: "error",
+    ErrorCode.METADATA_SCHEMA_MISMATCH: "error",
+    ErrorCode.METADATA_VERSION_MISMATCH: "warning",
+    ErrorCode.MANIFEST_INTEGRITY_FAILED: "critical",
+    ErrorCode.ARTIFACT_MISSING: "critical",
+    ErrorCode.PREDICTION_FAILED: "error",
+    ErrorCode.PREDICTION_SHAPE_MISMATCH: "error",
+    ErrorCode.BATCH_PREDICTION_FAILED: "error",
+    ErrorCode.EXPLANATION_NOT_SUPPORTED: "info",
+    ErrorCode.EXPLANATION_FAILED: "warning",
+    ErrorCode.EXPLANATION_MODEL_INCOMPATIBLE: "warning",
+    ErrorCode.CONFIG_FILE_NOT_FOUND: "error",
+    ErrorCode.CONFIG_PARSE_FAILED: "error",
+    ErrorCode.CONFIG_INVALID_VALUE: "warning",
+    ErrorCode.CONFIG_MISSING_REQUIRED: "error",
+    ErrorCode.PIPELINE_STEP_FAILED: "error",
+    ErrorCode.PIPELINE_INVALID_STATE: "error",
+    ErrorCode.PIPELINE_DEPENDENCY_MISSING: "error",
+    ErrorCode.INTERNAL_UNEXPECTED: "critical",
+}
 from aml_fraud_detector.exception import (
     AMLException,
     ErrorDetail,
@@ -171,7 +230,7 @@ class ResponseBuilder:
         vm.training_time = mvi.training_time or ""
         vm.selection_metric = mvi.selection_metric or ""
         vm.best_metric_value = mvi.best_metric_value or ""
-        vm.feature_contract_version = mvi.feature_contract_version or ""
+        vm.feature_contract_version = mvi.feature_schema_version or ""
 
     def _fill_validation_fields(
         self, vm: UnifiedViewModel, vs: Optional[ValidationStatus]
@@ -181,7 +240,7 @@ class ResponseBuilder:
         vm.validation_valid = vs.is_valid
         vm.validation_errors = list(vs.errors)
         vm.validation_warnings = list(vs.warnings)
-        vm.validation_details = list(vs.details)
+        vm.validation_details = [{"artifact": a} for a in vs.checked_artifacts]
         vm.has_alerts = (len(vs.errors) + len(vs.warnings)) > 0
 
     def _fill_error_fields(
@@ -196,8 +255,8 @@ class ResponseBuilder:
         vm.error_category = error_detail.error_category.value if hasattr(error_detail.error_category, "value") else str(error_detail.error_category)
         vm.error_category_display = ERROR_CATEGORY_DISPLAY.get(error_detail.error_category, vm.error_category)
         vm.error_message = error_detail.message or ""
-        vm.error_field = error_detail.field_name or ""
-        vm.error_value = str(error_detail.field_value) if error_detail.field_value is not None else ""
+        vm.error_field = error_detail.field or ""
+        vm.error_value = str(error_detail.value) if error_detail.value is not None else ""
         vm.error_context = dict(error_detail.context) if error_detail.context else {}
         vm.error_trace_id = trace_id or self._last_trace_id
         vm.error_severity = ERROR_SEVERITY.get(error_detail.error_code, "info")
@@ -242,12 +301,12 @@ class ResponseBuilder:
             self._fill_error_fields(vm, prediction_result.error_detail, tid)
             return vm
 
-        vm.prediction_code = int(prediction_result.class_label.value) if hasattr(prediction_result.class_label, "value") else int(prediction_result.class_label)
-        vm.prediction_label = prediction_result.class_label.name if hasattr(prediction_result.class_label, "name") else str(prediction_result.class_label)
+        vm.prediction_code = int(prediction_result.prediction)
+        vm.prediction_label = str(prediction_result.class_label)
         vm.fraud_probability = float(prediction_result.fraud_probability)
-        vm.legit_probability = float(1.0 - prediction_result.fraud_probability)
+        vm.legit_probability = float(prediction_result.legit_probability)
         vm.risk_level = prediction_result.risk_level.value if hasattr(prediction_result.risk_level, "value") else str(prediction_result.risk_level)
-        vm.risk_summary = prediction_result.risk_summary or ""
+        vm.risk_summary = ""
         vm.risk_contributors = [dict(x) for x in (prediction_result.top_factors or [])]
         return vm
 
@@ -284,7 +343,60 @@ class ResponseBuilder:
         vm.batch_fraud = int(batch_result.fraud_count)
         vm.batch_legit = int(batch_result.total_count - batch_result.fraud_count)
         vm.batch_fraud_rate = f"{float(batch_result.fraud_rate) * 100:.2f}%"
-        vm.risk_level = batch_result.overall_risk_level.value if hasattr(batch_result.overall_risk_level, "value") else str(batch_result.overall_risk_level)
+        if batch_result.fraud_rate >= 0.7:
+            vm.risk_level = RiskLevel.CRITICAL.value
+        elif batch_result.fraud_rate >= 0.5:
+            vm.risk_level = RiskLevel.HIGH.value
+        elif batch_result.fraud_rate >= 0.3:
+            vm.risk_level = RiskLevel.MEDIUM.value
+        else:
+            vm.risk_level = RiskLevel.LOW.value
+        return vm
+
+    def build_error(
+        self,
+        error: AMLException,
+        model_version_info: Optional[ModelVersionInfo] = None,
+        validation_status: Optional[ValidationStatus] = None,
+        trace_id: Optional[str] = None,
+    ) -> UnifiedViewModel:
+        tid = trace_id or self._new_trace_id()
+        vm = UnifiedViewModel()
+        self._fill_model_fields(vm, model_version_info)
+        self._fill_validation_fields(vm, validation_status)
+        vm.is_error = True
+        vm.error_reason = error.message or ""
+        vm.process_status = ProcessStatus.ERROR.value
+        self._fill_error_fields(vm, error.error_detail, tid)
+        return vm
+
+    def build_training(
+        self,
+        training_result: Optional[Any] = None,
+        error: Optional[AMLException] = None,
+        trace_id: Optional[str] = None,
+    ) -> UnifiedViewModel:
+        tid = trace_id or self._new_trace_id()
+        vm = UnifiedViewModel()
+        if error is not None:
+            vm.is_error = True
+            vm.error_reason = error.message or ""
+            vm.process_status = ProcessStatus.ERROR.value
+            self._fill_error_fields(vm, error.error_detail, tid)
+            return vm
+        if training_result is None:
+            vm.is_error = True
+            vm.error_reason = "训练结果为空"
+            vm.process_status = ProcessStatus.ERROR.value
+            return vm
+        if not training_result.is_success():
+            vm.is_error = True
+            vm.error_reason = training_result.error_reason or ""
+            vm.process_status = ProcessStatus.ERROR.value
+            if training_result.error_detail:
+                self._fill_error_fields(vm, training_result.error_detail, tid)
+            return vm
+        vm.process_status = ProcessStatus.SUCCESS.value
         return vm
 
     def flatten_for_display(self, vm: UnifiedViewModel) -> Dict[str, Any]:
@@ -308,12 +420,12 @@ class ResponseBuilder:
             factors = list(pr.top_factors or [])
             row = {
                 "transaction_id": pr.transaction_id or "",
-                "prediction_code": int(pr.class_label.value) if hasattr(pr.class_label, "value") else int(pr.class_label),
-                "prediction_label": pr.class_label.name if hasattr(pr.class_label, "name") else str(pr.class_label),
+                "prediction_code": int(pr.prediction),
+                "prediction_label": str(pr.class_label),
                 "fraud_probability": float(pr.fraud_probability),
-                "legit_probability": float(1.0 - pr.fraud_probability),
+                "legit_probability": float(pr.legit_probability),
                 "risk_level": pr.risk_level.value if hasattr(pr.risk_level, "value") else str(pr.risk_level),
-                "risk_summary": pr.risk_summary or "",
+                "risk_summary": "",
                 "top_factor_1": factors[0].get("feature", "") if len(factors) > 0 else "",
                 "top_factor_2": factors[1].get("feature", "") if len(factors) > 1 else "",
                 "top_factor_3": factors[2].get("feature", "") if len(factors) > 2 else "",
