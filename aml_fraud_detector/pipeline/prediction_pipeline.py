@@ -13,10 +13,12 @@ from aml_fraud_detector.exception import (
     ModelLoadingException,
     wrap_exception,
 )
-from aml_fraud_detector.constants import ErrorCode, REQUIRED_INPUT_FIELDS
+from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
+from aml_fraud_detector.config import get_config_service, ConfigService
 from aml_fraud_detector.utils.main_utils import load_object
 from aml_fraud_detector.entity import (
+    REQUIRED_INPUT_FIELDS,
     PredictionResult,
     BatchPredictionResult,
     UnifiedPredictionResponse,
@@ -59,17 +61,60 @@ def _validate_input_field(field_name: str, value: Any, expected_type: type) -> N
 
 
 class PredictionPipeline:
-    def __init__(self, artifacts_dir: str = "artifacts"):
-        self.artifacts_dir = artifacts_dir
-        self.model_path = os.path.join(artifacts_dir, "model.pkl")
-        self.preprocessor_path = os.path.join(artifacts_dir, "preprocessor.pkl")
-        self.feature_metadata_path = os.path.join(artifacts_dir, "feature_metadata.json")
-        self.model_metadata_path = os.path.join(artifacts_dir, "model_metadata.json")
+    def __init__(
+        self,
+        artifacts_dir: Optional[str] = None,
+        config_service: Optional[ConfigService] = None,
+    ):
+        self._config_service: Optional[ConfigService] = config_service
+        if self._config_service is None:
+            try:
+                self._config_service = get_config_service()
+            except Exception as e:
+                logging.warning(f"PredictionPipeline: ConfigService unavailable, using defaults: {e}")
+                self._config_service = None
+
+        if self._config_service is not None:
+            pcfg = self._config_service.config.prediction
+            resolved_artifacts_dir = artifacts_dir or pcfg.default_artifacts_dir
+            self.artifacts_dir = resolved_artifacts_dir
+            self.model_path = os.path.join(resolved_artifacts_dir, pcfg.model_file_name)
+            self.preprocessor_path = os.path.join(resolved_artifacts_dir, pcfg.preprocessor_file_name)
+            self.feature_metadata_path = os.path.join(resolved_artifacts_dir, pcfg.feature_metadata_file_name)
+            self.model_metadata_path = os.path.join(resolved_artifacts_dir, pcfg.model_metadata_file_name)
+            self.risk_thresholds = dict(pcfg.risk_thresholds)
+            self.enable_lazy_load = bool(pcfg.enable_lazy_load)
+        else:
+            resolved_artifacts_dir = artifacts_dir or "artifacts"
+            self.artifacts_dir = resolved_artifacts_dir
+            self.model_path = os.path.join(resolved_artifacts_dir, "model.pkl")
+            self.preprocessor_path = os.path.join(resolved_artifacts_dir, "preprocessor.pkl")
+            self.feature_metadata_path = os.path.join(resolved_artifacts_dir, "feature_metadata.json")
+            self.model_metadata_path = os.path.join(resolved_artifacts_dir, "model_metadata.json")
+            self.risk_thresholds = {
+                "critical": 0.9,
+                "high": 0.7,
+                "medium": 0.5,
+            }
+            self.enable_lazy_load = True
 
         self._model = None
         self._preprocessor = None
         self._feature_metadata: Optional[Dict[str, Any]] = None
         self._model_metadata: Optional[Dict[str, Any]] = None
+
+        if not self.enable_lazy_load:
+            logging.info("PredictionPipeline: eager loading artifacts (lazy_load=False)")
+            try:
+                self._load_artifacts()
+            except Exception as e:
+                logging.warning(f"PredictionPipeline: eager load failed: {e}")
+
+        logging.info(
+            f"PredictionPipeline initialized: artifacts_dir={self.artifacts_dir}, "
+            f"lazy_load={self.enable_lazy_load}, "
+            f"ConfigService={'yes' if self._config_service else 'no/fallback'}"
+        )
 
     def _load_artifacts(self) -> None:
         if self._model is None:
@@ -196,12 +241,13 @@ class PredictionPipeline:
             fraud_prob = float(proba[1]) if len(proba) > 1 else float(proba[0])
             legit_prob = float(proba[0]) if len(proba) > 1 else 1.0 - fraud_prob
 
+            thresholds = self.risk_thresholds
             risk_level = RiskLevel.LOW
-            if fraud_prob >= 0.9:
+            if fraud_prob >= thresholds.get("critical", 0.9):
                 risk_level = RiskLevel.CRITICAL
-            elif fraud_prob >= 0.7:
+            elif fraud_prob >= thresholds.get("high", 0.7):
                 risk_level = RiskLevel.HIGH
-            elif fraud_prob >= 0.5:
+            elif fraud_prob >= thresholds.get("medium", 0.5):
                 risk_level = RiskLevel.MEDIUM
 
             risk_explanation = RiskExplanation(
@@ -295,12 +341,13 @@ class PredictionPipeline:
                 if prediction == 1:
                     fraud_count += 1
 
+                thresholds = self.risk_thresholds
                 risk_level = RiskLevel.LOW
-                if fraud_prob >= 0.9:
+                if fraud_prob >= thresholds.get("critical", 0.9):
                     risk_level = RiskLevel.CRITICAL
-                elif fraud_prob >= 0.7:
+                elif fraud_prob >= thresholds.get("high", 0.7):
                     risk_level = RiskLevel.HIGH
-                elif fraud_prob >= 0.5:
+                elif fraud_prob >= thresholds.get("medium", 0.5):
                     risk_level = RiskLevel.MEDIUM
 
                 risk_explanation = RiskExplanation(

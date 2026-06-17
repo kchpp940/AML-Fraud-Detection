@@ -1,6 +1,7 @@
 import sys
 import logging
-from dataclasses import dataclass, field as _field, asdict
+import dataclasses
+from dataclasses import dataclass, field as _dc_field, asdict
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
@@ -28,8 +29,8 @@ class ErrorDetail:
     message: str
     field: Optional[str] = None
     value: Optional[Any] = None
-    context: Dict[str, Any] = _field(default_factory=dict)
-    timestamp: str = _field(default_factory=lambda: datetime.now().isoformat())
+    context: Dict[str, Any] = _dc_field(default_factory=dict)
+    timestamp: str = _dc_field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
         return {

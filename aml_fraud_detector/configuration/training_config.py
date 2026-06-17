@@ -7,11 +7,17 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from aml_fraud_detector.exception import (
+    AMLException,
     CustomerException,
     ConfigException,
 )
 from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.logger import logging
+from aml_fraud_detector.config import (
+    ConfigService,
+    get_config_service,
+    ConfigProfile,
+)
 
 
 DEFAULT_CONFIG_PATH = os.path.join("config", "training_config.yaml")
@@ -102,7 +108,7 @@ def _apply_env_overrides(config: Dict[str, Any]) -> Tuple[Dict[str, Any], List[D
             "resolved_value": parsed,
         })
         logging.info(
-            f"Env override: {path} = {original!r} -> {parsed!r} (from {env_name}='{raw_value}')"
+            f"Env override (legacy): {path} = {original!r} -> {parsed!r} (from {env_name}='{raw_value}')"
         )
     return config, overrides
 
@@ -154,12 +160,116 @@ class TrainingSummary:
     artifacts_dir: str = ""
     summary_path: str = ""
     resolved_config: Dict[str, Any] = field(default_factory=dict)
-    stage_records: List[Dict[str, Any]] = field(default_factory=list)
+
+
+_MODEL_REGISTRY_ITEMS = [
+    ("RandomForest", "Random Forest"),
+    ("AdaBoost", "AdaBoost"),
+    ("GradientBoosting", "Gradient Boosting"),
+    ("XGBoost", "XGBoost"),
+]
 
 
 class TrainingConfig:
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(
+        self,
+        config_path: Optional[str] = None,
+        use_config_service: bool = True,
+    ):
         self.created_at = datetime.now().isoformat()
+        self._use_config_service = use_config_service
+
+        if use_config_service:
+            self._init_from_config_service(config_path)
+        else:
+            self._init_legacy(config_path)
+
+    def _init_from_config_service(self, config_path: Optional[str]) -> None:
+        try:
+            profile_override = None
+            if config_path and "smoke" in config_path.lower():
+                profile_override = ConfigProfile.SMOKE
+
+            self._config_service = get_config_service(
+                config_path=config_path,
+                profile=profile_override,
+            )
+        except AMLException as e:
+            logging.warning(
+                f"ConfigService load failed, falling back to legacy loader: {e}"
+            )
+            self._use_config_service = False
+            self._init_legacy(config_path)
+            return
+        except Exception as e:
+            logging.warning(
+                f"ConfigService load failed (unexpected), falling back to legacy: {e}"
+            )
+            self._use_config_service = False
+            self._init_legacy(config_path)
+            return
+
+        app_cfg = self._config_service.config
+        tcfg = app_cfg.training
+
+        self.config_path = self._config_service.config_path or DEFAULT_CONFIG_PATH
+        self.config_path_source = self._config_service._config_path_source
+        self.yaml_config_used = len(self._config_service.yaml_sources) > 0
+
+        legacy_env_overrides: List[Dict[str, Any]] = []
+        for ov in self._config_service.env_overrides:
+            path = ov.get("path", "")
+            if path.startswith("training."):
+                legacy_path = path[len("training."):]
+                legacy_env_overrides.append({
+                    "path": legacy_path,
+                    "env_name": ov.get("env_name", ""),
+                    "env_value": ov.get("env_value", ""),
+                    "original_value": ov.get("original_value"),
+                    "resolved_value": ov.get("resolved_value"),
+                })
+        self.env_overrides = legacy_env_overrides
+
+        self.data: DataConfig = DataConfig(
+            source_path=tcfg.data.source_path,
+            sample_size=tcfg.data.sample_size,
+            test_size=float(tcfg.data.test_size),
+            random_state=int(tcfg.data.random_state),
+        )
+        self.features: FeaturesConfig = FeaturesConfig(
+            target_column=tcfg.features.target_column,
+            drop_columns=list(tcfg.features.drop_columns),
+        )
+        self.models: ModelsConfig = ModelsConfig(
+            selection_metric=tcfg.models.selection_metric,
+            enabled=dict(tcfg.models.enabled),
+            param_grid=dict(tcfg.models.param_grid),
+        )
+        self.output: OutputConfig = OutputConfig(
+            artifacts_dir=tcfg.output.artifacts_dir,
+        )
+
+        self._raw: Dict[str, Any] = {
+            "data": asdict(self.data),
+            "features": asdict(self.features),
+            "models": asdict(self.models),
+            "output": asdict(self.output),
+        }
+        self._resolved_cache: Optional[Dict[str, Any]] = None
+
+        logging.info(
+            "Training config loaded via ConfigService "
+            f"(profile={self._config_service.profile}, "
+            f"source={self.config_path_source})"
+        )
+        logging.info(
+            f"Resolved config signature: data_source={self.resolve_source_path()}, "
+            f"target={self.features.target_column}, metric={self.models.selection_metric}, "
+            f"output={self.output.artifacts_dir}"
+        )
+
+    def _init_legacy(self, config_path: Optional[str]) -> None:
+        logging.info("TrainingConfig using legacy loader (not ConfigService)")
         self.config_path, self.config_path_source = self._resolve_config_path(config_path)
         logging.info(
             f"Loading training config (source={self.config_path_source}): {self.config_path}"
@@ -186,9 +296,9 @@ class TrainingConfig:
         self.output: OutputConfig = OutputConfig(
             artifacts_dir=raw["output"]["artifacts_dir"],
         )
-        self._validate()
+        self._validate_legacy()
         self._resolved_cache: Optional[Dict[str, Any]] = None
-        logging.info("Training config loaded and validated successfully")
+        logging.info("Training config loaded (legacy) and validated successfully")
         logging.info(
             f"Resolved config signature: data_source={self.resolve_source_path()}, "
             f"target={self.features.target_column}, metric={self.models.selection_metric}, "
@@ -276,7 +386,7 @@ class TrainingConfig:
 
         return _deep_merge(defaults, loaded), True
 
-    def _validate(self) -> None:
+    def _validate_legacy(self) -> None:
         if not isinstance(self.data.test_size, float) or not (0.0 < self.data.test_size < 1.0):
             raise ConfigException(
                 ErrorCode.CONFIG_INVALID_VALUE,
@@ -322,20 +432,6 @@ class TrainingConfig:
         return os.path.join(self.output.artifacts_dir, *parts)
 
     def to_resolved_dict(self) -> Dict[str, Any]:
-        """
-        Return a complete, serializable snapshot of the *finally resolved* training
-        configuration. Components and the training summary all reference this dict
-        so that the exact configuration used for a training run can always be
-        reproduced from the summary.
-
-        Fields included:
-          - run_info: created_at, config_path, config_path_source, yaml_config_used
-          - env_overrides: list of {path, env_name, env_value, original_value, resolved_value}
-          - data: source_path (resolved absolute), sample_size, test_size, random_state
-          - features: target_column, drop_columns
-          - models: selection_metric, enabled, param_grid
-          - output: artifacts_dir (absolute), preprocessor_path, model_path, summary_path
-        """
         if self._resolved_cache is not None:
             return self._resolved_cache
 
@@ -346,6 +442,7 @@ class TrainingConfig:
                 "config_path": self.config_path,
                 "config_path_source": self.config_path_source,
                 "yaml_config_used": self.yaml_config_used,
+                "config_service_used": self._use_config_service,
             },
             "env_overrides": list(self.env_overrides),
             "data": {
@@ -382,11 +479,3 @@ class TrainingConfig:
         }
         self._resolved_cache = snapshot
         return snapshot
-
-
-_MODEL_REGISTRY_ITEMS = [
-    ("RandomForest", "Random Forest"),
-    ("AdaBoost", "AdaBoost"),
-    ("GradientBoosting", "Gradient Boosting"),
-    ("XGBoost", "XGBoost"),
-]

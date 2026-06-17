@@ -1,0 +1,151 @@
+# ============================================================
+# AML Fraud Detector - Unified Application Configuration
+# ============================================================
+# This is the centralized config file used by ALL entry points:
+#   - Training Pipeline (training_pipeline.py)
+#   - Prediction Pipeline (prediction_pipeline.py)
+#   - Flask API Server (app.py)
+#   - Streamlit UI (app_streamlit.py)
+#
+# PRECEDENCE (lowest to highest):
+#   1. Schema defaults (coded in config_schema.py)
+#   2. This YAML file (or legacy training_config.yaml)
+#   3. Environment variables (AML_ prefix, see config_service.py ENV_CONFIG_MAPPING)
+#   4. Explicit arguments passed to ConfigService / TrainingConfig
+#
+# ENVIRONMENT PROFILES:
+#   You can create profile-specific files: app_config.{profile}.yaml
+#   Profiles: local | dev | staging | prod | smoke
+#   Select via:  AML_CONFIG_PROFILE=dev  or  AML_ENV=staging
+# ============================================================
+
+app_name: "AML Fraud Detector"
+app_version: "1.0.0"
+# env/profile can also be set via AML_ENV / AML_CONFIG_PROFILE env vars
+env: "local"
+project_root: ""
+
+
+# ===================== TRAINING =============================
+training:
+  data:
+    source_path: "notebook/data/HI-Small_Trans.csv"
+    sample_size: 50000        # null or 0 = use full dataset
+    test_size: 0.2            # (0, 1)
+    random_state: 42
+
+  features:
+    target_column: "is_laundering"
+    drop_columns:
+      - "timestamp"
+      - "date"
+      - "time"
+      - "amount_paid"
+      - "receiving_currency"
+      - "payment_currency"
+      - "from_bank"
+      - "to_bank"
+
+  models:
+    # Precision | Recall | F1 score (or alias "F1")
+    selection_metric: "Recall"
+    enabled:
+      RandomForest: true
+      AdaBoost: true
+      GradientBoosting: false
+      XGBoost: true
+    param_grid:
+      RandomForest:
+        n_estimators: [50, 100, 200]
+      AdaBoost:
+        n_estimators: [50, 100, 200]
+        learning_rate: [0.01, 0.1, 0.5, 1.0]
+      GradientBoosting:
+        n_estimators: [50, 100, 200]
+        learning_rate: [0.01, 0.1, 0.05, 0.001]
+      XGBoost:
+        n_estimators: [50, 100, 200]
+        learning_rate: [0.01, 0.1, 0.05, 0.001]
+
+  output:
+    artifacts_dir: "artifacts"
+    # File names inside artifacts_dir (ConfigService auto-joins paths)
+    train_csv_name: "train.csv"
+    test_csv_name: "test.csv"
+    raw_csv_name: "data.csv"
+    preprocessor_name: "preprocessor.pkl"
+    model_name: "model.pkl"
+    summary_name: "training_summary.json"
+    feature_metadata_name: "feature_metadata.json"
+    model_metadata_name: "model_metadata.json"
+    quality_report_name: "data_quality_report.json"
+    manifest_name: "artifact_manifest.json"
+
+
+# ==================== PREDICTION ============================
+prediction:
+  # Default artifacts directory for Flask / Streamlit / direct API callers
+  default_artifacts_dir: "artifacts"
+
+  # File names (relative to default_artifacts_dir)
+  model_file_name: "model.pkl"
+  preprocessor_file_name: "preprocessor.pkl"
+  feature_metadata_file_name: "feature_metadata.json"
+  model_metadata_file_name: "model_metadata.json"
+
+  # Risk classification thresholds (PredictionPipeline uses these)
+  risk_thresholds:
+    critical: 0.90   # fraud_prob >= 0.90 => CRITICAL
+    high:     0.70
+    medium:   0.50
+    # Anything below medium is LOW
+
+  # If false, artifacts are loaded eagerly at construction (for server cold-start warm-up)
+  enable_lazy_load: true
+
+
+# ====================== SERVER ==============================
+server:
+  flask_host: "0.0.0.0"
+  flask_port: 8080
+  flask_debug: false
+  streamlit_port: 8501
+
+  enable_cors: true
+  cors_origins:
+    - "*"
+
+  # Request limits (seconds / bytes)
+  request_timeout: 30
+  max_content_length: 16777216   # 16 MB
+
+
+# ====================== LOGGING =============================
+logging:
+  level: "INFO"                # DEBUG | INFO | WARNING | ERROR | CRITICAL
+  log_dir: "logs"
+  log_to_file: true
+  log_to_console: true
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  max_file_size_mb: 10
+  backup_count: 5
+
+
+# ===================== SECURITY =============================
+security:
+  # If true, any key containing api_key/secret/token/password etc. will
+  # be masked (***MASKED***) in sanitized effective config output.
+  mask_secrets_in_logs: true
+
+  # Additional custom secret key patterns (case-insensitive substring match)
+  secret_keys:
+    - "api_key"
+    - "secret"
+    - "token"
+    - "password"
+    - "credential"
+    - "access_key"
+    - "private_key"
+
+  # If true, server endpoints perform additional input sanitization.
+  enable_input_sanitization: true

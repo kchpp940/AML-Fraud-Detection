@@ -1,0 +1,62 @@
+# ============================================================
+# AML Fraud Detector - SMOKE TEST / CI-CD Profile
+# ============================================================
+# Smaller dataset, fewer models, for fast smoke tests.
+# Select profile via:  AML_CONFIG_PROFILE=smoke
+#                      or specify path:  AML_CONFIG_PATH=config/app_config.smoke.yaml
+# ============================================================
+
+env: "smoke"
+
+training:
+  data:
+    source_path: "notebook/data/HI-Small_Trans.csv"
+    sample_size: 2000
+    test_size: 0.25
+    random_state: 42
+
+  features:
+    target_column: "is_laundering"
+    drop_columns:
+      - "timestamp"
+      - "date"
+      - "time"
+      - "amount_paid"
+      - "receiving_currency"
+      - "payment_currency"
+      - "from_bank"
+      - "to_bank"
+
+  models:
+    selection_metric: "Recall"
+    enabled:
+      RandomForest: true
+      AdaBoost: true
+      GradientBoosting: false
+      XGBoost: false
+    param_grid:
+      RandomForest:
+        n_estimators: [20, 50]
+      AdaBoost:
+        n_estimators: [20, 50]
+        learning_rate: [0.1]
+
+  output:
+    artifacts_dir: "artifacts_smoketest"
+
+prediction:
+  default_artifacts_dir: "artifacts_smoketest"
+  risk_thresholds:
+    critical: 0.90
+    high:     0.70
+    medium:   0.50
+  enable_lazy_load: true
+
+server:
+  flask_port: 8080
+  streamlit_port: 8501
+  flask_debug: false
+
+logging:
+  level: "INFO"
+  log_dir: "logs"
