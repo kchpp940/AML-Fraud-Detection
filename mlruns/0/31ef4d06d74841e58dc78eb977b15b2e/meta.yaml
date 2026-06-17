@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/yrobi/Desktop/Robin%20World/Data%20Science%20-%20Machine%20Learning%20Prep/01%20-%20MLOps/AML-Fraud-Detection/mlruns/0/31ef4d06d74841e58dc78eb977b15b2e/artifacts
+end_time: 1781658957592
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 31ef4d06d74841e58dc78eb977b15b2e
+run_name: dashing-lynx-155
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781658945848
+status: 4
+tags: []
+user_id: pkcha

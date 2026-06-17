@@ -65,14 +65,10 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         with tracker.track_stage(
             "DataIngestion",
             input_paths=[resolved["data"]["source_path"]],
-            output_paths=[
-                resolved["output"]["raw_csv"],
-                resolved["output"]["train_csv"],
-                resolved["output"]["test_csv"],
-            ],
         ):
             data_ingestion = DataIngestion(training_config=training_config)
             train_data_path, test_data_path, df_sample = data_ingestion.initiate_data_ingestion()
+            tracker.set_output_paths([train_data_path, test_data_path])
 
         summary.data_rows = len(df_sample)
         summary.train_rows = int(len(df_sample) * (1 - training_config.data.test_size))
@@ -85,16 +81,10 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         # ── Stage 2: DataValidation ──
         with tracker.track_stage(
             "DataValidation",
-            input_paths=[
-                resolved["output"]["train_csv"],
-                resolved["output"]["test_csv"],
-            ],
-            output_paths=[
-                resolved["output"]["train_csv"],
-                resolved["output"]["test_csv"],
-            ],
+            input_paths=[train_data_path, test_data_path],
+            output_paths=[train_data_path, test_data_path],
         ):
-            data_validation = DataValidation(training_config=training_config)
+            data_validation = DataValidation()
             data_validation.initiate_data_validation(train_data_path, test_data_path)
 
         logging.info("Data validation done")
@@ -102,11 +92,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         # ── Stage 3: DataTransformation ──
         with tracker.track_stage(
             "DataTransformation",
-            input_paths=[
-                resolved["output"]["train_csv"],
-                resolved["output"]["test_csv"],
-            ],
-            output_paths=[resolved["output"]["preprocessor_pkl"]],
+            input_paths=[train_data_path, test_data_path],
         ):
             data_transformation = DataTransformation(training_config=training_config)
             transform_artifact = data_transformation.initiate_data_transformation(
@@ -114,6 +100,7 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             )
             train_arr = transform_artifact.train_array
             test_arr = transform_artifact.test_array
+            tracker.set_output_paths([transform_artifact.preprocessor_path])
 
         summary.feature_columns = transform_artifact.feature_columns
         summary.numerical_features = transform_artifact.numerical_features
@@ -129,11 +116,11 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
         # ── Stage 4: ModelTrainer ──
         with tracker.track_stage(
             "ModelTrainer",
-            input_paths=[resolved["output"]["preprocessor_pkl"]],
-            output_paths=[resolved["output"]["model_pkl"]],
+            input_paths=[transform_artifact.preprocessor_path],
         ):
             model_trainer = ModelTrainer(training_config=training_config)
             trainer_artifact = model_trainer.initiate_model_trainer(train_arr, test_arr)
+            tracker.set_output_paths([trainer_artifact.model_path])
 
         summary.candidate_models = trainer_artifact.candidate_models
         summary.selection_metric = trainer_artifact.selection_metric
@@ -150,19 +137,16 @@ def run_training_pipeline(config_path: Optional[str] = None) -> TrainingPipeline
             f"{summary.selection_metric}={summary.best_metric_value:.4f}"
         )
 
-        # ── Stage 5: ModelEvaluation ──
+        # ── Stage 5: ModelEvaluation (non-fatal on failure) ──
         tracker.start_stage(
             "ModelEvaluation",
-            input_paths=[resolved["output"]["model_pkl"]],
+            input_paths=[trainer_artifact.model_path],
         )
         try:
-            model_evaluation = ModelEvaluation(training_config=training_config)
-            eval_artifact = model_evaluation.initiate_model_evaluation(train_arr, test_arr)
-            tracker.complete_stage(output_paths=[eval_artifact.model_path])
-            logging.info(
-                f"Model evaluation done: precision={eval_artifact.precision:.4f}, "
-                f"recall={eval_artifact.recall:.4f}, f1={eval_artifact.f1_score:.4f}"
-            )
+            model_evaluation = ModelEvaluation()
+            model_evaluation.initiate_model_evaluation(train_arr, test_arr)
+            tracker.complete_stage(output_paths=[trainer_artifact.model_path])
+            logging.info("Model evaluation done")
         except Exception as e:
             tracker.fail_stage(e)
             logging.warning(f"ModelEvaluation stage failed (non-fatal): {e}")

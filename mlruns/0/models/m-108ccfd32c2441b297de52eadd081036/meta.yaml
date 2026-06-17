@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/yrobi/Desktop/Robin%20World/Data%20Science%20-%20Machine%20Learning%20Prep/01%20-%20MLOps/AML-Fraud-Detection/mlruns/0/models/m-108ccfd32c2441b297de52eadd081036/artifacts
+creation_timestamp: 1781658945890
+experiment_id: '0'
+last_updated_timestamp: 1781658957589
+model_id: m-108ccfd32c2441b297de52eadd081036
+model_type: null
+name: model
+source_run_id: 31ef4d06d74841e58dc78eb977b15b2e
+status: 3
+status_message: null

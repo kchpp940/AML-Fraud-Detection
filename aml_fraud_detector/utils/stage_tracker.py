@@ -43,7 +43,8 @@ class StageTracker:
             raise RuntimeError("No stage is currently running")
         now = datetime.now().isoformat()
         self._current.end_time = now
-        self._current.output_paths = list(output_paths or [])
+        if output_paths is not None:
+            self._current.output_paths = list(output_paths)
         self._current.status = "completed"
         start_dt = datetime.fromisoformat(self._current.start_time)
         self._current.duration_seconds = (datetime.fromisoformat(now) - start_dt).total_seconds()
@@ -54,6 +55,11 @@ class StageTracker:
         record = self._current
         self._current = None
         return record
+
+    def set_output_paths(self, output_paths: List[str]) -> None:
+        if self._current is None:
+            raise RuntimeError("No stage is currently running")
+        self._current.output_paths = list(output_paths)
 
     def fail_stage(self, error: Exception) -> StageRecord:
         if self._current is None:
