@@ -91,7 +91,13 @@ from aml_fraud_detector.entity.artifact_entity import (
     ProcessStatus,
     RiskLevel,
 )
+from aml_fraud_detector.presentation.display_builders import (
+    BATCH_DF_COLUMNS as _BATCH_DF_COLUMNS,
+    batch_predictions_to_dataframe,
+)
 
+
+BATCH_DF_COLUMNS = _BATCH_DF_COLUMNS
 
 ERROR_FIELDNAMES = [
     "error_code",
@@ -143,20 +149,6 @@ BATCH_FIELDNAMES = [
     "batch_fraud_rate",
     "batch_is_error",
     "batch_error_reason",
-]
-
-BATCH_DF_COLUMNS = [
-    "transaction_id",
-    "prediction_code",
-    "prediction_label",
-    "fraud_probability",
-    "legit_probability",
-    "risk_level",
-    "risk_summary",
-    "top_factor_1",
-    "top_factor_2",
-    "top_factor_3",
-    "process_status",
 ]
 
 
@@ -434,7 +426,6 @@ class ResponseBuilder:
             rows.append(row)
         df = pd.DataFrame(rows, columns=BATCH_DF_COLUMNS)
         return df
-
     def to_dict(self, vm: UnifiedViewModel) -> Dict[str, Any]:
         flat = self.flatten_for_display(vm)
         flat["_raw_error"] = vm._raw_error

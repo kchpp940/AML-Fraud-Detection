@@ -11,14 +11,6 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from aml_fraud_detector.artifact_validator import ArtifactValidator
-from aml_fraud_detector.cli_response_adapter import (
-    adapt_batch,
-    adapt_error,
-    adapt_single,
-    adapt_training,
-    adapt_validation,
-    batch_to_dataframe,
-)
 from aml_fraud_detector.constants import ErrorCode
 from aml_fraud_detector.entity import (
     REQUIRED_INPUT_FIELDS,
@@ -26,6 +18,7 @@ from aml_fraud_detector.entity import (
     ModelVersionInfo,
     PredictionResult,
     TrainingPipelineResult,
+    UnifiedPredictionResponse,
     ValidationStatus,
 )
 from aml_fraud_detector.exception import (
@@ -38,14 +31,19 @@ from aml_fraud_detector.exception import (
 from aml_fraud_detector.logger import logging as _pkg_logger
 from aml_fraud_detector.pipeline.prediction_pipeline import CustomData, PredictionPipeline
 from aml_fraud_detector.pipeline.training_pipeline import run_training_pipeline
+from aml_fraud_detector.presentation.display_builders import batch_predictions_to_dataframe
 
 
 def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
 
 
-def _print_envelope(data: Dict[str, Any]) -> None:
+def _print_dict(data: Dict[str, Any]) -> None:
     print(json.dumps(data, indent=2, ensure_ascii=False, default=str))
+
+
+def _print_error(exc: AMLException, trace_id: str) -> None:
+    _print_dict(exc.to_error_response(trace_id=trace_id).to_dict())
 
 
 def _load_context(artifacts_dir: str):
@@ -63,7 +61,7 @@ def _ensure_artifacts_valid(vs: ValidationStatus, tid: str, mvi: ModelVersionInf
             error_details=sys,
             artifact="; ".join(vs.errors),
         )
-        _print_envelope(adapt_error(exc, mvi=mvi, vs=vs, trace_id=tid))
+        _print_error(exc, tid)
         sys.exit(1)
 
 
@@ -72,21 +70,39 @@ def cmd_train(args: argparse.Namespace) -> int:
     tid = _trace_id()
     try:
         result: TrainingPipelineResult = run_training_pipeline(config_path=args.config)
-        _print_envelope(adapt_training(result, trace_id=tid))
         if result.is_success():
-            if result.summary:
-                print()
-                print(json.dumps(result.summary, indent=2, ensure_ascii=False, default=str))
-            if result.artifacts:
-                print()
-                print(json.dumps(result.artifacts, indent=2, ensure_ascii=False, default=str))
-        return 0 if result.is_success() else 1
+            _print_dict({
+                "success": True,
+                "status": "success",
+                "summary": result.summary or {},
+                "artifacts": result.artifacts or {},
+                "trace_id": tid,
+            })
+            return 0
+        if result.error_detail:
+            from aml_fraud_detector.exception import UnifiedErrorResponse
+            err_resp = UnifiedErrorResponse(
+                success=False,
+                status="error",
+                error=result.error_detail,
+                http_status=500,
+                trace_id=tid,
+            )
+            _print_dict(err_resp.to_dict())
+        else:
+            _print_dict({
+                "success": False,
+                "status": "error",
+                "error_reason": result.error_reason or "训练失败",
+                "trace_id": tid,
+            })
+        return 1
     except AMLException as e:
-        _print_envelope(adapt_error(e, trace_id=tid))
+        _print_error(e, tid)
         return 1
     except Exception as e:
         wrapped = wrap_exception(e, error_details=sys)
-        _print_envelope(adapt_error(wrapped, trace_id=tid))
+        _print_error(wrapped, tid)
         return 1
 
 
@@ -104,16 +120,20 @@ def cmd_validate_artifacts(args: argparse.Namespace) -> int:
                 error_details=sys,
                 artifact="; ".join(vs.errors),
             )
-            _print_envelope(adapt_error(exc, mvi=mvi, vs=vs, trace_id=tid))
+            _print_error(exc, tid)
             return 1
-        _print_envelope(adapt_validation(mvi=mvi, vs=vs, trace_id=tid))
+        resp = UnifiedPredictionResponse(
+            model_version=mvi,
+            validation=vs,
+        )
+        _print_dict(resp.to_dict())
         return 0
     except AMLException as e:
-        _print_envelope(adapt_error(e, trace_id=tid))
+        _print_error(e, tid)
         return 1
     except Exception as e:
         wrapped = wrap_exception(e, error_details=sys)
-        _print_envelope(adapt_error(wrapped, trace_id=tid))
+        _print_error(wrapped, tid)
         return 1
 
 
@@ -131,16 +151,20 @@ def cmd_show_version(args: argparse.Namespace) -> int:
                 error_details=sys,
                 path=os.path.join(artifacts_dir, "model_metadata.json"),
             )
-            _print_envelope(adapt_error(exc, vs=vs, trace_id=tid))
+            _print_error(exc, tid)
             return 1
-        _print_envelope(adapt_validation(mvi=mvi, vs=vs, trace_id=tid))
+        resp = UnifiedPredictionResponse(
+            model_version=mvi,
+            validation=vs,
+        )
+        _print_dict(resp.to_dict())
         return 0
     except AMLException as e:
-        _print_envelope(adapt_error(e, trace_id=tid))
+        _print_error(e, tid)
         return 1
     except Exception as e:
         wrapped = wrap_exception(e, error_details=sys)
-        _print_envelope(adapt_error(wrapped, trace_id=tid))
+        _print_error(wrapped, tid)
         return 1
 
 
@@ -199,14 +223,19 @@ def cmd_predict_one(args: argparse.Namespace) -> int:
                 )
         df = cd.get_data_as_DataFrame()
         result: PredictionResult = pipeline.predict(df)
-        _print_envelope(adapt_single(result, mvi=mvi, vs=vs, trace_id=tid))
+        resp = UnifiedPredictionResponse(
+            model_version=mvi,
+            validation=vs,
+            single_prediction=result,
+        )
+        _print_dict(resp.to_dict())
         return 0 if result.is_success() else 1
     except AMLException as e:
-        _print_envelope(adapt_error(e, trace_id=tid))
+        _print_error(e, tid)
         return 1
     except Exception as e:
         wrapped = wrap_exception(e, error_details=sys)
-        _print_envelope(adapt_error(wrapped, trace_id=tid))
+        _print_error(wrapped, tid)
         return 1
 
 
@@ -241,9 +270,14 @@ def cmd_predict_batch(args: argparse.Namespace) -> int:
             )
         result: BatchPredictionResult = pipeline.predict_batch(df)
         if args.output_format in ("json", "both"):
-            _print_envelope(adapt_batch(result, mvi=mvi, vs=vs, trace_id=tid))
+            resp = UnifiedPredictionResponse(
+                model_version=mvi,
+                validation=vs,
+                batch_prediction=result,
+            )
+            _print_dict(resp.to_dict())
         if result.is_success() and args.output_format in ("csv", "both"):
-            batch_df = batch_to_dataframe(result)
+            batch_df = batch_predictions_to_dataframe(result)
             if args.output_file:
                 batch_df.to_csv(args.output_file, index=False)
                 if args.output_format == "both":
@@ -253,11 +287,11 @@ def cmd_predict_batch(args: argparse.Namespace) -> int:
                 print(batch_df.to_csv(index=False))
         return 0 if result.is_success() else 1
     except AMLException as e:
-        _print_envelope(adapt_error(e, trace_id=tid))
+        _print_error(e, tid)
         return 1
     except Exception as e:
         wrapped = wrap_exception(e, error_details=sys)
-        _print_envelope(adapt_error(wrapped, trace_id=tid))
+        _print_error(wrapped, tid)
         return 1
 
 
@@ -356,7 +390,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     except Exception as e:
         tid = _trace_id()
         wrapped = wrap_exception(e, error_details=sys)
-        _print_envelope(adapt_error(wrapped, trace_id=tid))
+        _print_error(wrapped, tid)
         return 1
 
 
